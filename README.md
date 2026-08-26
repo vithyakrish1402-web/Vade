@@ -4,19 +4,23 @@ A privacy-focused text communication platform designed with visual privacy, gest
 
 ---
 
-## Current Status: Phase 4 — Real-Time Messaging (Complete)
+## Current Status: Phase 5 — Protected Message Rendering (Complete)
 
-Phase 4 establishes real-time message exchange, PostgreSQL persistence with Prisma, cursor-based pagination, WebSocket synchronization with cookie authentication, multi-session delivery, and live chat UI with delivery/read states.
+Phase 5 establishes Layer 2 Visual Privacy via a pure, deterministic, Unicode-safe visual homoglyph transformation utility (`protectMessage`) and `<ProtectedMessage>` component that protects message text from casual shoulder-surfing in the chat interface.
 
 > [!NOTE]
-> **Temporary Plaintext Development Implementation**: Messages are transported and stored in plaintext during Phase 4 as the base messaging foundation. End-to-end encryption (Layer 1) is scheduled for Phase 7, and visual protection/gesture reveals (Layer 2) are scheduled for Phases 5 and 6.
+> **Visual Privacy Clarification**:
+> - **Visual Protection (Layer 2)**: Prevents casual shoulder-surfing by rendering message content using stylized visual homoglyphs on screen by default.
+> - **Plaintext Transport & Storage**: Messages are transported and stored in plaintext in the database/WebSocket layers during Phase 5.
+> - **End-to-End Encryption (Layer 1)**: Cryptographic confidentiality is scheduled for Phase 7.
+> - **Gesture-Based Reveals**: Interactive gesture drawing and temporary reveal authorization are scheduled for Phase 6.
 
 ### Core Architecture
 
 ```text
 ┌───────────────────────────────────────────────────────────┐
 │                        Web Client                         │
-│   (React + useMessages + messageService + wsClient)       │
+│   (useMessages ──> <ProtectedMessage> ──> protectMessage) │
 └───────────────┬───────────────────────────┬───────────────┘
                 │ HTTP REST (Cookie)        │ WebSocket (/ws)
                 ▼                           ▼
@@ -47,17 +51,18 @@ Phase 4 establishes real-time message exchange, PostgreSQL persistence with Pris
 
 ## Architectural Principles
 
-1. **Separation of Concerns**: UI components, REST APIs, WebSocket real-time transport, database services, and security layers are strictly decoupled.
-2. **Authoritative Server Security**:
+1. **Multi-Layered Privacy Architecture**:
+   - **Layer 1 — Cryptographic Security**: End-to-end encryption across the wire (Phase 7).
+   - **Layer 2 — Visual Privacy**: Protected homoglyph display on screen (Phase 5) with gesture-based reveal (Phase 6).
+2. **Deterministic & Pure Transformation**:
+   - `protectMessage(content)` is a pure, stateless function with zero side effects.
+   - Preserves message lengths, word boundaries, numbers, punctuation, spaces, and multiline line breaks.
+   - Preserves multi-byte Unicode code points and emojis without surrogate pair corruption.
+3. **Authoritative Server Security**:
    - Sender identity is always derived from authenticated sessions (`req.user.id`).
    - Conversation membership is verified on every REST endpoint and WebSocket subscription.
-   - Cross-tenant access is rejected with `403 Forbidden`.
    - Passwords are encrypted using one-way `bcrypt` hashing (12 salt rounds).
-   - Message contents are **never** logged in server logs or error dumps.
-3. **Multi-Session & Resilient Delivery**:
-   - Supports multiple active client connections per user (e.g. multiple browser tabs).
-   - Automatic WebSocket reconnection with exponential backoff and message deduplication.
-   - Historical REST sync upon reconnect ensures no missed messages during network interruptions.
+   - Zero sensitive logging: message content, passwords, hashes, tokens, and keys are omitted from all logs.
 
 ---
 
@@ -69,14 +74,16 @@ enctxt/
 ├── client/                     # React + Vite + Tailwind CSS frontend
 │   ├── src/
 │   │   ├── auth/               # AuthContext & ProtectedRoute
-│   │   ├── components/         # Navbar, ConnectionStatus, Layout
+│   │   ├── components/         # Navbar, ConnectionStatus, Layout, messages/ProtectedMessage
 │   │   ├── pages/              # LandingPage, LoginPage, RegisterPage, DashboardPage, ConversationPage
 │   │   ├── hooks/              # useHealthCheck, useConversations, useMessages
 │   │   ├── services/           # api, authService, userService, conversationService, messageService, websocket
+│   │   ├── utils/              # protectMessage
 │   │   ├── types/              # Client type definitions
 │   │   ├── App.tsx             # Root routing with protected routes
 │   │   ├── main.tsx            # DOM entrypoint
 │   │   └── index.css           # Tailwind directives and theme
+│   ├── test/                   # Client unit test suite (protectMessage.test.ts)
 │   ├── package.json
 │   ├── tsconfig.json
 │   └── vite.config.ts
@@ -93,7 +100,7 @@ enctxt/
 │   │   └── server.ts           # Server bootstrap & WebSocket binding
 │   ├── prisma/
 │   │   └── schema.prisma       # User, Session, Conversation, Member, Message models
-│   ├── test/                   # Comprehensive Vitest test suite (auth, conversation, message, websocket)
+│   ├── test/                   # Server test suite (auth, conversation, message, websocket)
 │   ├── package.json
 │   └── tsconfig.json
 │
@@ -112,7 +119,7 @@ enctxt/
 
 ---
 
-## API Endpoints (Phase 4)
+## API Endpoints
 
 ### System & Health
 
@@ -153,24 +160,12 @@ enctxt/
 | `GET` | `/api/conversations/:id/messages` | Retrieve conversation history with cursor pagination | Yes |
 | `POST` | `/api/conversations/:id/read` | Mark conversation read & emit read receipt | Yes |
 
-### WebSocket Real-Time Channel (`/ws`)
-
-| Event Type | Direction | Payload Description |
-|---|---|---|
-| `auth` | Client $\to$ Server | Late authentication using session token |
-| `subscribe` | Client $\to$ Server | Subscribe to conversation room (verified against membership) |
-| `unsubscribe` | Client $\to$ Server | Unsubscribe from conversation room |
-| `message.created` | Server $\to$ Client | Real-time message broadcast to conversation members |
-| `message.delivered` | Client $\leftrightarrow$ Server | Delivery confirmation to sender |
-| `message.read` | Client $\leftrightarrow$ Server | Read receipt acknowledgement to sender |
-| `ping` / `pong` | Client $\leftrightarrow$ Server | Connection heartbeat check |
-
 ---
 
 ## Testing & Quality Assurance
 
 ```bash
-# Run automated backend test suite (55 tests across Auth, Conversations, Messaging, WebSockets)
+# Run automated test suites across all workspaces (72 tests: 55 backend + 17 frontend)
 npm test
 
 # Run TypeScript typechecks across all workspaces
@@ -178,9 +173,6 @@ npm run typecheck
 
 # Production builds for all workspaces
 npm run build
-
-# Validate Prisma schema
-npm run prisma:validate --workspace=server
 ```
 
 ---
@@ -191,7 +183,7 @@ npm run prisma:validate --workspace=server
 - [x] **Phase 2 — Authentication & User Identity** (Complete)
 - [x] **Phase 3 — 1-to-1 Conversation System** (Complete)
 - [x] **Phase 4 — Real-Time Messaging** (Complete)
-- [ ] **Phase 5 — Visual Privacy Engine & Protected Rendering (Layer 2)**
+- [x] **Phase 5 — Visual Privacy Engine & Protected Rendering (Layer 2)** (Complete)
 - [ ] **Phase 6 — Custom Gesture Sequence & Reveal Authorization**
 - [ ] **Phase 7 — End-to-End Encryption Architecture (Layer 1)**
 - [ ] **Phase 8 — Multi-Client & Mobile Support (Web & Android)**
