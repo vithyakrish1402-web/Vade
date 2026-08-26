@@ -1,5 +1,5 @@
 // Prisma Schema for enctxt / private-chat
-// Phase 3: 1-to-1 Conversations
+// Phase 4: Real-Time Messaging
 
 generator client {
   provider = "prisma-client-js"
@@ -32,6 +32,7 @@ model User {
   updatedAt           DateTime             @updatedAt
   sessions            Session[]
   conversationMembers ConversationMember[]
+  sentMessages        Message[]
 
   @@index([username])
   @@index([email])
@@ -52,13 +53,14 @@ model Session {
   @@map("sessions")
 }
 
-// Conversation Model (Phase 3: 1-to-1 Conversations)
+// Conversation Model
 model Conversation {
   id        String               @id @default(uuid())
   directKey String               @unique // Deterministic sorted pair of user IDs: "idA:idB"
   createdAt DateTime             @default(now())
   updatedAt DateTime             @updatedAt
   members   ConversationMember[]
+  messages  Message[]
 
   @@index([directKey])
   @@map("conversations")
@@ -77,4 +79,20 @@ model ConversationMember {
   @@index([userId])
   @@index([conversationId])
   @@map("conversation_members")
+}
+
+// Message Model (Phase 4: Real-Time Messaging)
+model Message {
+  id             String       @id @default(uuid())
+  conversationId String
+  senderId       String
+  content        String
+  createdAt      DateTime     @default(now())
+  updatedAt      DateTime     @updatedAt
+  conversation   Conversation @relation(fields: [conversationId], references: [id], onDelete: Cascade)
+  sender         User         @relation(fields: [senderId], references: [id], onDelete: Cascade)
+
+  @@index([conversationId, createdAt])
+  @@index([senderId])
+  @@map("messages")
 }
