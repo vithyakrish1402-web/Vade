@@ -1,28 +1,34 @@
+import type { EncryptedMessageEnvelope } from './crypto.js';
+
 export type MessageStatus = 'sending' | 'sent' | 'delivered' | 'read' | 'failed';
 
 export interface MessageItem {
   id: string;
   conversationId: string;
   senderId: string;
-  content: string;
-  status?: MessageStatus;
+  ciphertext: string;
+  nonce: string;
+  senderKeyId: string;
+  recipientKeyId: string;
+  algorithm: string;
+  version: number;
+  aad?: string | null;
   createdAt: string;
   updatedAt: string;
+  status?: MessageStatus;
 }
 
 export interface SendMessageInput {
-  content: string;
-  tempId?: string; // Optional client-generated ID for optimistic tracking
+  envelope: EncryptedMessageEnvelope;
+  tempId?: string;
 }
 
 export interface SendMessageResponse {
   message: MessageItem;
-  tempId?: string;
 }
 
 export interface MessageListResponse {
   messages: MessageItem[];
-  hasMore: boolean;
   nextCursor?: string;
-  total?: number;
+  hasMore: boolean;
 }
