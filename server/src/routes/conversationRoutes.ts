@@ -1,5 +1,6 @@
 import { Router } from 'express';
 import { ConversationController } from '../controllers/conversationController.js';
+import { MessageController } from '../controllers/messageController.js';
 import { requireAuth } from '../middleware/authMiddleware.js';
 
 const router = Router();
@@ -15,5 +16,14 @@ router.get('/', ConversationController.listConversations);
 
 // Retrieve single conversation details
 router.get('/:id', ConversationController.getConversation);
+
+// Send message within conversation
+router.post('/:conversationId/messages', MessageController.sendMessage);
+
+// Retrieve messages within conversation (paginated)
+router.get('/:conversationId/messages', MessageController.getMessages);
+
+// Mark conversation messages as read
+router.post('/:conversationId/read', MessageController.markRead);
 
 export default router;

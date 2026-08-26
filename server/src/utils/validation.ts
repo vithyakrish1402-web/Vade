@@ -99,3 +99,22 @@ export const conversationListQuerySchema = z.object({
     .optional()
     .transform((val) => (val ? Math.min(50, Math.max(1, parseInt(val, 10) || 20)) : 20)),
 });
+
+export const sendMessageSchema = z.object({
+  content: z
+    .string({ required_error: 'Message content is required' })
+    .min(1, 'Message content cannot be empty')
+    .max(5000, 'Message content cannot exceed 5000 characters')
+    .refine((val) => val.trim().length > 0, {
+      message: 'Message cannot be only whitespace',
+    }),
+  tempId: z.string().max(100).optional(),
+});
+
+export const messagePaginationSchema = z.object({
+  limit: z
+    .string()
+    .optional()
+    .transform((val) => (val ? Math.min(100, Math.max(1, parseInt(val, 10) || 50)) : 50)),
+  before: z.string().optional(),
+});
