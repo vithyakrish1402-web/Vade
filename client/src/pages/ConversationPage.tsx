@@ -5,6 +5,7 @@ import { conversationService } from '../services/conversationService';
 import { useMessages } from '../hooks/useMessages';
 import type { ConversationDetails } from '@enctxt/shared';
 import { ApiClientError } from '../services/api';
+import { ProtectedMessage } from '../components/messages/ProtectedMessage';
 import {
   ArrowLeft,
   Loader2,
@@ -252,7 +253,7 @@ export const ConversationPage: React.FC = () => {
                         : 'bg-slate-800 text-slate-100 rounded-tl-xs border border-slate-700/60'
                     }`}
                   >
-                    {msg.content}
+                    <ProtectedMessage content={msg.content} />
                   </div>
 
                   {/* Message Meta: Timestamp & Delivery Status */}
