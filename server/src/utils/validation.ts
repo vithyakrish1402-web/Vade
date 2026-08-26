@@ -69,6 +69,7 @@ export const searchQuerySchema = z.object({
 
 export const createConversationSchema = z
   .object({
+    userId: z.string().uuid('Invalid user ID format').optional(),
     recipientId: z.string().uuid('Invalid recipient ID format').optional(),
     recipientUsername: z
       .string()
@@ -78,6 +79,23 @@ export const createConversationSchema = z
       .transform((val) => val.toLowerCase())
       .optional(),
   })
-  .refine((data) => data.recipientId !== undefined || data.recipientUsername !== undefined, {
-    message: 'Either recipientId or recipientUsername must be provided',
-  });
+  .refine(
+    (data) =>
+      data.userId !== undefined ||
+      data.recipientId !== undefined ||
+      data.recipientUsername !== undefined,
+    {
+      message: 'A target userId, recipientId, or recipientUsername must be provided',
+    }
+  );
+
+export const conversationListQuerySchema = z.object({
+  page: z
+    .string()
+    .optional()
+    .transform((val) => (val ? Math.max(1, parseInt(val, 10) || 1) : 1)),
+  limit: z
+    .string()
+    .optional()
+    .transform((val) => (val ? Math.min(50, Math.max(1, parseInt(val, 10) || 20)) : 20)),
+});
