@@ -42,11 +42,21 @@ class WebSocketClient {
     this.isManuallyClosed = false;
     this.setStatus(this.reconnectAttempts > 0 ? 'reconnecting' : 'connecting');
 
-    const protocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
-    const host = window.location.hostname;
-    // Connect to port 5000 in development or current origin in production
-    const port = window.location.port === '5173' ? '5000' : window.location.port;
-    const wsUrl = `${protocol}//${host}${port ? `:${port}` : ''}/ws`;
+    const apiUrl = import.meta.env.VITE_API_URL;
+    let wsUrl: string;
+    if (apiUrl) {
+      // Derive the WebSocket origin from the configured API origin so the
+      // client can connect to a backend hosted on a different domain.
+      const apiOrigin = new URL(apiUrl, window.location.href);
+      const protocol = apiOrigin.protocol === 'https:' ? 'wss:' : 'ws:';
+      wsUrl = `${protocol}//${apiOrigin.host}/ws`;
+    } else {
+      const protocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
+      const host = window.location.hostname;
+      // Connect to port 5000 in development or current origin in production
+      const port = window.location.port === '5173' ? '5000' : window.location.port;
+      wsUrl = `${protocol}//${host}${port ? `:${port}` : ''}/ws`;
+    }
 
     try {
       this.ws = new WebSocket(wsUrl);

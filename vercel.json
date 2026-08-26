@@ -1,0 +1,9 @@
+{
+  "buildCommand": "npm run build:shared && npm run build --workspace=client",
+  "outputDirectory": "client/dist",
+  "installCommand": "npm ci",
+  "framework": null,
+  "rewrites": [
+    { "source": "/(.*)", "destination": "/index.html" }
+  ]
+}
