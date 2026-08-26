@@ -33,6 +33,10 @@ export class WebSocketService {
   /**
    * Initializes the WebSocket server attached to an HTTP server.
    */
+  initialize(server: HttpServer): WebSocketServer {
+    return this.init(server);
+  }
+
   init(server: HttpServer): WebSocketServer {
     this.wss = new WebSocketServer({ server, path: '/ws' });
 

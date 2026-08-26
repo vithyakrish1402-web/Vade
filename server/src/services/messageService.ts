@@ -11,7 +11,8 @@ import { wsService } from './websocket.js';
 
 export class MessageService {
   /**
-   * Sends and persists a message to PostgreSQL and notifies real-time WebSocket listeners.
+   * Persists an encrypted message envelope to PostgreSQL and notifies real-time WebSocket listeners.
+   * Server NEVER inspects or decrypts message content.
    */
   static async sendMessage(
     conversationId: string,
@@ -39,23 +40,30 @@ export class MessageService {
       throw AppError.forbidden('You are not authorized to send messages in this conversation');
     }
 
-    // 2. Validate message content
-    const content = input.content;
-    if (!content || typeof content !== 'string' || content.trim().length === 0) {
-      throw AppError.badRequest('Message content cannot be empty or whitespace only');
+    // 2. Validate encrypted envelope structure
+    const env = input.envelope;
+    if (!env || !env.ciphertext || !env.nonce || !env.senderKeyId || !env.recipientKeyId) {
+      throw AppError.badRequest('Invalid or incomplete encrypted message envelope');
     }
-    if (content.length > 5000) {
-      throw AppError.badRequest('Message content exceeds maximum allowed length of 5000 characters');
+
+    if (env.ciphertext.length > 65536) {
+      throw AppError.badRequest('Ciphertext exceeds maximum payload size of 64KB');
     }
 
     const now = new Date();
 
-    // 3. Persist message to database
+    // 3. Persist encrypted envelope to database
     const createdMessage = await prisma.message.create({
       data: {
         conversationId,
         senderId,
-        content,
+        ciphertext: env.ciphertext,
+        nonce: env.nonce,
+        senderKeyId: env.senderKeyId,
+        recipientKeyId: env.recipientKeyId,
+        algorithm: env.algorithm || 'AES-256-GCM',
+        version: env.version ?? 1,
+        aad: env.aad || null,
         createdAt: now,
         updatedAt: now,
       },
@@ -67,25 +75,32 @@ export class MessageService {
       data: { updatedAt: now },
     });
 
-    // Note: NEVER log message.content for privacy preservation!
-    logger.info('Message persisted', {
+    // Log event without ciphertext or key material
+    logger.info('Encrypted message persisted', {
       event: 'message_created',
       messageId: createdMessage.id,
       conversationId,
       senderId,
+      version: createdMessage.version,
     });
 
     const messageItem: MessageItem = {
       id: createdMessage.id,
       conversationId: createdMessage.conversationId,
       senderId: createdMessage.senderId,
-      content: createdMessage.content,
+      ciphertext: createdMessage.ciphertext,
+      nonce: createdMessage.nonce,
+      senderKeyId: createdMessage.senderKeyId,
+      recipientKeyId: createdMessage.recipientKeyId,
+      algorithm: createdMessage.algorithm,
+      version: createdMessage.version,
+      aad: createdMessage.aad,
       status: 'sent',
       createdAt: createdMessage.createdAt.toISOString(),
       updatedAt: createdMessage.updatedAt.toISOString(),
     };
 
-    // 5. Broadcast real-time event to conversation subscribers & active user sockets
+    // 5. Broadcast real-time encrypted event to conversation subscribers & user sockets
     const memberIds = conversation.members.map((m) => m.userId);
     wsService.sendToMembers(memberIds, {
       type: 'message.created',
@@ -101,12 +116,11 @@ export class MessageService {
 
     return {
       message: messageItem,
-      tempId: input.tempId,
     };
   }
 
   /**
-   * Retrieves message history for a conversation with cursor-based pagination.
+   * Retrieves encrypted message history for a conversation with cursor-based pagination.
    */
   static async getMessages(
     conversationId: string,
@@ -141,7 +155,6 @@ export class MessageService {
     };
 
     if (beforeCursor) {
-      // Find cursor message to get its creation date
       const cursorMessage = await prisma.message.findUnique({
         where: { id: beforeCursor },
         select: { createdAt: true },
@@ -174,12 +187,18 @@ export class MessageService {
     const nextCursor = pageMessages.length > 0 ? pageMessages[pageMessages.length - 1].id : undefined;
 
     // Reverse to return messages in ascending chronological order for chat UI
-    const chronologicalMessages = [...pageMessages].reverse().map((m) => ({
+    const chronologicalMessages: MessageItem[] = [...pageMessages].reverse().map((m) => ({
       id: m.id,
       conversationId: m.conversationId,
       senderId: m.senderId,
-      content: m.content,
-      status: 'sent' as const,
+      ciphertext: m.ciphertext,
+      nonce: m.nonce,
+      senderKeyId: m.senderKeyId,
+      recipientKeyId: m.recipientKeyId,
+      algorithm: m.algorithm,
+      version: m.version,
+      aad: m.aad,
+      status: 'sent',
       createdAt: m.createdAt.toISOString(),
       updatedAt: m.updatedAt.toISOString(),
     }));

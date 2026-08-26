@@ -19,11 +19,12 @@ import {
   CheckCheck,
   Clock,
   RotateCcw,
-  MessageSquare,
   ChevronDown,
   Eye,
   EyeOff,
   Shield,
+  ShieldCheck,
+  Lock,
 } from 'lucide-react';
 
 export const ConversationPage: React.FC = () => {
@@ -47,9 +48,12 @@ export const ConversationPage: React.FC = () => {
   // Reveal hook
   const { isRevealed, revealMessage, hideMessage } = useMessageReveal();
 
-  // Message hook
+  const otherParticipant = conversation?.participants.find((p) => p.id !== user?.id);
+
+  // Message hook with E2EE
   const {
     messages,
+    getDecryptedText,
     isLoading: messagesLoading,
     isLoadingOlder,
     hasMore,
@@ -57,7 +61,7 @@ export const ConversationPage: React.FC = () => {
     sendMessage,
     retryMessage,
     loadOlderMessages,
-  } = useMessages(conversationId, user?.id);
+  } = useMessages(conversationId, user?.id, otherParticipant?.id);
 
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const scrollContainerRef = useRef<HTMLDivElement>(null);
@@ -165,8 +169,6 @@ export const ConversationPage: React.FC = () => {
     );
   }
 
-  const otherParticipant = conversation?.participants.find((p) => p.id !== user?.id);
-
   return (
     <div className="flex-1 max-w-4xl mx-auto px-4 sm:px-6 py-4 w-full flex flex-col h-[calc(100vh-7rem)]">
       <div className="bg-slate-900 border border-slate-800 rounded-2xl shadow-xl flex flex-col flex-1 overflow-hidden">
@@ -189,7 +191,14 @@ export const ConversationPage: React.FC = () => {
               <h2 className="text-sm font-bold text-slate-100 flex items-center gap-2">
                 <span>{otherParticipant?.displayName}</span>
               </h2>
-              <p className="text-[11px] text-slate-400 font-mono">@{otherParticipant?.username}</p>
+              <p className="text-[11px] text-slate-400 font-mono flex items-center gap-1.5">
+                <span>@{otherParticipant?.username}</span>
+                <span className="text-slate-600">•</span>
+                <span className="inline-flex items-center gap-1 text-[10px] text-emerald-400 font-sans">
+                  <Lock className="w-2.5 h-2.5" />
+                  <span>E2EE Active</span>
+                </span>
+              </p>
             </div>
           </div>
 
@@ -249,17 +258,17 @@ export const ConversationPage: React.FC = () => {
           {messagesLoading ? (
             <div className="flex-1 flex flex-col items-center justify-center py-24 space-y-2">
               <Loader2 className="w-6 h-6 animate-spin text-emerald-500" />
-              <p className="text-xs text-slate-500 font-mono">Loading messages...</p>
+              <p className="text-xs text-slate-500 font-mono">Loading encrypted messages...</p>
             </div>
           ) : messages.length === 0 ? (
             <div className="flex-1 flex flex-col items-center justify-center py-20 text-center space-y-3">
               <div className="w-12 h-12 rounded-2xl bg-slate-900 border border-slate-800 flex items-center justify-center text-slate-500 shadow">
-                <MessageSquare className="w-6 h-6 text-emerald-500" />
+                <ShieldCheck className="w-6 h-6 text-emerald-500" />
               </div>
               <div className="space-y-1">
-                <p className="text-xs font-semibold text-slate-300">No messages yet.</p>
+                <p className="text-xs font-semibold text-slate-300">End-to-End Encrypted Chat</p>
                 <p className="text-[11px] text-slate-500 max-w-xs">
-                  Send a message to start the conversation with @{otherParticipant?.username}.
+                  Messages are end-to-end encrypted with @{otherParticipant?.username}. No one outside this chat can read them.
                 </p>
               </div>
             </div>
@@ -267,6 +276,7 @@ export const ConversationPage: React.FC = () => {
             messages.map((msg) => {
               const isMe = msg.senderId === user?.id;
               const revealed = isRevealed(msg.id);
+              const decryptedContent = getDecryptedText(msg);
 
               return (
                 <div
@@ -287,7 +297,7 @@ export const ConversationPage: React.FC = () => {
                       }`}
                     >
                       <ProtectedMessage
-                        content={msg.content}
+                        content={decryptedContent}
                         displayMode={revealed ? 'revealed' : 'protected'}
                       />
                     </div>
@@ -395,7 +405,7 @@ export const ConversationPage: React.FC = () => {
               value={inputContent}
               onChange={(e) => setInputContent(e.target.value)}
               onKeyDown={handleKeyDown}
-              placeholder="Type a message... (Press Enter to send)"
+              placeholder="Type an encrypted message... (Press Enter to send)"
               rows={1}
               maxLength={5000}
               className="flex-1 bg-transparent border-0 resize-none text-xs sm:text-sm text-slate-100 placeholder-slate-500 focus:outline-none max-h-32 min-h-[36px] py-1.5 px-2"
@@ -412,7 +422,7 @@ export const ConversationPage: React.FC = () => {
                 type="submit"
                 disabled={!inputContent.trim()}
                 className="p-2 bg-emerald-600 hover:bg-emerald-500 text-white rounded-xl disabled:opacity-30 transition-all cursor-pointer shadow flex items-center justify-center"
-                title="Send Message"
+                title="Send Encrypted Message"
               >
                 <Send className="w-4 h-4" />
               </button>
