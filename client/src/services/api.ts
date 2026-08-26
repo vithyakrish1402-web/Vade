@@ -27,6 +27,7 @@ async function request<T>(endpoint: string, options: RequestInit = {}): Promise<
 
   try {
     const response = await fetch(url, {
+      credentials: 'include', // Automatically handle HttpOnly session cookies
       ...options,
       headers,
     });
@@ -67,4 +68,12 @@ export const api = {
       method: 'POST',
       body: body !== undefined ? JSON.stringify(body) : undefined,
     }),
+  patch: <T>(endpoint: string, body?: unknown, options?: RequestInit) =>
+    request<T>(endpoint, {
+      ...options,
+      method: 'PATCH',
+      body: body !== undefined ? JSON.stringify(body) : undefined,
+    }),
+  delete: <T>(endpoint: string, options?: RequestInit) =>
+    request<T>(endpoint, { ...options, method: 'DELETE' }),
 };

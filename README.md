@@ -4,38 +4,40 @@ A privacy-focused text communication platform designed with visual privacy, gest
 
 ---
 
-## Current Status: Phase 1 — Project Foundation
+## Current Status: Phase 2 — Authentication & User Identity (Complete)
 
-> **Note**: Phase 1 establishes the clean, modular, and testable foundation for the application. No messaging, encryption, or gesture functionality is implemented in this phase.
+Phase 2 establishes the core authentication, session management, user identity, profile management, and user discovery system.
 
 ### Core Architecture
 
 ```text
-┌───────────────────────────────┐
-│          Web Browser          │
-└──────────────┬────────────────┘
-               │
-               ▼
-┌───────────────────────────────┐
-│      React + TypeScript       │
-│           Frontend            │
-└──────────────┬────────────────┘
-               │ HTTP API
-               ▼
-┌───────────────────────────────┐
-│     Node.js + TypeScript      │
-│            Backend            │
-└──────────────┬────────────────┘
-               │
-               ▼
-┌───────────────────────────────┐
-│          Prisma ORM           │
-└──────────────┬────────────────┘
-               │
-               ▼
-┌───────────────────────────────┐
-│          PostgreSQL           │
-└───────────────────────────────┘
+┌───────────────────────────────────────────────┐
+│                  Web Browser                  │
+│       (React + Tailwind + AuthContext)        │
+└───────────────────────┬───────────────────────┘
+                        │ HTTP REST (HttpOnly Cookie)
+                        ▼
+┌───────────────────────────────────────────────┐
+│             Node.js + Express API             │
+│   (Rate Limiter → Auth Middleware → Router)   │
+└───────────────────────┬───────────────────────┘
+                        │
+                        ▼
+┌───────────────────────────────────────────────┐
+│        Services (AuthService, UserService)    │
+│            (bcryptjs + JWT Sessions)          │
+└───────────────────────┬───────────────────────┘
+                        │
+                        ▼
+┌───────────────────────────────────────────────┐
+│                  Prisma ORM                   │
+│            (User & Session Models)            │
+└───────────────────────┬───────────────────────┘
+                        │
+                        ▼
+┌───────────────────────────────────────────────┐
+│                  PostgreSQL                   │
+└───────────────────────────────────────────────┘
 ```
 
 ---
@@ -44,7 +46,12 @@ A privacy-focused text communication platform designed with visual privacy, gest
 
 1. **Separation of Concerns**: UI components, API communication, business services, database access, and security layers are isolated into distinct modules.
 2. **Modular Backend**: Request flow follows `Route` $\to$ `Controller` $\to$ `Service` $\to$ `Database` $\to$ `Response`.
-3. **Security by Default**: Sensitive parameters (passwords, tokens, encryption keys, gesture data) are automatically redacted in server logs and never leaked in error responses.
+3. **Security by Default**:
+   - Passwords hashed with `bcrypt` (12 rounds) and never stored in plaintext.
+   - Zero password hashes, session tokens, or sensitive credentials leaked in API responses.
+   - Structured server logger automatically redacts passwords, tokens, and secrets.
+   - Generic authentication errors prevent account enumeration.
+   - Sessions secured with `HttpOnly`, `SameSite=lax`, and conditional HTTPS `Secure` cookies.
 4. **Shared Type System**: Monorepo structure shares API response and error definitions between frontend and backend.
 5. **Two Distinct Privacy Layers**:
    - **Layer 1 — Cryptographic Security**: End-to-end encryption across the wire (Phase 3+).
@@ -59,13 +66,14 @@ enctxt/
 │
 ├── client/                     # React + Vite + Tailwind CSS frontend
 │   ├── src/
-│   │   ├── components/         # Reusable UI components (Navbar, ConnectionStatus, Layout)
-│   │   ├── pages/              # Route pages (Landing, Login, Register, AppPlaceholder)
-│   │   ├── hooks/              # Custom React hooks (useHealthCheck)
-│   │   ├── services/           # API service client and health service
-│   │   ├── types/              # Client-specific type definitions
-│   │   ├── App.tsx             # Root routing component
-│   │   ├── main.tsx            # Application DOM entrypoint
+│   │   ├── auth/               # AuthContext & ProtectedRoute
+│   │   ├── components/         # Navbar, ConnectionStatus, Layout
+│   │   ├── pages/              # LandingPage, LoginPage, RegisterPage, DashboardPage
+│   │   ├── hooks/              # useHealthCheck
+│   │   ├── services/           # api, authService, userService, healthService
+│   │   ├── types/              # Client type definitions
+│   │   ├── App.tsx             # Root routing with protected /app route
+│   │   ├── main.tsx            # DOM entrypoint
 │   │   └── index.css           # Tailwind directives and theme
 │   ├── package.json
 │   ├── tsconfig.json
@@ -73,22 +81,23 @@ enctxt/
 │
 ├── server/                     # Node.js + Express + Prisma backend
 │   ├── src/
-│   │   ├── config/             # Validated environment configuration (env.ts)
-│   │   ├── controllers/        # Route controllers (healthController.ts)
-│   │   ├── middleware/         # Error handler, request logger, 404 handler
-│   │   ├── routes/             # API routes (/api/health)
-│   │   ├── services/           # Business services & Prisma DB client singleton
-│   │   ├── utils/              # Structured logger, AppError classes
+│   │   ├── config/             # Validated env configuration with Zod
+│   │   ├── controllers/        # authController, userController, healthController
+│   │   ├── middleware/         # authMiddleware, rateLimiter, errorHandler, requestLogger
+│   │   ├── routes/             # authRoutes, userRoutes, healthRoutes
+│   │   ├── services/           # authService, userService, db
+│   │   ├── utils/              # crypto, jwt, validation, errors, logger
 │   │   ├── app.ts              # Express application setup
 │   │   └── server.ts           # Server bootstrap & lifecycle
 │   ├── prisma/
-│   │   └── schema.prisma       # PostgreSQL Prisma schema
+│   │   └── schema.prisma       # User, Session, and SystemInfo models
+│   ├── test/                   # Comprehensive Vitest test suite (auth.test.ts)
 │   ├── package.json
 │   └── tsconfig.json
 │
 ├── shared/                     # Shared TypeScript types
 │   ├── src/
-│   │   ├── types/              # HealthResponse, ApiErrorResponse, ErrorCode
+│   │   ├── types/              # HealthResponse, UserSummary, UserProfile, AuthResponse, etc.
 │   │   └── index.ts
 │   ├── package.json
 │   └── tsconfig.json
@@ -140,6 +149,11 @@ CORS_ORIGIN=http://localhost:5173
 # Database (PostgreSQL)
 DATABASE_URL="postgresql://postgres:postgres@localhost:5432/enctxt_dev?schema=public"
 
+# Auth / Sessions
+JWT_SECRET="replace_with_a_secure_random_32_plus_character_secret_key"
+SESSION_COOKIE_NAME="enctxt_session"
+SESSION_MAX_AGE_DAYS=7
+
 # Frontend (Vite)
 VITE_API_URL=http://localhost:5000/api
 ```
@@ -152,7 +166,7 @@ Generate the Prisma client:
 npm run prisma:generate
 ```
 
-Apply database migrations (when PostgreSQL is active):
+Apply database migrations:
 
 ```bash
 npm run prisma:migrate
@@ -163,7 +177,7 @@ npm run prisma:migrate
 Run both frontend and backend concurrently:
 
 ```bash
-# Run both
+# Run both concurrently
 npm run dev
 
 # Or run individually:
@@ -173,48 +187,43 @@ npm run dev:client    # Frontend runs on http://localhost:5173
 
 ---
 
-## API Endpoints (Phase 1)
+## API Endpoints (Phase 2)
 
-### Health Check
+### System & Health
 
-```http
-GET /api/health
-```
+| Method | Endpoint | Description | Auth Required |
+|---|---|---|---|
+| `GET` | `/api/health` | System and database connectivity health check | No |
 
-**Success Response (`200 OK`)**:
+### Authentication
 
-```json
-{
-  "status": "ok",
-  "timestamp": "2026-08-26T04:10:00.000Z",
-  "uptime": 12,
-  "database": "connected",
-  "version": "0.1.0"
-}
-```
+| Method | Endpoint | Description | Auth Required |
+|---|---|---|---|
+| `POST` | `/api/auth/register` | Register account, establish session cookie | No (Rate Limited) |
+| `POST` | `/api/auth/login` | Authenticate with username/email & password | No (Rate Limited) |
+| `GET` | `/api/auth/me` | Retrieve current authenticated user session | No (Returns null if guest) |
+| `POST` | `/api/auth/logout` | Invalidate active session & clear cookie | No |
 
-### Error Response Format
+### Users & Profiles
 
-All API errors adhere to a standardized JSON schema:
-
-```json
-{
-  "error": {
-    "code": "RESOURCE_NOT_FOUND",
-    "message": "Route not found: GET /api/unknown"
-  }
-}
-```
+| Method | Endpoint | Description | Auth Required |
+|---|---|---|---|
+| `GET` | `/api/users/me` | Get full user profile (email, joined date) | Yes |
+| `PATCH` | `/api/users/me` | Update display name and/or username | Yes |
+| `GET` | `/api/users/search?q=<query>` | Search registered users by username/name | Yes |
 
 ---
 
-## Build and Testing
+## Testing & Quality Assurance
 
 ```bash
+# Run automated backend test suite (20 tests covering Auth, Sessions, Profiles, Search)
+npm test
+
 # Run TypeScript typechecks across all workspaces
 npm run typecheck
 
-# Production build for all workspaces
+# Production builds for all workspaces
 npm run build
 
 # Validate Prisma schema
@@ -225,9 +234,9 @@ npm run prisma:validate --workspace=server
 
 ## Roadmap
 
-- [x] **Phase 1 — Project Foundation** (Current)
-- [ ] **Phase 2 — Authentication & User Identity**
-- [ ] **Phase 3 — Cryptographic Engine (Layer 1 Security)**
-- [ ] **Phase 4 — Visual Privacy Engine & Gesture Recognition (Layer 2)**
-- [ ] **Phase 5 — End-to-End Messaging & Real-Time Sync**
+- [x] **Phase 1 — Project Foundation** (Complete)
+- [x] **Phase 2 — Authentication & User Identity** (Complete)
+- [ ] **Phase 3 — Conversation Architecture & Message Storage**
+- [ ] **Phase 4 — Cryptographic Engine (Layer 1 Security)**
+- [ ] **Phase 5 — Visual Privacy Engine & Gesture Recognition (Layer 2)**
 - [ ] **Phase 6 — Multi-Client Support (Web & Android)**
