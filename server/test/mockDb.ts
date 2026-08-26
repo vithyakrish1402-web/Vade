@@ -32,17 +32,28 @@ export interface MockConversationMember {
   joinedAt: Date;
 }
 
+export interface MockMessage {
+  id: string;
+  conversationId: string;
+  senderId: string;
+  content: string;
+  createdAt: Date;
+  updatedAt: Date;
+}
+
 export class MockDatabase {
   public users: Map<string, MockUser> = new Map();
   public sessions: Map<string, MockSession> = new Map();
   public conversations: Map<string, MockConversation> = new Map();
   public members: Map<string, MockConversationMember> = new Map();
+  public messages: Map<string, MockMessage> = new Map();
 
   reset(): void {
     this.users.clear();
     this.sessions.clear();
     this.conversations.clear();
     this.members.clear();
+    this.messages.clear();
   }
 
   get userDelegate() {
@@ -273,6 +284,17 @@ export class MockDatabase {
 
         return this.hydrateConversation(newConv, include);
       },
+
+      update: async ({ where, data }: { where: { id: string }; data: Partial<MockConversation> }) => {
+        const existing = this.conversations.get(where.id);
+        if (!existing) throw new Error('Conversation not found');
+        const updated = {
+          ...existing,
+          ...data,
+        };
+        this.conversations.set(where.id, updated);
+        return updated;
+      },
     };
   }
 
@@ -287,6 +309,60 @@ export class MockDatabase {
           return found || null;
         }
         return null;
+      },
+    };
+  }
+
+  get messageDelegate() {
+    return {
+      findUnique: async ({ where }: { where: { id: string } }) => {
+        const found = this.messages.get(where.id);
+        return found || null;
+      },
+
+      findMany: async ({ where, orderBy, take }: { where?: any; orderBy?: any; take?: number }) => {
+        let list = Array.from(this.messages.values());
+
+        if (where) {
+          if (where.conversationId) {
+            list = list.filter((m) => m.conversationId === where.conversationId);
+          }
+          if (where.createdAt?.lt) {
+            const ltDate = new Date(where.createdAt.lt).getTime();
+            list = list.filter((m) => m.createdAt.getTime() < ltDate);
+          }
+        }
+
+        if (orderBy) {
+          const orderArr = Array.isArray(orderBy) ? orderBy : [orderBy];
+          const isDesc = orderArr.some((o: any) => o.createdAt === 'desc');
+          if (isDesc) {
+            list.sort((a, b) => b.createdAt.getTime() - a.createdAt.getTime());
+          } else {
+            list.sort((a, b) => a.createdAt.getTime() - b.createdAt.getTime());
+          }
+        }
+
+        if (take !== undefined) {
+          return list.slice(0, take);
+        }
+
+        return list;
+      },
+
+      create: async ({ data }: { data: { conversationId: string; senderId: string; content: string; createdAt?: Date; updatedAt?: Date } }) => {
+        const id = crypto.randomUUID();
+        const now = data.createdAt || new Date();
+        const newMsg: MockMessage = {
+          id,
+          conversationId: data.conversationId,
+          senderId: data.senderId,
+          content: data.content,
+          createdAt: now,
+          updatedAt: data.updatedAt || now,
+        };
+        this.messages.set(id, newMsg);
+        return newMsg;
       },
     };
   }
