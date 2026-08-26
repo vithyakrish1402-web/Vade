@@ -1,8 +1,9 @@
 import React, { useState, useEffect, useCallback } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../auth/AuthContext';
 import { userService } from '../services/userService';
 import { conversationService } from '../services/conversationService';
-import type { UserProfile, UserSummary, ConversationSummary } from '@enctxt/shared';
+import type { UserProfile, UserSummary, SingleConversationItem } from '@enctxt/shared';
 import { ApiClientError } from '../services/api';
 import {
   User,
@@ -16,14 +17,14 @@ import {
   Calendar,
   Mail,
   MessageSquare,
-  Lock,
-  Plus,
+  ArrowRight,
   MessagesSquare,
-  ShieldAlert,
+  UserPlus,
 } from 'lucide-react';
 
 export const DashboardPage: React.FC = () => {
   const { user, logout, setUser } = useAuth();
+  const navigate = useNavigate();
 
   // Tab State: 'conversations' | 'search' | 'profile'
   const [activeTab, setActiveTab] = useState<'conversations' | 'search' | 'profile'>('conversations');
@@ -40,9 +41,8 @@ export const DashboardPage: React.FC = () => {
   const [editError, setEditError] = useState<string | null>(null);
 
   // Conversations State
-  const [conversations, setConversations] = useState<ConversationSummary[]>([]);
+  const [conversations, setConversations] = useState<SingleConversationItem[]>([]);
   const [convLoading, setConvLoading] = useState(true);
-  const [selectedConv, setSelectedConv] = useState<ConversationSummary | null>(null);
   const [convError, setConvError] = useState<string | null>(null);
 
   // Search State
@@ -80,9 +80,6 @@ export const DashboardPage: React.FC = () => {
     try {
       const data = await conversationService.listConversations();
       setConversations(data.conversations);
-      if (data.conversations.length > 0 && !selectedConv) {
-        setSelectedConv(data.conversations[0]);
-      }
     } catch (err) {
       if (err instanceof ApiClientError) {
         setConvError(err.message);
@@ -92,7 +89,7 @@ export const DashboardPage: React.FC = () => {
     } finally {
       setConvLoading(false);
     }
-  }, [selectedConv]);
+  }, []);
 
   useEffect(() => {
     fetchProfile();
@@ -154,28 +151,19 @@ export const DashboardPage: React.FC = () => {
     }
   };
 
-  // Start / Open 1-to-1 conversation
+  // Start / Open 1-to-1 conversation and navigate
   const handleStartChat = async (targetUser: UserSummary) => {
     setStartChatLoadingId(targetUser.id);
     try {
-      const conv = await conversationService.createDirectConversation({
-        recipientId: targetUser.id,
+      const res = await conversationService.createOrGetConversation({
+        userId: targetUser.id,
       });
-
-      // Update conversations list
-      setConversations((prev) => {
-        const exists = prev.some((c) => c.id === conv.id);
-        if (exists) return prev;
-        return [conv, ...prev];
-      });
-
-      setSelectedConv(conv);
-      setActiveTab('conversations');
+      navigate(`/app/conversations/${res.conversation.id}`);
     } catch (err) {
       if (err instanceof ApiClientError) {
         setSearchError(err.message);
       } else {
-        setSearchError('Could not create conversation.');
+        setSearchError('Could not start conversation.');
       }
     } finally {
       setStartChatLoadingId(null);
@@ -183,8 +171,8 @@ export const DashboardPage: React.FC = () => {
   };
 
   return (
-    <div className="flex-1 max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6 w-full space-y-6">
-      {/* Top Header Bar */}
+    <div className="flex-1 max-w-5xl mx-auto px-4 sm:px-6 lg:px-8 py-6 w-full space-y-6">
+      {/* Header Bar */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 p-5 rounded-2xl bg-slate-900 border border-slate-800 shadow-xl">
         <div className="space-y-1">
           <div className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-xs font-medium bg-emerald-500/10 text-emerald-400 border border-emerald-500/20">
@@ -202,7 +190,7 @@ export const DashboardPage: React.FC = () => {
           <div className="flex bg-slate-950 p-1 rounded-xl border border-slate-800">
             <button
               onClick={() => setActiveTab('conversations')}
-              className={`px-3 py-1.5 rounded-lg text-xs font-medium transition-colors flex items-center gap-1.5 ${
+              className={`px-3 py-1.5 rounded-lg text-xs font-medium transition-colors flex items-center gap-1.5 cursor-pointer ${
                 activeTab === 'conversations'
                   ? 'bg-slate-800 text-white shadow'
                   : 'text-slate-400 hover:text-slate-200'
@@ -213,7 +201,7 @@ export const DashboardPage: React.FC = () => {
             </button>
             <button
               onClick={() => setActiveTab('search')}
-              className={`px-3 py-1.5 rounded-lg text-xs font-medium transition-colors flex items-center gap-1.5 ${
+              className={`px-3 py-1.5 rounded-lg text-xs font-medium transition-colors flex items-center gap-1.5 cursor-pointer ${
                 activeTab === 'search'
                   ? 'bg-slate-800 text-white shadow'
                   : 'text-slate-400 hover:text-slate-200'
@@ -224,7 +212,7 @@ export const DashboardPage: React.FC = () => {
             </button>
             <button
               onClick={() => setActiveTab('profile')}
-              className={`px-3 py-1.5 rounded-lg text-xs font-medium transition-colors flex items-center gap-1.5 ${
+              className={`px-3 py-1.5 rounded-lg text-xs font-medium transition-colors flex items-center gap-1.5 cursor-pointer ${
                 activeTab === 'profile'
                   ? 'bg-slate-800 text-white shadow'
                   : 'text-slate-400 hover:text-slate-200'
@@ -245,167 +233,95 @@ export const DashboardPage: React.FC = () => {
         </div>
       </div>
 
-      {/* Main Workspace Layout */}
+      {/* Conversations Tab */}
       {activeTab === 'conversations' && (
-        <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 min-h-[550px]">
-          {/* Left Panel: Conversation List (4 cols) */}
-          <div className="lg:col-span-4 bg-slate-900 border border-slate-800 rounded-2xl p-4 shadow-lg flex flex-col">
-            <div className="flex items-center justify-between pb-3 border-b border-slate-800 mb-3">
-              <h2 className="text-xs font-semibold uppercase tracking-wider text-slate-300 flex items-center gap-2">
-                <MessagesSquare className="w-4 h-4 text-emerald-400" />
-                Conversations
-              </h2>
+        <div className="bg-slate-900 border border-slate-800 rounded-2xl p-6 shadow-lg space-y-4">
+          <div className="flex items-center justify-between pb-3 border-b border-slate-800">
+            <h2 className="text-sm font-semibold uppercase tracking-wider text-slate-300 flex items-center gap-2">
+              <MessagesSquare className="w-4 h-4 text-emerald-400" />
+              Chats
+            </h2>
+            <button
+              onClick={() => setActiveTab('search')}
+              className="px-3 py-1.5 bg-emerald-600/20 hover:bg-emerald-600/30 text-emerald-400 border border-emerald-500/30 rounded-xl text-xs font-medium transition-colors flex items-center gap-1.5 cursor-pointer"
+            >
+              <UserPlus className="w-3.5 h-3.5" />
+              <span>Start New Chat</span>
+            </button>
+          </div>
+
+          {convLoading ? (
+            <div className="py-16 flex flex-col items-center justify-center space-y-2">
+              <Loader2 className="w-7 h-7 animate-spin text-emerald-500" />
+              <p className="text-xs text-slate-400 font-mono">Loading conversations...</p>
+            </div>
+          ) : convError ? (
+            <div className="p-4 bg-rose-950/40 border border-rose-800/50 rounded-xl text-xs text-rose-300">
+              {convError}
+            </div>
+          ) : conversations.length === 0 ? (
+            /* Section 29: Intentional Empty State */
+            <div className="py-16 flex flex-col items-center justify-center text-center p-6 space-y-3">
+              <div className="w-12 h-12 rounded-2xl bg-slate-950 border border-slate-800 flex items-center justify-center text-slate-500">
+                <MessageSquare className="w-6 h-6" />
+              </div>
+              <div className="space-y-1">
+                <p className="text-sm font-semibold text-slate-200">No conversations yet.</p>
+                <p className="text-xs text-slate-400 max-w-sm">
+                  Search for someone to start a private conversation.
+                </p>
+              </div>
               <button
                 onClick={() => setActiveTab('search')}
-                className="px-2.5 py-1 bg-emerald-600/20 hover:bg-emerald-600/30 text-emerald-400 border border-emerald-500/30 rounded-lg text-[11px] font-medium transition-colors flex items-center gap-1 cursor-pointer"
+                className="mt-2 px-4 py-2 bg-emerald-600 hover:bg-emerald-500 text-white rounded-xl text-xs font-medium transition-colors shadow flex items-center gap-1.5 cursor-pointer"
               >
-                <Plus className="w-3 h-3" />
-                <span>New Chat</span>
+                <Search className="w-3.5 h-3.5" />
+                <span>Search Users</span>
               </button>
             </div>
-
-            {convLoading ? (
-              <div className="flex-1 flex items-center justify-center py-12">
-                <Loader2 className="w-6 h-6 animate-spin text-emerald-500" />
-              </div>
-            ) : convError ? (
-              <div className="p-3 bg-rose-950/40 border border-rose-800/50 rounded-xl text-xs text-rose-300">
-                {convError}
-              </div>
-            ) : conversations.length === 0 ? (
-              <div className="flex-1 flex flex-col items-center justify-center text-center p-6 space-y-3">
-                <div className="w-12 h-12 rounded-2xl bg-slate-950 border border-slate-800 flex items-center justify-center text-slate-500">
-                  <MessageSquare className="w-6 h-6" />
-                </div>
-                <div className="space-y-1">
-                  <p className="text-xs font-medium text-slate-300">No conversations yet</p>
-                  <p className="text-[11px] text-slate-500">
-                    Search for users to establish a 1-to-1 conversation.
-                  </p>
-                </div>
+          ) : (
+            <div className="divide-y divide-slate-800/80 border border-slate-800 rounded-xl overflow-hidden">
+              {conversations.map((c) => (
                 <button
-                  onClick={() => setActiveTab('search')}
-                  className="px-3.5 py-1.5 bg-emerald-600 hover:bg-emerald-500 text-white rounded-xl text-xs font-medium transition-colors shadow"
+                  key={c.id}
+                  onClick={() => navigate(`/app/conversations/${c.id}`)}
+                  className="w-full p-4 bg-slate-950/40 hover:bg-slate-800/50 transition-colors flex items-center justify-between cursor-pointer text-left group"
                 >
-                  Find Users
-                </button>
-              </div>
-            ) : (
-              <div className="space-y-1.5 flex-1 overflow-y-auto pr-1">
-                {conversations.map((c) => {
-                  const partner = c.otherParticipant;
-                  const isSelected = selectedConv?.id === c.id;
-
-                  return (
-                    <button
-                      key={c.id}
-                      onClick={() => setSelectedConv(c)}
-                      className={`w-full p-3 rounded-xl text-left transition-colors flex items-center justify-between cursor-pointer ${
-                        isSelected
-                          ? 'bg-slate-800 border border-slate-700 shadow-sm'
-                          : 'bg-slate-950/40 hover:bg-slate-800/50 border border-transparent'
-                      }`}
-                    >
-                      <div className="flex items-center gap-3">
-                        <div className="w-9 h-9 rounded-full bg-slate-800 border border-slate-700 flex items-center justify-center text-xs font-bold text-emerald-400">
-                          {partner?.displayName?.charAt(0).toUpperCase() || 'U'}
-                        </div>
-                        <div>
-                          <p className="text-xs font-semibold text-slate-200">
-                            {partner?.displayName || partner?.username}
-                          </p>
-                          <p className="text-[11px] text-slate-400 font-mono">@{partner?.username}</p>
-                        </div>
-                      </div>
-
-                      <span className="text-[10px] text-slate-500">
-                        {new Date(c.updatedAt).toLocaleDateString()}
-                      </span>
-                    </button>
-                  );
-                })}
-              </div>
-            )}
-          </div>
-
-          {/* Right Panel: Selected Conversation Window (8 cols) */}
-          <div className="lg:col-span-8 bg-slate-900 border border-slate-800 rounded-2xl p-6 shadow-lg flex flex-col justify-between">
-            {selectedConv ? (
-              <div className="space-y-6">
-                {/* Conversation Header */}
-                <div className="flex items-center justify-between pb-4 border-b border-slate-800">
-                  <div className="flex items-center gap-3">
-                    <div className="w-11 h-11 rounded-full bg-slate-800 border border-slate-700 flex items-center justify-center text-sm font-bold text-emerald-400">
-                      {selectedConv.otherParticipant?.displayName?.charAt(0).toUpperCase() || 'U'}
+                  <div className="flex items-center gap-3.5">
+                    <div className="w-10 h-10 rounded-full bg-slate-800 border border-slate-700 flex items-center justify-center text-sm font-bold text-emerald-400">
+                      {c.participant.displayName.charAt(0).toUpperCase()}
                     </div>
                     <div>
-                      <h3 className="text-sm font-bold text-slate-100">
-                        {selectedConv.otherParticipant?.displayName}
-                      </h3>
-                      <p className="text-xs text-slate-400 font-mono">
-                        @{selectedConv.otherParticipant?.username} &bull; 1-to-1 Direct Channel
+                      <p className="text-sm font-semibold text-slate-100 group-hover:text-emerald-300 transition-colors">
+                        {c.participant.displayName}
                       </p>
+                      <p className="text-xs text-slate-400 font-mono">@{c.participant.username}</p>
                     </div>
                   </div>
 
-                  <div className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-medium bg-emerald-500/10 text-emerald-400 border border-emerald-500/20">
-                    <Lock className="w-3 h-3" />
-                    <span>Channel Verified</span>
+                  <div className="flex items-center gap-3">
+                    <span className="text-[11px] text-slate-500 font-mono hidden sm:inline">
+                      {new Date(c.updatedAt).toLocaleDateString()}
+                    </span>
+                    <ArrowRight className="w-4 h-4 text-slate-500 group-hover:text-emerald-400 transition-colors" />
                   </div>
-                </div>
-
-                {/* Conversation Body & Phase 3 Milestone Card */}
-                <div className="py-8 space-y-6 max-w-xl mx-auto text-center">
-                  <div className="w-14 h-14 rounded-2xl bg-emerald-500/10 border border-emerald-500/30 flex items-center justify-center mx-auto text-emerald-400">
-                    <MessagesSquare className="w-7 h-7" />
-                  </div>
-
-                  <div className="space-y-2">
-                    <h4 className="text-lg font-bold text-slate-100">
-                      1-to-1 Conversation Channel Established
-                    </h4>
-                    <p className="text-xs text-slate-400 leading-relaxed">
-                      You and <strong className="text-slate-200">@{selectedConv.otherParticipant?.username}</strong> have an authorized 1-to-1 communication session.
-                    </p>
-                  </div>
-
-                  <div className="p-4 rounded-xl bg-slate-950/60 border border-slate-800 text-left space-y-2">
-                    <div className="flex items-center gap-2 text-xs font-semibold text-emerald-400">
-                      <ShieldAlert className="w-4 h-4 text-emerald-400" />
-                      <span>Phase 3 Architecture Ready</span>
-                    </div>
-                    <p className="text-xs text-slate-400 leading-relaxed">
-                      Real-time message packets, persistence, and end-to-end cryptographic encapsulation are scheduled for <strong className="text-slate-200">Phase 4 — Messaging & Real-Time Transport</strong>.
-                    </p>
-                  </div>
-
-                  <div className="pt-2 flex justify-center gap-4 text-[11px] text-slate-500 font-mono">
-                    <span>Conversation ID: {selectedConv.id}</span>
-                    <span>&bull;</span>
-                    <span>Type: {selectedConv.type}</span>
-                  </div>
-                </div>
-              </div>
-            ) : (
-              <div className="flex-1 flex flex-col items-center justify-center py-16 text-center text-slate-500 space-y-2">
-                <MessageSquare className="w-8 h-8 text-slate-600" />
-                <p className="text-xs">Select a conversation from the left to view details</p>
-              </div>
-            )}
-          </div>
+                </button>
+              ))}
+            </div>
+          )}
         </div>
       )}
 
-      {/* User Discovery & Search Tab */}
+      {/* Search Tab */}
       {activeTab === 'search' && (
-        <div className="max-w-3xl mx-auto bg-slate-900 border border-slate-800 rounded-2xl p-6 shadow-lg space-y-6">
+        <div className="bg-slate-900 border border-slate-800 rounded-2xl p-6 shadow-lg space-y-6">
           <div>
             <h2 className="text-sm font-semibold uppercase tracking-wider text-slate-300 flex items-center gap-2">
               <Search className="w-4 h-4 text-emerald-400" />
-              User Discovery & 1-to-1 Chat Starter
+              User Discovery & Start Conversation
             </h2>
             <p className="text-xs text-slate-400 mt-1">
-              Search for other registered members to establish a 1-to-1 conversation.
+              Search registered users by username to start a 1-to-1 conversation.
             </p>
           </div>
 
@@ -415,7 +331,7 @@ export const DashboardPage: React.FC = () => {
                 type="text"
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
-                placeholder="Search by username or name..."
+                placeholder="Search username or display name..."
                 className="w-full pl-9 pr-3.5 py-2.5 bg-slate-950 border border-slate-800 rounded-xl text-xs text-slate-100 placeholder-slate-500 focus:outline-none focus:border-emerald-500"
               />
               <Search className="w-4 h-4 text-slate-500 absolute left-3 top-3" />
@@ -435,7 +351,7 @@ export const DashboardPage: React.FC = () => {
             </div>
           )}
 
-          {/* Results List */}
+          {/* Search Results */}
           <div className="space-y-2">
             {searchResults.length > 0 ? (
               <div className="divide-y divide-slate-800/80 border border-slate-800 rounded-xl overflow-hidden">
@@ -464,7 +380,7 @@ export const DashboardPage: React.FC = () => {
                       ) : (
                         <MessageSquare className="w-3.5 h-3.5" />
                       )}
-                      <span>Chat</span>
+                      <span>Start Chat</span>
                     </button>
                   </div>
                 ))}
@@ -475,14 +391,14 @@ export const DashboardPage: React.FC = () => {
               </div>
             ) : (
               <div className="text-center py-8 text-xs text-slate-600">
-                Type a username or display name to find users
+                Search for someone by username to start a conversation
               </div>
             )}
           </div>
         </div>
       )}
 
-      {/* User Profile Tab */}
+      {/* Profile Tab */}
       {activeTab === 'profile' && (
         <div className="max-w-xl mx-auto bg-slate-900 border border-slate-800 rounded-2xl p-6 shadow-lg space-y-5">
           <div className="flex items-center justify-between">
@@ -497,7 +413,7 @@ export const DashboardPage: React.FC = () => {
                   setEditSuccess(null);
                   setEditError(null);
                 }}
-                className="p-1.5 hover:bg-slate-800 text-slate-400 hover:text-slate-200 rounded-lg transition-colors text-xs flex items-center gap-1.5"
+                className="p-1.5 hover:bg-slate-800 text-slate-400 hover:text-slate-200 rounded-lg transition-colors text-xs flex items-center gap-1.5 cursor-pointer"
               >
                 <Edit3 className="w-3.5 h-3.5" />
                 <span>Edit</span>
@@ -554,7 +470,7 @@ export const DashboardPage: React.FC = () => {
                 <button
                   type="submit"
                   disabled={editLoading}
-                  className="flex-1 py-2 px-3 bg-emerald-600 hover:bg-emerald-500 text-white rounded-xl text-xs font-medium transition-colors disabled:opacity-50 flex items-center justify-center gap-1.5"
+                  className="flex-1 py-2 px-3 bg-emerald-600 hover:bg-emerald-500 text-white rounded-xl text-xs font-medium transition-colors disabled:opacity-50 flex items-center justify-center gap-1.5 cursor-pointer"
                 >
                   {editLoading ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : 'Save Changes'}
                 </button>
@@ -562,7 +478,7 @@ export const DashboardPage: React.FC = () => {
                   type="button"
                   onClick={() => setIsEditing(false)}
                   disabled={editLoading}
-                  className="py-2 px-3 bg-slate-800 hover:bg-slate-700 text-slate-300 rounded-xl text-xs font-medium transition-colors"
+                  className="py-2 px-3 bg-slate-800 hover:bg-slate-700 text-slate-300 rounded-xl text-xs font-medium transition-colors cursor-pointer"
                 >
                   Cancel
                 </button>

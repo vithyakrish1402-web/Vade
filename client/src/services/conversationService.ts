@@ -1,20 +1,25 @@
 import type {
-  ConversationSummary,
+  CreateConversationInput,
+  CreateConversationResponse,
   ConversationListResponse,
-  CreateDirectConversationInput,
+  ConversationDetailResponse,
 } from '@enctxt/shared';
 import { api } from './api';
 
 export const conversationService = {
-  createDirectConversation: (input: CreateDirectConversationInput): Promise<ConversationSummary> => {
-    return api.post<ConversationSummary>('/conversations', input);
+  createOrGetConversation: (input: CreateConversationInput): Promise<CreateConversationResponse> => {
+    return api.post<CreateConversationResponse>('/conversations', input);
   },
 
-  listConversations: (): Promise<ConversationListResponse> => {
-    return api.get<ConversationListResponse>('/conversations');
+  listConversations: (page = 1, limit = 20): Promise<ConversationListResponse> => {
+    const params = new URLSearchParams({
+      page: String(page),
+      limit: String(limit),
+    });
+    return api.get<ConversationListResponse>(`/conversations?${params.toString()}`);
   },
 
-  getConversation: (id: string): Promise<ConversationSummary> => {
-    return api.get<ConversationSummary>(`/conversations/${id}`);
+  getConversation: (id: string): Promise<ConversationDetailResponse> => {
+    return api.get<ConversationDetailResponse>(`/conversations/${id}`);
   },
 };

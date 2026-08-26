@@ -6,6 +6,7 @@ import { LandingPage } from './pages/LandingPage';
 import { LoginPage } from './pages/LoginPage';
 import { RegisterPage } from './pages/RegisterPage';
 import { DashboardPage } from './pages/DashboardPage';
+import { ConversationPage } from './pages/ConversationPage';
 
 export function App() {
   return (
@@ -21,6 +22,14 @@ export function App() {
               element={
                 <ProtectedRoute>
                   <DashboardPage />
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/app/conversations/:conversationId"
+              element={
+                <ProtectedRoute>
+                  <ConversationPage />
                 </ProtectedRoute>
               }
             />
