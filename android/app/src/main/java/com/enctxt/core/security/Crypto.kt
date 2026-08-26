@@ -243,45 +243,4 @@ object AeadCipherEngine {
     }
 }
 
-// ==============================================================================
-// 5. Public Key Fingerprint & Safety Number Verification
-// ==============================================================================
 
-object FingerprintEngine {
-    /**
-     * Calculates SHA-256 public key fingerprint formatted into 8 groups of 4 hexadecimal characters.
-     */
-    fun calculateFingerprint(spkiBase64: String): String {
-        val spkiBytes = Base64.getDecoder().decode(spkiBase64)
-        val digest = MessageDigest.getInstance("SHA-256").digest(spkiBytes)
-        val hex = digest.joinToString("") { "%02X".format(it) }
-        return hex.chunked(4).joinToString(" ")
-    }
-
-    /**
-     * Computes symmetric 30-digit safety number string derived from deterministically sorted public keys.
-     */
-    fun calculateSafetyNumber(publicKeyA: String, publicKeyB: String): String {
-        val minKey = if (publicKeyA <= publicKeyB) publicKeyA else publicKeyB
-        val maxKey = if (publicKeyA <= publicKeyB) publicKeyB else publicKeyA
-        val canonicalString = "$minKey:$maxKey:v1"
-
-        val digest = MessageDigest.getInstance("SHA-256")
-            .digest(canonicalString.toByteArray(StandardCharsets.UTF_8))
-
-        // Format 12-block decimal string (6 groups of 5 digits)
-        val blocks = mutableListOf<String>()
-        for (i in 0 until 6) {
-            val offset = i * 4
-            val value = ((digest[offset].toInt() and 0xFF) shl 24) or
-                    ((digest[offset + 1].toInt() and 0xFF) shl 16) or
-                    ((digest[offset + 2].toInt() and 0xFF) shl 8) or
-                    (digest[offset + 3].toInt() and 0xFF)
-            val positiveValue = value.toLong() and 0xFFFFFFFFL
-            val formatted = (positiveValue % 100000).toString().padStart(5, '0')
-            blocks.add(formatted)
-        }
-
-        return blocks.joinToString(" ")
-    }
-}

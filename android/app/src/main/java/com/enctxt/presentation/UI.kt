@@ -20,7 +20,6 @@ import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.input.PasswordVisualTransformation
-import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.lifecycle.ViewModel
@@ -29,13 +28,28 @@ import androidx.navigation.NavController
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.compose.rememberNavController
+import com.enctxt.core.gesture.GesturePoint
+import com.enctxt.core.gesture.GestureRepository
+import com.enctxt.core.gesture.GestureRevealManager
+import com.enctxt.core.gesture.RevealState
+import com.enctxt.core.network.ConnectivityMonitor
 import com.enctxt.core.network.NetworkResult
 import com.enctxt.core.network.WebSocketClient
 import com.enctxt.core.network.WebSocketState
+import com.enctxt.core.security.ContactSecurityState
 import com.enctxt.core.security.FingerprintEngine
 import com.enctxt.core.security.KeyStoreManager
+import com.enctxt.core.sync.SyncCoordinator
 import com.enctxt.data.model.*
 import com.enctxt.data.repository.*
+import com.enctxt.presentation.components.ContactSecurityScreen
+import com.enctxt.presentation.components.DeviceManagementScreen
+import com.enctxt.presentation.components.GestureEnrollmentScreen
+import com.enctxt.presentation.components.GestureEnrollmentViewModel
+import com.enctxt.presentation.components.GestureLockedDialog
+import com.enctxt.presentation.components.GestureRevealDialog
+import com.enctxt.presentation.components.GestureSettingsScreen
+import com.enctxt.presentation.components.ProtectedMessage
 import kotlinx.coroutines.FlowPreview
 import kotlinx.coroutines.flow.*
 import kotlinx.coroutines.launch
@@ -234,7 +248,9 @@ class SearchViewModel(
 
 class MessageViewModel(
     private val messageRepository: MessageRepository,
-    private val wsClient: WebSocketClient
+    private val wsClient: WebSocketClient,
+    private val connectivityMonitor: ConnectivityMonitor,
+    private val syncCoordinator: SyncCoordinator
 ) : ViewModel() {
 
     private val _messages = MutableStateFlow<List<MessageUiModel>>(emptyList())
@@ -243,10 +259,9 @@ class MessageViewModel(
     private val _isLoading = MutableStateFlow(false)
     val isLoading: StateFlow<Boolean> = _isLoading.asStateFlow()
 
-    private val _isSending = MutableStateFlow(false)
-    val isSending: StateFlow<Boolean> = _isSending.asStateFlow()
-
+    val isOnline: StateFlow<Boolean> = connectivityMonitor.isOnline
     val wsState: StateFlow<WebSocketState> = wsClient.connectionState
+    val isSyncing: StateFlow<Boolean> = syncCoordinator.isGlobalSyncing
 
     private var activeConversationId: String? = null
     private var activePeerId: String? = null
@@ -257,60 +272,38 @@ class MessageViewModel(
         activePeerId = peerId
         currentUserId = userId
 
-        // Subscribe to WebSocket room
+        // 1. Observe Room local encrypted cache
+        viewModelScope.launch {
+            messageRepository.observeRoomMessages(conversationId, peerId, userId).collect { roomList ->
+                _messages.value = roomList
+            }
+        }
+
+        // 2. Subscribe to WebSocket room
         wsClient.subscribe(conversationId)
 
-        // Load message history
-        loadHistory()
+        // 3. Catch-up sync from REST history
+        viewModelScope.launch {
+            _isLoading.value = true
+            messageRepository.syncConversation(conversationId)
+            messageRepository.markAsRead(conversationId)
+            _isLoading.value = false
+        }
 
-        // Listen for incoming WebSocket messages
+        // 4. Listen to real-time WebSocket frames
         viewModelScope.launch {
             wsClient.serverEvents.collect { event ->
                 if (event.conversationId == conversationId) {
-                    when (event.type) {
-                        "message.created" -> {
-                            event.message?.let { dto ->
-                                if (_messages.value.none { it.id == dto.id }) {
-                                    val uiModel = messageRepository.decryptDtoToUiModel(dto, conversationId, peerId, userId)
-                                    _messages.value = _messages.value + uiModel
-                                    // Mark conversation read
-                                    messageRepository.markAsRead(conversationId)
-                                }
-                            }
-                        }
-                        "message.delivered" -> {
-                            _messages.value = _messages.value.map { msg ->
-                                if (msg.id == event.messageId && msg.deliveryState == DeliveryState.SENT) {
-                                    msg.copy(deliveryState = DeliveryState.DELIVERED)
-                                } else msg
-                            }
-                        }
-                        "message.read" -> {
-                            _messages.value = _messages.value.map { msg ->
-                                msg.copy(deliveryState = DeliveryState.READ)
-                            }
-                        }
-                    }
+                    messageRepository.syncConversation(conversationId)
                 }
             }
         }
-    }
 
-    fun loadHistory() {
-        val convId = activeConversationId ?: return
-        val peerId = activePeerId ?: return
-        val userId = currentUserId ?: return
-
-        viewModelScope.launch {
-            _isLoading.value = true
-            when (val res = messageRepository.fetchMessageHistory(convId, peerId, userId)) {
-                is NetworkResult.Success -> {
-                    _messages.value = res.data
-                    messageRepository.markAsRead(convId)
-                }
-                else -> Unit
+        // 5. Trigger offline queue flush if online
+        if (isOnline.value) {
+            viewModelScope.launch {
+                messageRepository.flushOfflineQueue()
             }
-            _isLoading.value = false
         }
     }
 
@@ -321,20 +314,37 @@ class MessageViewModel(
         if (plaintext.isBlank() || plaintext.length > 5000) return
 
         viewModelScope.launch {
-            _isSending.value = true
-            when (val res = messageRepository.sendEncryptedMessage(convId, peerId, userId, plaintext.trim())) {
-                is NetworkResult.Success -> {
-                    _messages.value = _messages.value + res.data
-                }
-                else -> Unit
-            }
-            _isSending.value = false
+            messageRepository.sendEncryptedMessage(
+                conversationId = convId,
+                peerId = peerId,
+                currentUserId = userId,
+                plaintext = plaintext.trim(),
+                isOnline = isOnline.value
+            )
+        }
+    }
+
+    fun retrySend(msg: MessageUiModel) {
+        val convId = activeConversationId ?: return
+        val peerId = activePeerId ?: return
+        val userId = currentUserId ?: return
+        val plaintext = msg.transientPlaintext ?: return
+
+        viewModelScope.launch {
+            messageRepository.sendEncryptedMessage(
+                conversationId = convId,
+                peerId = peerId,
+                currentUserId = userId,
+                plaintext = plaintext,
+                isOnline = isOnline.value
+            )
         }
     }
 
     override fun onCleared() {
         super.onCleared()
         activeConversationId?.let { wsClient.unsubscribe(it) }
+        _messages.value = emptyList() // Flush transient decrypted plaintext from memory
     }
 }
 
@@ -348,9 +358,14 @@ fun NavGraph(
     authViewModel: AuthViewModel,
     conversationViewModel: ConversationViewModel,
     searchViewModel: SearchViewModel,
-    messageViewModel: MessageViewModel
+    messageViewModel: MessageViewModel,
+    gestureRepository: GestureRepository,
+    contactSecurityRepository: ContactSecurityRepository,
+    deviceRepository: DeviceRepository,
+    cryptoRepository: CryptoRepository
 ) {
     val authState by authViewModel.uiState.collectAsState()
+    val currentUserId = (authState as? AuthUiState.Authenticated)?.user?.id ?: ""
 
     NavHost(
         navController = navController,
@@ -387,6 +402,8 @@ fun NavGraph(
                 onOpenConversation = { convId, peerId, peerName ->
                     navController.navigate("conversation/$convId/$peerId/$peerName")
                 },
+                onOpenGestureSettings = { navController.navigate("gesture-settings") },
+                onOpenDevices = { navController.navigate("devices") },
                 onLogout = {
                     authViewModel.logout {
                         navController.navigate("login") {
@@ -394,6 +411,60 @@ fun NavGraph(
                         }
                     }
                 }
+            )
+        }
+
+        composable("devices") {
+            DeviceManagementScreen(
+                deviceRepository = deviceRepository,
+                cryptoRepository = cryptoRepository,
+                onBack = { navController.popBackStack() },
+                onCurrentDeviceRevoked = {
+                    authViewModel.logout {
+                        navController.navigate("login") {
+                            popUpTo(0) { inclusive = true }
+                        }
+                    }
+                }
+            )
+        }
+
+        composable("contact-security/{peerId}/{peerName}") { backStackEntry ->
+            val peerId = backStackEntry.arguments?.getString("peerId") ?: ""
+            val peerName = backStackEntry.arguments?.getString("peerName") ?: ""
+
+            ContactSecurityScreen(
+                peerId = peerId,
+                peerName = peerName,
+                currentUserId = currentUserId,
+                contactSecurityRepository = contactSecurityRepository,
+                cryptoRepository = cryptoRepository,
+                onBack = { navController.popBackStack() }
+            )
+        }
+
+        composable("gesture-settings") {
+            GestureSettingsScreen(
+                repository = gestureRepository,
+                userId = currentUserId,
+                onBack = { navController.popBackStack() },
+                onChangeGesture = { navController.navigate("gesture-enrollment") }
+            )
+        }
+
+        composable("gesture-enrollment") {
+            val viewModel = androidx.lifecycle.viewmodel.compose.viewModel<GestureEnrollmentViewModel>(
+                factory = object : androidx.lifecycle.ViewModelProvider.Factory {
+                    @Suppress("UNCHECKED_CAST")
+                    override fun <T : androidx.lifecycle.ViewModel> create(modelClass: Class<T>): T {
+                        return GestureEnrollmentViewModel(gestureRepository, currentUserId) as T
+                    }
+                }
+            )
+            GestureEnrollmentScreen(
+                viewModel = viewModel,
+                onBack = { navController.popBackStack() },
+                onComplete = { navController.popBackStack() }
             )
         }
 
@@ -413,7 +484,6 @@ fun NavGraph(
             val convId = backStackEntry.arguments?.getString("convId") ?: ""
             val peerId = backStackEntry.arguments?.getString("peerId") ?: ""
             val peerName = backStackEntry.arguments?.getString("peerName") ?: ""
-            val currentUserId = (authState as? AuthUiState.Authenticated)?.user?.id ?: ""
 
             ConversationScreen(
                 conversationId = convId,
@@ -421,7 +491,11 @@ fun NavGraph(
                 peerName = peerName,
                 currentUserId = currentUserId,
                 viewModel = messageViewModel,
-                onBack = { navController.popBackStack() }
+                gestureRepository = gestureRepository,
+                contactSecurityRepository = contactSecurityRepository,
+                onBack = { navController.popBackStack() },
+                onOpenGestureSettings = { navController.navigate("gesture-settings") },
+                onOpenContactSecurity = { navController.navigate("contact-security/$peerId/$peerName") }
             )
         }
     }
@@ -437,6 +511,8 @@ fun ConversationListScreen(
     viewModel: ConversationViewModel,
     onOpenSearch: () -> Unit,
     onOpenConversation: (String, String, String) -> Unit,
+    onOpenGestureSettings: () -> Unit,
+    onOpenDevices: () -> Unit,
     onLogout: () -> Unit
 ) {
     val conversations by viewModel.cachedConversations.collectAsState(initial = emptyList())
@@ -449,10 +525,16 @@ fun ConversationListScreen(
                     Row(verticalAlignment = Alignment.CenterVertically) {
                         Icon(Icons.Default.Shield, contentDescription = null, tint = MaterialTheme.colorScheme.primary)
                         Spacer(modifier = Modifier.width(8.dp))
-                        Text("ENCTXT", fontWeight = FontWeight.Bold)
+                        Text("Vade", fontWeight = FontWeight.Bold)
                     }
                 },
                 actions = {
+                    IconButton(onClick = onOpenDevices) {
+                        Icon(Icons.Default.Devices, contentDescription = "Device Trust & Management")
+                    }
+                    IconButton(onClick = onOpenGestureSettings) {
+                        Icon(Icons.Default.Fingerprint, contentDescription = "Reveal Gesture Settings")
+                    }
                     IconButton(onClick = onLogout) {
                         Icon(Icons.Default.ExitToApp, contentDescription = "Log Out")
                     }
@@ -510,7 +592,6 @@ fun ConversationItemRow(
             .padding(16.dp),
         verticalAlignment = Alignment.CenterVertically
     ) {
-        // Avatar
         Box(
             modifier = Modifier
                 .size(48.dp)
@@ -524,7 +605,6 @@ fun ConversationItemRow(
 
         Spacer(modifier = Modifier.width(16.dp))
 
-        // Names & Zero-Plaintext Placeholder
         Column(modifier = Modifier.weight(1f)) {
             Text(
                 conversation.peerDisplayName.ifEmpty { conversation.peerUsername },
@@ -533,7 +613,6 @@ fun ConversationItemRow(
                 fontSize = 16.sp
             )
             Spacer(modifier = Modifier.height(4.dp))
-            // Privacy-Safe Placeholder (Zero Plaintext Preview Invariant)
             Text(
                 "🔒 Protected conversation",
                 fontSize = 13.sp,
@@ -621,7 +700,7 @@ fun SearchScreen(
 }
 
 // ==============================================================================
-// 6. Conversation & Encrypted Messaging Screen
+// 6. Conversation & Encrypted Messaging Screen (Phase 14 Reliability)
 // ==============================================================================
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -632,13 +711,76 @@ fun ConversationScreen(
     peerName: String,
     currentUserId: String,
     viewModel: MessageViewModel,
-    onBack: () -> Unit
+    gestureRepository: GestureRepository,
+    contactSecurityRepository: ContactSecurityRepository,
+    onBack: () -> Unit,
+    onOpenGestureSettings: () -> Unit = {},
+    onOpenContactSecurity: () -> Unit = {}
 ) {
     var inputText by remember { mutableStateOf("") }
     val messages by viewModel.messages.collectAsState()
-    val isSending by viewModel.isSending.collectAsState()
+    val isOnline by viewModel.isOnline.collectAsState()
     val wsState by viewModel.wsState.collectAsState()
+    val isSyncing by viewModel.isSyncing.collectAsState()
     val listState = rememberLazyListState()
+
+    // Layer 3 gesture reveal — scoped to this screen's composition lifetime so navigating away
+    // always destroys reveal/auth/lockout state (Phase 16 spec §41). Never hoisted to
+    // MessageViewModel, which persists across conversation navigations.
+    val revealScope = rememberCoroutineScope()
+    val revealManager = remember(conversationId) {
+        GestureRevealManager(gestureRepository, currentUserId, revealScope)
+    }
+    val revealState by revealManager.state.collectAsState()
+    val revealFeedback by revealManager.feedback.collectAsState()
+
+    var contactSecurityState by remember { mutableStateOf<ContactSecurityState>(ContactSecurityState.Unverified) }
+    LaunchedEffect(peerId) {
+        when (val res = contactSecurityRepository.getContactSecurityState(peerId)) {
+            is NetworkResult.Success -> {
+                contactSecurityState = res.data
+                if (res.data is ContactSecurityState.KeyChanged) {
+                    revealManager.revokeReveal()
+                }
+            }
+            else -> {}
+        }
+    }
+
+    DisposableEffect(revealManager) {
+        onDispose { revealManager.dispose() }
+    }
+
+    // Background / navigation-away re-protection (§38).
+    val lifecycleOwner = androidx.compose.ui.platform.LocalLifecycleOwner.current
+    DisposableEffect(lifecycleOwner, revealManager) {
+        val observer = androidx.lifecycle.LifecycleEventObserver { _, event ->
+            if (event == androidx.lifecycle.Lifecycle.Event.ON_STOP) revealManager.revokeReveal()
+        }
+        lifecycleOwner.lifecycle.addObserver(observer)
+        onDispose { lifecycleOwner.lifecycle.removeObserver(observer) }
+    }
+
+    // Window-focus-loss re-protection (§40) — e.g. recents overlay, system dialog.
+    val hasWindowFocus by WindowFocusMonitor.hasFocus.collectAsState()
+    LaunchedEffect(hasWindowFocus, revealManager) {
+        if (!hasWindowFocus) revealManager.revokeReveal()
+    }
+
+    // Layer 3 / Phase 18: Screenshot & screen-capture protection (FLAG_SECURE) during sensitive reveal & gesture auth
+    val context = androidx.compose.ui.platform.LocalContext.current
+    DisposableEffect(revealState) {
+        val activity = context as? android.app.Activity
+        val isSensitive = revealState is RevealState.Revealed || revealState is RevealState.Authenticating
+        if (isSensitive) {
+            activity?.window?.addFlags(android.view.WindowManager.LayoutParams.FLAG_SECURE)
+        } else {
+            activity?.window?.clearFlags(android.view.WindowManager.LayoutParams.FLAG_SECURE)
+        }
+        onDispose {
+            activity?.window?.clearFlags(android.view.WindowManager.LayoutParams.FLAG_SECURE)
+        }
+    }
 
     LaunchedEffect(conversationId) {
         viewModel.initializeConversation(conversationId, peerId, currentUserId)
@@ -655,18 +797,65 @@ fun ConversationScreen(
             TopAppBar(
                 title = {
                     Column {
-                        Text(peerName, fontWeight = FontWeight.Bold, fontSize = 16.sp)
                         Row(verticalAlignment = Alignment.CenterVertically) {
-                            val dotColor = if (wsState == WebSocketState.CONNECTED) Color(0xFF10B981) else Color(0xFFF59E0B)
+                            Text(peerName, fontWeight = FontWeight.Bold, fontSize = 16.sp)
+                            Spacer(modifier = Modifier.width(6.dp))
+                            when (val sec = contactSecurityState) {
+                                is ContactSecurityState.Verified -> {
+                                    Box(
+                                        modifier = Modifier
+                                            .clickable { onOpenContactSecurity() }
+                                            .background(Color(0xFF064E3B), RoundedCornerShape(8.dp))
+                                            .padding(horizontal = 6.dp, vertical = 2.dp)
+                                    ) {
+                                        Text("Verified ✓", fontSize = 10.sp, color = Color(0xFF10B981), fontWeight = FontWeight.Bold)
+                                    }
+                                }
+                                is ContactSecurityState.KeyChanged -> {
+                                    Box(
+                                        modifier = Modifier
+                                            .clickable { onOpenContactSecurity() }
+                                            .background(Color(0xFF881337), RoundedCornerShape(8.dp))
+                                            .padding(horizontal = 6.dp, vertical = 2.dp)
+                                    ) {
+                                        Text("⚠ Key Changed", fontSize = 10.sp, color = Color(0xFFFDA4AF), fontWeight = FontWeight.Bold)
+                                    }
+                                }
+                                is ContactSecurityState.Unverified -> {
+                                    Box(
+                                        modifier = Modifier
+                                            .clickable { onOpenContactSecurity() }
+                                            .background(Color(0xFF1E293B), RoundedCornerShape(8.dp))
+                                            .padding(horizontal = 6.dp, vertical = 2.dp)
+                                    ) {
+                                        Text("Unverified", fontSize = 10.sp, color = Color(0xFF94A3B8), fontWeight = FontWeight.Medium)
+                                    }
+                                }
+                                is ContactSecurityState.NoKey -> {}
+                            }
+                        }
+                        Row(verticalAlignment = Alignment.CenterVertically) {
+                            val dotColor = if (!isOnline) Color(0xFFEF4444) else if (wsState == WebSocketState.CONNECTED) Color(0xFF10B981) else Color(0xFFF59E0B)
                             Box(modifier = Modifier.size(6.dp).background(dotColor, CircleShape))
                             Spacer(modifier = Modifier.width(4.dp))
-                            Text("E2EE Active", fontSize = 11.sp, color = Color(0xFF94A3B8))
+                            val statusLabel = if (!isOnline) "Offline (Queued)" else if (isSyncing) "Syncing..." else "E2EE Active"
+                            Text(statusLabel, fontSize = 11.sp, color = Color(0xFF94A3B8))
                         }
                     }
                 },
                 navigationIcon = {
                     IconButton(onClick = onBack) {
                         Icon(Icons.Default.ArrowBack, contentDescription = "Back")
+                    }
+                },
+                actions = {
+                    IconButton(onClick = onOpenContactSecurity) {
+                        val iconTint = when (contactSecurityState) {
+                            is ContactSecurityState.Verified -> Color(0xFF10B981)
+                            is ContactSecurityState.KeyChanged -> Color(0xFFF43F5E)
+                            else -> Color(0xFF94A3B8)
+                        }
+                        Icon(Icons.Default.Security, contentDescription = "Contact Security", tint = iconTint)
                     }
                 },
                 colors = TopAppBarDefaults.topAppBarColors(containerColor = MaterialTheme.colorScheme.surface)
@@ -679,6 +868,45 @@ fun ConversationScreen(
                 .fillMaxSize()
                 .padding(padding)
         ) {
+            // Offline Warning Banner
+            if (!isOnline) {
+                Box(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .background(Color(0xFF7F1D1D))
+                        .padding(horizontal = 16.dp, vertical = 6.dp),
+                    contentAlignment = Alignment.Center
+                ) {
+                    Text("⚠️ Offline — Outgoing messages are encrypted and queued locally.", fontSize = 11.sp, color = Color.White)
+                }
+            }
+
+            // In-Chat Key Changed Warning Banner (§15)
+            if (contactSecurityState is ContactSecurityState.KeyChanged) {
+                Box(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .background(Color(0xFF881337))
+                        .clickable { onOpenContactSecurity() }
+                        .padding(horizontal = 16.dp, vertical = 8.dp)
+                ) {
+                    Row(verticalAlignment = Alignment.CenterVertically) {
+                        Icon(Icons.Default.Warning, contentDescription = null, tint = Color(0xFFF43F5E), modifier = Modifier.size(18.dp))
+                        Spacer(modifier = Modifier.width(8.dp))
+                        Column(modifier = Modifier.weight(1f)) {
+                            Text("⚠ Security key changed", fontWeight = FontWeight.Bold, fontSize = 11.sp, color = Color(0xFFFDA4AF))
+                            Text(
+                                "$peerName's security key has changed. Messages may not be secure until you verify $peerName's new identity.",
+                                fontSize = 11.sp,
+                                color = Color.White
+                            )
+                        }
+                        Spacer(modifier = Modifier.width(8.dp))
+                        Icon(Icons.Default.ChevronRight, contentDescription = "Verify", tint = Color(0xFFFDA4AF), modifier = Modifier.size(16.dp))
+                    }
+                }
+            }
+
             // Message Timeline
             LazyColumn(
                 state = listState,
@@ -687,8 +915,21 @@ fun ConversationScreen(
                     .fillMaxWidth()
                     .padding(horizontal = 12.dp, vertical = 8.dp)
             ) {
-                items(messages, key = { it.id }) { msg ->
-                    MessageBubble(msg = msg)
+                items(messages, key = { it.localId }) { msg ->
+                    MessageBubble(
+                        msg = msg,
+                        onRetry = { viewModel.retrySend(msg) },
+                        revealState = revealState,
+                        onRevealClick = {
+                            val current = revealState
+                            when {
+                                current is RevealState.Revealed && current.messageId == msg.localId ->
+                                    revealManager.hide()
+                                !revealManager.isConfigured -> onOpenGestureSettings()
+                                else -> revealManager.startReveal(msg.localId)
+                            }
+                        }
+                    )
                     Spacer(modifier = Modifier.height(8.dp))
                 }
             }
@@ -714,12 +955,12 @@ fun ConversationScreen(
 
                 IconButton(
                     onClick = {
-                        if (inputText.isNotBlank() && !isSending) {
+                        if (inputText.isNotBlank()) {
                             viewModel.sendMessage(inputText)
                             inputText = ""
                         }
                     },
-                    enabled = inputText.isNotBlank() && !isSending,
+                    enabled = inputText.isNotBlank(),
                     modifier = Modifier
                         .size(44.dp)
                         .background(
@@ -732,16 +973,52 @@ fun ConversationScreen(
             }
         }
     }
+
+    // Gesture authentication modal — only rendered while actively authenticating or locked out.
+    // Never shown for RevealState.Protected/Revealed, and never displays the stored gesture.
+    // The dismissed flag only hides the lockout dialog's UI — it never touches the underlying
+    // countdown, which keeps running in GestureRevealManager regardless of dialog visibility.
+    var lockedDialogDismissed by remember(revealState is RevealState.Locked) { mutableStateOf(false) }
+
+    when (val s = revealState) {
+        is RevealState.Authenticating -> {
+            GestureRevealDialog(
+                state = s,
+                sequenceLength = revealManager.sequenceLength,
+                isConfigured = revealManager.isConfigured,
+                feedback = revealFeedback,
+                onStroke = { points: List<GesturePoint> -> revealManager.submitStroke(points) },
+                onDismiss = { revealManager.hide() },
+                onOpenSetup = {
+                    revealManager.hide()
+                    onOpenGestureSettings()
+                }
+            )
+        }
+        is RevealState.Locked -> {
+            if (!lockedDialogDismissed) {
+                GestureLockedDialog(state = s, onDismiss = { lockedDialogDismissed = true })
+            }
+        }
+        else -> Unit
+    }
 }
 
 @Composable
-fun MessageBubble(msg: MessageUiModel) {
+fun MessageBubble(
+    msg: MessageUiModel,
+    onRetry: () -> Unit = {},
+    revealState: RevealState = RevealState.Protected,
+    onRevealClick: () -> Unit = {}
+) {
     val isOutgoing = msg.isOutgoing
 
     Column(
         modifier = Modifier.fillMaxWidth(),
         horizontalAlignment = if (isOutgoing) Alignment.End else Alignment.Start
     ) {
+        val isRevealedHere = revealState is RevealState.Revealed && revealState.messageId == msg.localId
+
         Box(
             modifier = Modifier
                 .widthIn(max = 280.dp)
@@ -754,15 +1031,32 @@ fun MessageBubble(msg: MessageUiModel) {
                         bottomEnd = if (isOutgoing) 4.dp else 16.dp
                     )
                 )
+                .then(
+                    if (msg.decryptionState == DecryptionState.DECRYPTED)
+                        Modifier.clickable(onClick = onRevealClick)
+                    else Modifier
+                )
                 .padding(12.dp)
         ) {
             when (msg.decryptionState) {
                 DecryptionState.DECRYPTED -> {
-                    Text(
-                        text = msg.transientPlaintext ?: "",
-                        color = Color.White,
-                        fontSize = 14.sp
-                    )
+                    Row(verticalAlignment = Alignment.Top) {
+                        ProtectedMessage(
+                            content = msg.transientPlaintext ?: "",
+                            revealState = revealState,
+                            messageId = msg.localId,
+                            color = Color.White,
+                            fontSize = 14.sp,
+                            modifier = Modifier.weight(1f, fill = false)
+                        )
+                        Spacer(modifier = Modifier.width(6.dp))
+                        Icon(
+                            imageVector = if (isRevealedHere) Icons.Default.VisibilityOff else Icons.Default.Visibility,
+                            contentDescription = if (isRevealedHere) "Hide message" else "Reveal message with gesture",
+                            tint = Color(0xFF94A3B8),
+                            modifier = Modifier.size(16.dp)
+                        )
+                    }
                 }
                 DecryptionState.DECRYPTION_FAILED -> {
                     Text(
@@ -786,14 +1080,24 @@ fun MessageBubble(msg: MessageUiModel) {
 
         // Delivery Status
         if (isOutgoing) {
-            val statusText = when (msg.deliveryState) {
-                DeliveryState.READ -> "✓✓ Read"
-                DeliveryState.DELIVERED -> "✓✓ Delivered"
-                DeliveryState.SENT -> "✓ Sent"
-                DeliveryState.SENDING -> "Sending..."
-                DeliveryState.FAILED -> "Failed"
+            val (statusText, canRetry) = when (msg.localState) {
+                MessageLocalState.READ -> "✓✓ Read" to false
+                MessageLocalState.DELIVERED -> "✓✓ Delivered" to false
+                MessageLocalState.SENT -> "✓ Sent" to false
+                MessageLocalState.SENDING -> "Sending..." to false
+                MessageLocalState.PENDING_SEND -> "⏳ Queued (Offline)" to false
+                MessageLocalState.FAILED -> "❌ Failed (Tap to retry)" to true
+                else -> "..." to false
             }
-            Text(statusText, fontSize = 10.sp, color = Color.Gray, modifier = Modifier.padding(end = 4.dp))
+
+            Text(
+                text = statusText,
+                fontSize = 10.sp,
+                color = if (canRetry) MaterialTheme.colorScheme.error else Color.Gray,
+                modifier = Modifier
+                    .padding(end = 4.dp)
+                    .then(if (canRetry) Modifier.clickable(onClick = onRetry) else Modifier)
+            )
         }
     }
 }
@@ -828,7 +1132,7 @@ fun LoginScreen(
     ) {
         Icon(Icons.Default.Shield, contentDescription = null, tint = MaterialTheme.colorScheme.primary, modifier = Modifier.size(56.dp))
         Spacer(modifier = Modifier.height(12.dp))
-        Text("ENCTXT", fontSize = 28.sp, fontWeight = FontWeight.Bold, color = Color.White)
+        Text("Vade", fontSize = 28.sp, fontWeight = FontWeight.Bold, color = Color.White)
         Text("End-to-End Encrypted Private Chat", fontSize = 13.sp, color = Color.Gray)
 
         Spacer(modifier = Modifier.height(32.dp))

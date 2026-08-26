@@ -30,7 +30,9 @@ class MainActivity : ComponentActivity() {
 
         val messageViewModel = MessageViewModel(
             messageRepository = app.messageRepository,
-            wsClient = app.wsClient
+            wsClient = app.wsClient,
+            connectivityMonitor = app.connectivityMonitor,
+            syncCoordinator = app.syncCoordinator
         )
 
         setContent {
@@ -41,9 +43,19 @@ class MainActivity : ComponentActivity() {
                     authViewModel = authViewModel,
                     conversationViewModel = conversationViewModel,
                     searchViewModel = searchViewModel,
-                    messageViewModel = messageViewModel
+                    messageViewModel = messageViewModel,
+                    gestureRepository = app.gestureRepository,
+                    contactSecurityRepository = app.contactSecurityRepository,
+                    deviceRepository = app.deviceRepository,
+                    cryptoRepository = app.cryptoRepository
                 )
             }
         }
+    }
+
+    override fun onWindowFocusChanged(hasFocus: Boolean) {
+        super.onWindowFocusChanged(hasFocus)
+        // Drives immediate re-protection of any active gesture reveal (Phase 16 spec §40).
+        WindowFocusMonitor.onWindowFocusChanged(hasFocus)
     }
 }

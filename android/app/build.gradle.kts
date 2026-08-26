@@ -6,7 +6,13 @@ plugins {
 }
 
 android {
-    namespace = "com.enctxt.app"
+    // Must match the actual Kotlin source package ("package com.enctxt" in every .kt file),
+    // NOT applicationId below — this is only used to resolve the manifest's relative class
+    // names (".EnctxtApplication", ".MainActivity") and to generate the R class package.
+    // Was previously "com.enctxt.app", which doesn't match any source file's package
+    // declaration; the app crashed on launch with ClassNotFoundException for
+    // com.enctxt.app.EnctxtApplication, since no such class exists.
+    namespace = "com.enctxt"
     compileSdk = 34
 
     defaultConfig {
@@ -22,6 +28,22 @@ android {
         }
     }
 
+    signingConfigs {
+        create("release") {
+            val storeFilePath = System.getenv("VADE_RELEASE_KEYSTORE_PATH") ?: (project.findProperty("VADE_RELEASE_STORE_FILE") as? String)
+            val storePasswordVal = System.getenv("VADE_RELEASE_KEYSTORE_PASSWORD") ?: (project.findProperty("VADE_RELEASE_STORE_PASSWORD") as? String)
+            val keyAliasVal = System.getenv("VADE_RELEASE_KEY_ALIAS") ?: (project.findProperty("VADE_RELEASE_KEY_ALIAS") as? String)
+            val keyPasswordVal = System.getenv("VADE_RELEASE_KEY_PASSWORD") ?: (project.findProperty("VADE_RELEASE_KEY_PASSWORD") as? String)
+
+            if (!storeFilePath.isNullOrBlank() && !storePasswordVal.isNullOrBlank() && !keyAliasVal.isNullOrBlank() && !keyPasswordVal.isNullOrBlank()) {
+                storeFile = file(storeFilePath)
+                storePassword = storePasswordVal
+                keyAlias = keyAliasVal
+                keyPassword = keyPasswordVal
+            }
+        }
+    }
+
     buildTypes {
         release {
             isMinifyEnabled = true
@@ -29,7 +51,13 @@ android {
                 getDefaultProguardFile("proguard-android-optimize.txt"),
                 "proguard-rules.pro"
             )
-            signingConfig = signingConfigs.getByName("debug") // Placeholder for CI/release signing
+            val releaseSigning = signingConfigs.getByName("release")
+            if (releaseSigning.storeFile != null && releaseSigning.storeFile!!.exists()) {
+                signingConfig = releaseSigning
+            } else {
+                // Fallback for CI/development release testing when external keystore is unprovided
+                signingConfig = signingConfigs.getByName("debug")
+            }
         }
         debug {
             isMinifyEnabled = false

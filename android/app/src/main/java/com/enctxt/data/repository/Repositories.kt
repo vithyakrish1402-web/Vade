@@ -7,12 +7,17 @@ import com.enctxt.core.storage.ConversationEntity
 import com.enctxt.core.storage.EncryptedMessageEntity
 import com.enctxt.core.storage.EnctxtDatabase
 import com.enctxt.core.storage.UserSessionEntity
+import com.enctxt.core.sync.MessageStateReconciler
+import com.enctxt.core.sync.SyncCoordinator
 import com.enctxt.data.model.*
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.Flow
+import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.withContext
 import java.security.PrivateKey
 import java.security.PublicKey
+import java.time.Instant
+import java.util.UUID
 import java.util.concurrent.ConcurrentHashMap
 import javax.crypto.SecretKey
 
@@ -82,6 +87,7 @@ class AuthRepository(
         val result = apiClient.logout()
         database.sessionDao().clearSession()
         database.conversationDao().clearAll()
+        database.messageDao().clearAllMessages()
         return result
     }
 }
@@ -205,6 +211,10 @@ class CryptoRepository(
 
     suspend fun getPeerPublicKey(userId: String): NetworkResult<Pair<String, PublicKey>> {
         return try {
+            peerPublicKeyCache[userId]?.let { cachedKey ->
+                return NetworkResult.Success(Pair("k_cached", cachedKey))
+            }
+
             when (val res = apiClient.getUserPublicKey(userId)) {
                 is NetworkResult.Success -> {
                     val pubKey = KeyAgreementEngine.parsePublicKeyFromSpkiBase64(res.data.publicKey)
@@ -227,15 +237,15 @@ class CryptoRepository(
 }
 
 // ==============================================================================
-// 5. Message Repository (Local Encryption/Decryption & Room Persistence)
+// 5. Message Repository (Reliability, Offline Queue & Room Transactions)
 // ==============================================================================
 
 class MessageRepository(
     private val apiClient: ApiClient,
     private val database: EnctxtDatabase,
-    private val cryptoRepository: CryptoRepository
+    private val cryptoRepository: CryptoRepository,
+    private val syncCoordinator: SyncCoordinator
 ) {
-    // In-memory conversation symmetric AES-256-GCM key cache (conversationId -> SecretKey)
     private val conversationKeyCache = ConcurrentHashMap<String, SecretKey>()
 
     suspend fun getConversationKey(conversationId: String, peerId: String): SecretKey {
@@ -247,10 +257,7 @@ class MessageRepository(
             val peerPublicKey = peerKeyResult.data.second
             val localPrivateKey = cryptoRepository.getLocalPrivateKey()
 
-            // 1. ECDH Shared Secret
             val sharedSecret = KeyAgreementEngine.computeEcdhSharedSecret(localPrivateKey, peerPublicKey)
-
-            // 2. HKDF-SHA-256 Symmetric Derivation
             HkdfKeyDerivation.deriveAesKey(
                 sharedSecret = sharedSecret,
                 salt = conversationId,
@@ -259,43 +266,15 @@ class MessageRepository(
         }
     }
 
-    suspend fun fetchMessageHistory(
+    fun observeRoomMessages(
         conversationId: String,
         peerId: String,
         currentUserId: String
-    ): NetworkResult<List<MessageUiModel>> = withContext(Dispatchers.IO) {
-        when (val res = apiClient.getMessages(conversationId)) {
-            is NetworkResult.Success -> {
-                val dtos = res.data.messages
-
-                // Persist ciphertext envelopes only (Zero Plaintext Invariant)
-                val entities = dtos.map { dto ->
-                    EncryptedMessageEntity(
-                        id = dto.id,
-                        conversationId = dto.conversationId,
-                        senderId = dto.senderId,
-                        ciphertext = dto.ciphertext,
-                        nonce = dto.nonce,
-                        senderKeyId = dto.senderKeyId,
-                        recipientKeyId = dto.recipientKeyId,
-                        algorithm = dto.algorithm,
-                        version = dto.version,
-                        aad = dto.aad,
-                        status = dto.status,
-                        createdAt = dto.createdAt,
-                        updatedAt = dto.updatedAt
-                    )
-                }
-                database.messageDao().insertMessages(entities)
-
-                // Decrypt in transient memory for the UI layer
-                val uiModels = dtos.map { dto ->
-                    decryptDtoToUiModel(dto, conversationId, peerId, currentUserId)
-                }
-                NetworkResult.Success(uiModels)
+    ): Flow<List<MessageUiModel>> {
+        return database.messageDao().observeMessages(conversationId).map { entities ->
+            entities.map { entity ->
+                decryptEntityToUiModel(entity, conversationId, peerId, currentUserId)
             }
-            is NetworkResult.Error -> NetworkResult.Error(res.code, res.message, res.statusCode)
-            is NetworkResult.Loading -> NetworkResult.Loading
         }
     }
 
@@ -303,10 +282,10 @@ class MessageRepository(
         conversationId: String,
         peerId: String,
         currentUserId: String,
-        plaintext: String
+        plaintext: String,
+        isOnline: Boolean
     ): NetworkResult<MessageUiModel> = withContext(Dispatchers.IO) {
         try {
-            // 1. Resolve Peer Public Key & Key IDs
             val peerKeyResult = cryptoRepository.getPeerPublicKey(peerId)
             if (peerKeyResult !is NetworkResult.Success) {
                 return@withContext NetworkResult.Error("KEY_UNAVAILABLE", "Recipient encryption key unavailable")
@@ -314,10 +293,9 @@ class MessageRepository(
             val recipientKeyId = peerKeyResult.data.first
             val localKeyId = KeyStoreManager.generateKeyId()
 
-            // 2. Derive Conversation Key
             val conversationKey = getConversationKey(conversationId, peerId)
 
-            // 3. Encrypt Plaintext with CSPRNG Nonce and AAD
+            // Encrypt locally with fresh CSPRNG nonce
             val envelope = AeadCipherEngine.encrypt(
                 plaintext = plaintext,
                 secretKey = conversationKey,
@@ -327,51 +305,81 @@ class MessageRepository(
                 recipientKeyId = recipientKeyId
             )
 
-            // 4. Send Ciphertext Envelope to Server
+            val localId = UUID.randomUUID().toString()
+            val tempId = "temp_${UUID.randomUUID()}"
+            val nowIso = Instant.now().toString()
+
+            val initialLocalState = if (isOnline) MessageLocalState.SENDING else MessageLocalState.PENDING_SEND
+
+            // 1. Persist encrypted envelope immediately (Zero Plaintext Offline Invariant)
+            val pendingEntity = EncryptedMessageEntity(
+                localId = localId,
+                serverMessageId = null,
+                clientTempId = tempId,
+                conversationId = conversationId,
+                senderId = currentUserId,
+                ciphertext = envelope.ciphertext,
+                nonce = envelope.nonce,
+                senderKeyId = envelope.senderKeyId,
+                recipientKeyId = envelope.recipientKeyId,
+                algorithm = envelope.algorithm,
+                version = envelope.version,
+                aad = envelope.aad,
+                localState = initialLocalState.name,
+                createdAt = nowIso,
+                updatedAt = nowIso
+            )
+            database.messageDao().insertMessage(pendingEntity)
+
+            val optimisticUiModel = MessageUiModel(
+                localId = localId,
+                serverMessageId = null,
+                clientTempId = tempId,
+                conversationId = conversationId,
+                senderId = currentUserId,
+                isOutgoing = true,
+                transientPlaintext = plaintext,
+                decryptionState = DecryptionState.DECRYPTED,
+                localState = initialLocalState,
+                createdAt = nowIso,
+                senderKeyId = localKeyId,
+                recipientKeyId = recipientKeyId
+            )
+
+            if (!isOnline) {
+                return@withContext NetworkResult.Success(optimisticUiModel)
+            }
+
+            // 2. Transmit over network
             val sendResult = apiClient.sendMessage(
                 conversationId = conversationId,
-                request = SendMessageRequest(envelope = envelope)
+                request = SendMessageRequest(envelope = envelope, tempId = tempId)
             )
 
             when (sendResult) {
                 is NetworkResult.Success -> {
-                    val msgDto = sendResult.data.message
-
-                    // Persist ciphertext envelope
-                    database.messageDao().insertMessage(
-                        EncryptedMessageEntity(
-                            id = msgDto.id,
-                            conversationId = msgDto.conversationId,
-                            senderId = msgDto.senderId,
-                            ciphertext = msgDto.ciphertext,
-                            nonce = msgDto.nonce,
-                            senderKeyId = msgDto.senderKeyId,
-                            recipientKeyId = msgDto.recipientKeyId,
-                            algorithm = msgDto.algorithm,
-                            version = msgDto.version,
-                            aad = msgDto.aad,
-                            status = msgDto.status,
-                            createdAt = msgDto.createdAt,
-                            updatedAt = msgDto.updatedAt
-                        )
+                    val serverMsg = sendResult.data.message
+                    database.messageDao().updateMessageState(
+                        localId = localId,
+                        state = MessageLocalState.SENT.name,
+                        serverId = serverMsg.id,
+                        updatedAt = serverMsg.createdAt
                     )
-
                     NetworkResult.Success(
-                        MessageUiModel(
-                            id = msgDto.id,
-                            conversationId = msgDto.conversationId,
-                            senderId = msgDto.senderId,
-                            isOutgoing = true,
-                            transientPlaintext = plaintext,
-                            decryptionState = DecryptionState.DECRYPTED,
-                            deliveryState = DeliveryState.SENT,
-                            createdAt = msgDto.createdAt,
-                            senderKeyId = msgDto.senderKeyId,
-                            recipientKeyId = msgDto.recipientKeyId
+                        optimisticUiModel.copy(
+                            serverMessageId = serverMsg.id,
+                            localState = MessageLocalState.SENT
                         )
                     )
                 }
-                is NetworkResult.Error -> NetworkResult.Error(sendResult.code, sendResult.message, sendResult.statusCode)
+                is NetworkResult.Error -> {
+                    if (sendResult.statusCode != null && sendResult.statusCode in 400..499) {
+                        database.messageDao().updateMessageState(localId, MessageLocalState.FAILED.name, null, nowIso)
+                    } else {
+                        database.messageDao().updateMessageState(localId, MessageLocalState.PENDING_SEND.name, null, nowIso)
+                    }
+                    NetworkResult.Error(sendResult.code, sendResult.message, sendResult.statusCode)
+                }
                 is NetworkResult.Loading -> NetworkResult.Loading
             }
         } catch (e: Exception) {
@@ -379,64 +387,67 @@ class MessageRepository(
         }
     }
 
-    suspend fun decryptDtoToUiModel(
-        dto: MessageItemDto,
+    suspend fun decryptEntityToUiModel(
+        entity: EncryptedMessageEntity,
         conversationId: String,
         peerId: String,
         currentUserId: String
     ): MessageUiModel {
-        val isOutgoing = dto.senderId == currentUserId
+        val isOutgoing = entity.senderId == currentUserId
+        val localState = try {
+            MessageLocalState.valueOf(entity.localState)
+        } catch (_: Exception) {
+            MessageLocalState.SENT
+        }
 
         return try {
             val conversationKey = getConversationKey(conversationId, peerId)
             val envelope = EncryptedEnvelopeDto(
-                version = dto.version,
-                algorithm = dto.algorithm,
+                version = entity.version,
+                algorithm = entity.algorithm,
                 keyAgreement = "ECDH-P256",
-                senderKeyId = dto.senderKeyId,
-                recipientKeyId = dto.recipientKeyId,
-                nonce = dto.nonce,
-                ciphertext = dto.ciphertext,
-                aad = dto.aad
+                senderKeyId = entity.senderKeyId,
+                recipientKeyId = entity.recipientKeyId,
+                nonce = entity.nonce,
+                ciphertext = entity.ciphertext,
+                aad = entity.aad
             )
 
             val decryptedText = AeadCipherEngine.decrypt(
                 envelope = envelope,
                 secretKey = conversationKey,
                 conversationId = conversationId,
-                senderId = dto.senderId
+                senderId = entity.senderId
             )
 
-            val deliveryState = when (dto.status) {
-                "read" -> DeliveryState.READ
-                "delivered" -> DeliveryState.DELIVERED
-                else -> DeliveryState.SENT
-            }
-
             MessageUiModel(
-                id = dto.id,
-                conversationId = dto.conversationId,
-                senderId = dto.senderId,
+                localId = entity.localId,
+                serverMessageId = entity.serverMessageId,
+                clientTempId = entity.clientTempId,
+                conversationId = entity.conversationId,
+                senderId = entity.senderId,
                 isOutgoing = isOutgoing,
                 transientPlaintext = decryptedText,
                 decryptionState = DecryptionState.DECRYPTED,
-                deliveryState = deliveryState,
-                createdAt = dto.createdAt,
-                senderKeyId = dto.senderKeyId,
-                recipientKeyId = dto.recipientKeyId
+                localState = localState,
+                createdAt = entity.createdAt,
+                senderKeyId = entity.senderKeyId,
+                recipientKeyId = entity.recipientKeyId
             )
         } catch (_: Exception) {
             MessageUiModel(
-                id = dto.id,
-                conversationId = dto.conversationId,
-                senderId = dto.senderId,
+                localId = entity.localId,
+                serverMessageId = entity.serverMessageId,
+                clientTempId = entity.clientTempId,
+                conversationId = entity.conversationId,
+                senderId = entity.senderId,
                 isOutgoing = isOutgoing,
                 transientPlaintext = null,
                 decryptionState = DecryptionState.DECRYPTION_FAILED,
-                deliveryState = DeliveryState.FAILED,
-                createdAt = dto.createdAt,
-                senderKeyId = dto.senderKeyId,
-                recipientKeyId = dto.recipientKeyId
+                localState = MessageLocalState.FAILED,
+                createdAt = entity.createdAt,
+                senderKeyId = entity.senderKeyId,
+                recipientKeyId = entity.recipientKeyId
             )
         }
     }
@@ -445,7 +456,11 @@ class MessageRepository(
         apiClient.markConversationRead(conversationId)
     }
 
-    fun clearDecryptionKeys() {
-        conversationKeyCache.clear()
+    suspend fun syncConversation(conversationId: String) {
+        syncCoordinator.syncConversation(conversationId)
+    }
+
+    suspend fun flushOfflineQueue() {
+        syncCoordinator.flushOfflineQueue()
     }
 }

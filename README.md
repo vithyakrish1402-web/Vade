@@ -1,48 +1,47 @@
-# ENCTXT (Private Chat)
+# Vade (Private Chat)
 
-A privacy-focused text communication platform designed with visual privacy, custom gesture-based reveals, end-to-end cryptographic security architecture, accessible production UX, and reproducible, secure production deployment infrastructure.
+A privacy-focused text communication platform designed with visual privacy, custom gesture-based reveals, end-to-end cryptographic security architecture, accessible production UX, and reproducible, secure production deployment infrastructure across Web and Native Android.
 
 ---
 
-## Current Status: Phase 11 — Web Release Candidate, Final Security Audit & Android Readiness (Complete)
+## Current Status: Phase 19 — Final Security Audit, Release Validation & Store Submission (Complete)
 
-Phase 11 freezes the core web architecture, establishes definitive API, WebSocket, and E2EE protocol contracts, provides cross-platform cryptographic test vectors for future Android client integration, validates the complete threat model, and produces **Release Candidate `v1.0.0-rc.1`**.
+Vade has achieved full release candidate status for **`v1.0.0-rc.1`** across both Web and Android clients. All 19 implementation and hardening phases are complete, audited, and verified against the 4-Layer Defense-in-Depth Privacy Model.
 
 > [!NOTE]
 > **4-Layer Defense-in-Depth Privacy Model**:
-> - **Layer 4 — Identity Verification**: Users compare symmetric safety numbers (`48321 72904 18273 66421`) and key fingerprints (`A7D4 92F1 8C20 4E73...`) to verify whom they are communicating with. Key changes trigger in-app warnings and invalidate verification.
-> - **Layer 3 — Gesture Reveal Authorization**: Custom multi-stroke geometric gestures grant 8-second temporary plaintext reveals with active countdown UX.
-> - **Layer 2 — Protected Message Rendering**: Messages appear as deterministic visual homoglyphs on screen by default (`protectMessage`).
-> - **Layer 1 — End-to-End Encryption (E2EE)**: Messages are encrypted locally on client devices via Web Crypto (`ECDH P-256`, `HKDF-SHA-256`, `AES-256-GCM`). Zero plaintext on the server.
+> - **Layer 4 — Identity Verification & Device Trust**: Users compare symmetric safety numbers (`48321 72904 18273 66421`) and key fingerprints (`A7D4 92F1 8C20 4E73...`) to verify contacts out-of-band. Key changes immediately trigger in-app warnings (`KeyChanged`) and require explicit re-verification. Server-authoritative device trust allows inspecting and revoking active devices.
+> - **Layer 3 — Gesture Reveal Authorization & Window Protection**: Custom multi-stroke geometric gestures grant ≤ 8-second temporary plaintext reveals with active countdown progress bars. Dynamic `FLAG_SECURE` window protection blocks screenshots, screen recordings, and recent-app previews during reveal.
+> - **Layer 2 — Protected Message Rendering**: Messages appear as deterministic visual homoglyphs on screen by default across timelines and previews (`ProtectedMessage` / `protectMessage`).
+> - **Layer 1 — End-to-End Encryption (E2EE)**: Messages are encrypted locally on client devices via Web Crypto / Android Keystore (`ECDH P-256`, `HKDF-SHA-256`, `AES-256-GCM`). Zero plaintext on the server or in database storage.
 
 ---
 
 ### Core Architecture & Production Topology
 
 ```text
-                         Internet (HTTPS / WSS)
-                                   │
-                                   ▼
-                    ┌─────────────────────────────┐
-                    │ Reverse Proxy (TLS / HTTPS) │
-                    │ Nginx / Caddy (Let's Enc)   │
-                    └──────────────┬──────────────┘
-                                   │
-              ┌────────────────────┴────────────────────┐
-              │                                         │
-              ▼                                         ▼
-    Static React/Vite SPA                     Node.js Express API & WS
-    (dist/ - Hashed Assets)                   (http://backend:5000)
-    - Zero-Plaintext Previews                 - /api/* (REST API)
-    - Protected Message UI                    - /ws (WebSocket WSS)
-    - 8s Gesture Reveal                                 │
-              │                                         ▼
-              │                                    PostgreSQL
-              │                             (Ciphertext Envelopes Only)
-              │
-              ▼
-    Client Browser Security
-    (WebCrypto P-256 + IndexedDB Keys)
+                                  Internet (HTTPS / WSS)
+                                            │
+                                            ▼
+                             ┌─────────────────────────────┐
+                             │ Reverse Proxy (TLS / HTTPS) │
+                             │ Nginx / Caddy (Let's Enc)   │
+                             └──────────────┬──────────────┘
+                                            │
+               ┌────────────────────────────┼────────────────────────────┐
+               │                            │                            │
+               ▼                            ▼                            ▼
+     Static React/Vite SPA        Android Native App            Node.js Express API & WS
+     (dist/ - Web Client)         (Jetpack Compose / Keystore)  (Backend Service)
+     - Protected Rendering        - Hardware Keystore EC Keys   - /api/* (REST API)
+     - 8s Gesture Reveal          - Room Ciphertext Storage     - /ws (WebSocket WSS)
+     - Safety Numbers / FPs       - Dynamic FLAG_SECURE                     │
+               │                  - 8s Gesture Reveal                       ▼
+               │                            │                          PostgreSQL
+               │                            │                   (Ciphertext Envelopes Only)
+               ▼                            ▼
+        Client Browser               Android Keystore
+       (IndexedDB Keys)             (Hardware Backed)
 ```
 
 ---
@@ -61,17 +60,25 @@ Phase 11 freezes the core web architecture, establishes definitive API, WebSocke
 
 ---
 
-## Testing & Quality Assurance
+## Testing & Verification
 
 ```bash
-# Run automated test suites across all workspaces (165 tests: 83 backend + 82 frontend)
+# Web & Server Test Suite (165 tests: 83 backend + 82 frontend)
 npm test
 
-# Run TypeScript typechecks across all workspaces
+# TypeScript typechecks & Web production build
 npm run typecheck
-
-# Production builds for all workspaces
 npm run build
+
+# Android Native Test Suite (152 debug + 152 release = 304 unit test executions)
+cd android
+./gradlew test
+
+# Android Lint (0 errors)
+./gradlew lint
+
+# Android Release APK & Play Store AAB Bundle Generation
+./gradlew assembleRelease bundleRelease
 ```
 
 ---
@@ -89,4 +96,11 @@ npm run build
 - [x] **Phase 9 — Production UX, Reliability & Application Polish** (Complete)
 - [x] **Phase 10 — Production Web Deployment & Infrastructure** (Complete)
 - [x] **Phase 11 — Web Release Candidate, Final Security Audit & Android Readiness** (Complete)
-- [ ] **Phase 12 — Android Native Client Implementation**
+- [x] **Phase 12 — Android Foundation & Security Primitives** (Complete)
+- [x] **Phase 13 — Android Authentication & E2EE Messaging** (Complete)
+- [x] **Phase 14 — Android Offline Synchronization & Reliability** (Complete)
+- [x] **Phase 15 — Android Protected Message Rendering (Layer 2)** (Complete)
+- [x] **Phase 16 — Android Custom Gesture Reveal System (Layer 3)** (Complete)
+- [x] **Phase 17 — Android Key Verification & Device Trust (Layer 4)** (Complete)
+- [x] **Phase 18 — Android Final UX, Security Hardening & Release Readiness** (Complete)
+- [x] **Phase 19 — Final Security Audit, Release Validation & Store Submission** (Complete)

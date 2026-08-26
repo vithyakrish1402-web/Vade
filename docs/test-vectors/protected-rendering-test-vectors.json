@@ -1,0 +1,66 @@
+{
+  "version": 1,
+  "description": "Cross-platform deterministic protected message rendering test vectors. Generated from the canonical Web protectMessage.ts engine. Both Web and Android ProtectedTextEngine must produce identical output for each vector.",
+  "vectors": [
+    {
+      "input": "Hello World",
+      "expected": "Нєllσ Wσrld"
+    },
+    {
+      "input": "See you soon",
+      "expected": "Ѕєє уσυ ѕσση"
+    },
+    {
+      "input": "abcdefghijklmnopqrstuvwxyz",
+      "expected": "αвсdєfghιјкlмησρqrѕтυνwχуz"
+    },
+    {
+      "input": "ABCDEFGHIJKLMNOPQRSTUVWXYZ",
+      "expected": "ΛΒСΔЄϜGНΙЈΚLΜΝØΡQRЅΤUVWΧΥΖ"
+    },
+    {
+      "input": "1234567890",
+      "expected": "1234567890"
+    },
+    {
+      "input": "Hello! How are you?",
+      "expected": "Нєllσ! Нσw αrє уσυ?"
+    },
+    {
+      "input": "",
+      "expected": ""
+    },
+    {
+      "input": "Meet me at 7 PM near the station!",
+      "expected": "Μєєт мє αт 7 ΡΜ ηєαr тhє ѕтαтιση!"
+    },
+    {
+      "input": "Café and résumé",
+      "expected": "Сαfé αηd réѕυмé"
+    },
+    {
+      "input": "Line 1\n\nLine 2",
+      "expected": "Lιηє 1\n\nLιηє 2"
+    },
+    {
+      "input": "😊🚀👋🔒🛡️",
+      "expected": "😊🚀👋🔒🛡️"
+    },
+    {
+      "input": "नमस्ते",
+      "expected": "नमस्ते"
+    },
+    {
+      "input": "你好，世界！",
+      "expected": "你好，世界！"
+    },
+    {
+      "input": "こんにちは！",
+      "expected": "こんにちは！"
+    },
+    {
+      "input": "Test @#$%^&*()",
+      "expected": "Τєѕт @#$%^&*()"
+    }
+  ]
+}

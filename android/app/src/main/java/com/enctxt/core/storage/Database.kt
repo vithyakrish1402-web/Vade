@@ -23,18 +23,24 @@ data class ConversationEntity(
     val peerUsername: String,
     val peerDisplayName: String,
     val createdAt: String,
-    val updatedAt: String
+    val updatedAt: String,
+    val lastSyncedAt: Long = 0L,
+    val lastKnownMessageId: String? = null
 )
 
 @Entity(
     tableName = "encrypted_messages",
     indices = [
         Index(value = ["conversationId", "createdAt"]),
-        Index(value = ["senderId"])
+        Index(value = ["serverMessageId"], unique = false),
+        Index(value = ["clientTempId"], unique = false),
+        Index(value = ["localState"])
     ]
 )
 data class EncryptedMessageEntity(
-    @PrimaryKey val id: String,
+    @PrimaryKey val localId: String,
+    val serverMessageId: String? = null,
+    val clientTempId: String? = null,
     val conversationId: String,
     val senderId: String,
     val ciphertext: String,
@@ -44,7 +50,7 @@ data class EncryptedMessageEntity(
     val algorithm: String = "AES-256-GCM",
     val version: Int = 1,
     val aad: String? = null,
-    val status: String = "sent",
+    val localState: String = "SENT", // PENDING_SEND, SENDING, SENT, DELIVERED, READ, FAILED
     val createdAt: String,
     val updatedAt: String
 )
@@ -73,11 +79,17 @@ interface ConversationDao {
     @Query("SELECT * FROM conversations ORDER BY updatedAt DESC")
     fun observeConversations(): Flow<List<ConversationEntity>>
 
+    @Query("SELECT * FROM conversations WHERE id = :id LIMIT 1")
+    suspend fun getConversation(id: String): ConversationEntity?
+
     @Insert(onConflict = OnConflictStrategy.REPLACE)
     suspend fun insertConversations(conversations: List<ConversationEntity>)
 
     @Insert(onConflict = OnConflictStrategy.REPLACE)
     suspend fun insertConversation(conversation: ConversationEntity)
+
+    @Query("UPDATE conversations SET lastSyncedAt = :syncedAt, lastKnownMessageId = :lastMsgId WHERE id = :convId")
+    suspend fun updateSyncCursor(convId: String, syncedAt: Long, lastMsgId: String?)
 
     @Query("DELETE FROM conversations")
     suspend fun clearAll()
@@ -88,14 +100,35 @@ interface MessageDao {
     @Query("SELECT * FROM encrypted_messages WHERE conversationId = :conversationId ORDER BY createdAt ASC")
     fun observeMessages(conversationId: String): Flow<List<EncryptedMessageEntity>>
 
+    @Query("SELECT * FROM encrypted_messages WHERE localState = 'PENDING_SEND' ORDER BY createdAt ASC")
+    suspend fun getPendingSendMessages(): List<EncryptedMessageEntity>
+
+    @Query("SELECT * FROM encrypted_messages WHERE serverMessageId = :serverMessageId LIMIT 1")
+    suspend fun getMessageByServerId(serverMessageId: String): EncryptedMessageEntity?
+
+    @Query("SELECT * FROM encrypted_messages WHERE clientTempId = :clientTempId LIMIT 1")
+    suspend fun getMessageByClientTempId(clientTempId: String): EncryptedMessageEntity?
+
     @Insert(onConflict = OnConflictStrategy.REPLACE)
     suspend fun insertMessage(message: EncryptedMessageEntity)
 
     @Insert(onConflict = OnConflictStrategy.REPLACE)
     suspend fun insertMessages(messages: List<EncryptedMessageEntity>)
 
+    @Query("UPDATE encrypted_messages SET localState = :state, serverMessageId = :serverId, updatedAt = :updatedAt WHERE localId = :localId")
+    suspend fun updateMessageState(localId: String, state: String, serverId: String?, updatedAt: String)
+
+    @Query("UPDATE encrypted_messages SET localState = :state, updatedAt = :updatedAt WHERE serverMessageId = :serverMessageId")
+    suspend fun updateDeliveryState(serverMessageId: String, state: String, updatedAt: String)
+
+    @Query("DELETE FROM encrypted_messages WHERE localId = :localId")
+    suspend fun deleteMessage(localId: String)
+
     @Query("DELETE FROM encrypted_messages WHERE conversationId = :conversationId")
     suspend fun deleteConversationMessages(conversationId: String)
+
+    @Query("DELETE FROM encrypted_messages")
+    suspend fun clearAllMessages()
 }
 
 // ==============================================================================
@@ -108,7 +141,7 @@ interface MessageDao {
         ConversationEntity::class,
         EncryptedMessageEntity::class
     ],
-    version = 1,
+    version = 2,
     exportSchema = false
 )
 abstract class EnctxtDatabase : RoomDatabase() {

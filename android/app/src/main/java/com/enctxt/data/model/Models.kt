@@ -189,6 +189,23 @@ data class DeviceListResponse(
     val devices: List<DeviceDto>
 )
 
+@Serializable
+data class RevokeDeviceResponse(
+    val success: Boolean,
+    val revokedDeviceId: String
+)
+
+data class DeviceRecord(
+    val id: String,
+    val deviceName: String,
+    val platform: String,
+    val keyId: String,
+    val status: String = "active",
+    val lastSeenAt: String? = null,
+    val createdAt: String? = null,
+    val isCurrentDevice: Boolean = false
+)
+
 // ==============================================================================
 // 5. System Health & Error Models (docs/api-contract.md)
 // ==============================================================================
@@ -257,22 +274,33 @@ enum class DecryptionState {
     UNSUPPORTED
 }
 
-enum class DeliveryState {
-    SENDING,
-    SENT,
-    DELIVERED,
-    READ,
-    FAILED
+enum class MessageLocalState(val rank: Int) {
+    PENDING_ENCRYPTION(0),
+    ENCRYPTING(1),
+    PENDING_SEND(2),
+    SENDING(3),
+    SENT(4),
+    DELIVERED(5),
+    READ(6),
+    FAILED(-1);
+
+    fun canTransitionTo(newState: MessageLocalState): Boolean {
+        if (this == READ) return false // Read is terminal forward state
+        if (newState == FAILED) return true // Any active state can fail
+        return newState.rank >= this.rank
+    }
 }
 
 data class MessageUiModel(
-    val id: String,
+    val localId: String,
+    val serverMessageId: String?,
+    val clientTempId: String? = null,
     val conversationId: String,
     val senderId: String,
     val isOutgoing: Boolean,
     val transientPlaintext: String? = null, // In transient memory only, never saved to Room
     val decryptionState: DecryptionState = DecryptionState.DECRYPTED,
-    val deliveryState: DeliveryState = DeliveryState.SENT,
+    val localState: MessageLocalState = MessageLocalState.SENT,
     val createdAt: String,
     val senderKeyId: String,
     val recipientKeyId: String
@@ -285,5 +313,6 @@ data class ConversationUiModel(
     val peerDisplayName: String,
     val updatedAt: String,
     val previewPlaceholder: String = "Protected conversation",
-    val unreadCount: Int = 0
+    val unreadCount: Int = 0,
+    val isSyncing: Boolean = false
 )

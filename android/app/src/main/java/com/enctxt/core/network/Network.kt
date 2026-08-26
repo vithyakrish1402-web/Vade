@@ -67,7 +67,7 @@ class MemoryCookieJar : CookieJar {
 // 3. Centralized REST API Client (Conforming to docs/api-contract.md)
 // ==============================================================================
 
-class ApiClient(
+open class ApiClient(
     private val config: NetworkConfig = NetworkConfig(),
     private val cookieJar: MemoryCookieJar = MemoryCookieJar()
 ) {
@@ -85,37 +85,37 @@ class ApiClient(
 
     private val jsonMediaType = "application/json; charset=utf-8".toMediaType()
 
-    suspend fun register(request: RegisterRequest): NetworkResult<AuthResponse> =
+    open suspend fun register(request: RegisterRequest): NetworkResult<AuthResponse> =
         executePost("/auth/register", request)
 
-    suspend fun login(request: LoginRequest): NetworkResult<AuthResponse> =
+    open suspend fun login(request: LoginRequest): NetworkResult<AuthResponse> =
         executePost("/auth/login", request)
 
-    suspend fun getMe(): NetworkResult<AuthResponse> =
+    open suspend fun getMe(): NetworkResult<AuthResponse> =
         executeGet("/auth/me")
 
-    suspend fun logout(): NetworkResult<LogoutResponse> {
+    open suspend fun logout(): NetworkResult<LogoutResponse> {
         val res = executePost<Unit, LogoutResponse>("/auth/logout", Unit)
         cookieJar.clear()
         return res
     }
 
-    suspend fun getProfile(): NetworkResult<UserProfile> =
+    open suspend fun getProfile(): NetworkResult<UserProfile> =
         executeGet("/users/me")
 
-    suspend fun searchUsers(query: String): NetworkResult<SearchUsersResponse> =
+    open suspend fun searchUsers(query: String): NetworkResult<SearchUsersResponse> =
         executeGet("/users/search?q=$query")
 
-    suspend fun getConversations(page: Int = 1, limit: Int = 20): NetworkResult<ConversationListResponse> =
+    open suspend fun getConversations(page: Int = 1, limit: Int = 20): NetworkResult<ConversationListResponse> =
         executeGet("/conversations?page=$page&limit=$limit")
 
-    suspend fun getConversationDetails(id: String): NetworkResult<ConversationResponse> =
+    open suspend fun getConversationDetails(id: String): NetworkResult<ConversationResponse> =
         executeGet("/conversations/$id")
 
-    suspend fun createConversation(userId: String): NetworkResult<ConversationResponse> =
+    open suspend fun createConversation(userId: String): NetworkResult<ConversationResponse> =
         executePost("/conversations", CreateConversationRequest(userId))
 
-    suspend fun getMessages(
+    open suspend fun getMessages(
         conversationId: String,
         limit: Int = 50,
         before: String? = null
@@ -128,28 +128,34 @@ class ApiClient(
         return executeGet(path)
     }
 
-    suspend fun sendMessage(
+    open suspend fun sendMessage(
         conversationId: String,
         request: SendMessageRequest
     ): NetworkResult<SendMessageResponse> =
         executePost("/conversations/$conversationId/messages", request)
 
-    suspend fun markConversationRead(conversationId: String): NetworkResult<Unit> =
+    open suspend fun markConversationRead(conversationId: String): NetworkResult<Unit> =
         executePost("/conversations/$conversationId/read", Unit)
 
-    suspend fun publishIdentityKey(request: PublishKeyRequest): NetworkResult<Unit> =
+    open suspend fun publishIdentityKey(request: PublishKeyRequest): NetworkResult<Unit> =
         executePost("/crypto/identity", request)
 
-    suspend fun getUserPublicKey(userId: String): NetworkResult<PublicKeyResponse> =
+    open suspend fun getUserPublicKey(userId: String): NetworkResult<PublicKeyResponse> =
         executeGet("/crypto/users/$userId/key")
 
-    suspend fun registerDevice(request: RegisterDeviceRequest): NetworkResult<DeviceDto> =
+    open suspend fun registerDevice(request: RegisterDeviceRequest): NetworkResult<DeviceDto> =
         executePost("/devices/register", request)
 
-    suspend fun getHealth(): NetworkResult<HealthResponse> =
+    open suspend fun getDevices(): NetworkResult<DeviceListResponse> =
+        executeGet("/devices")
+
+    open suspend fun revokeDevice(deviceId: String): NetworkResult<RevokeDeviceResponse> =
+        executePost("/devices/$deviceId/revoke", Unit)
+
+    open suspend fun getHealth(): NetworkResult<HealthResponse> =
         executeGet("/health")
 
-    suspend fun getReadiness(): NetworkResult<ReadinessResponse> =
+    open suspend fun getReadiness(): NetworkResult<ReadinessResponse> =
         executeGet("/health/ready")
 
     private suspend inline fun <reified T> executeGet(path: String): NetworkResult<T> =

@@ -1,69 +1,53 @@
-# ENCTXT Android Client Implementation Contract & Readiness Guide
+# Vade Android Client Architecture & Verification Specification
 
-**Target Phase**: Phase 12 (Android Implementation)  
+**Target Version**: `v1.0.0-rc.1`  
 **Protocol Version**: `1`  
-**Compatibility Level**: 100% Interoperable with ENCTXT Web Release Candidate (v1.0.0-rc.1)
+**Compatibility Level**: 100% Interoperable with Vade Web Release Candidate  
+**Status**: COMPLETE & VERIFIED (Phases 12–19)
 
 ---
 
 ## 1. Architectural Overview
 
-The future Android client must integrate with the existing frozen ENCTXT backend and Web client without any changes to the server API, database schema, or cryptographic protocol:
+The native Android client implements Vade's 4-Layer Defense-in-Depth Privacy Model and integrates with the backend and Web client without any changes to the server API, database schema, or cryptographic protocol:
 
 ```text
 Android Client (Kotlin / Jetpack Compose)
   │
   ├── 1. Secure Local Storage
-  │     ├── Android Keystore: Hardware-backed ECDH P-256 Identity Keypair
-  │     ├── Room Database (SQLCipher / Encrypted): Stores Ciphertext Envelopes Only
-  │     └── EncryptedSharedPreferences: Contact verification records
+  │     ├── Android Keystore: Hardware-backed ECDH P-256 Identity Keypair (PURPOSE_AGREE_KEY)
+  │     ├── Room Database: Stores Ciphertext Envelopes & Nonces Only (Zero Plaintext)
+  │     ├── EncryptedSharedPreferences (AES-256-GCM): Gesture Templates (Layer 3)
+  │     └── EncryptedSharedPreferences (AES-256-GCM): Contact Verification Records (Layer 4)
   │
   ├── 2. Cryptographic Engine
   │     ├── ECDH on NIST P-256 (secp256r1)
   │     ├── HKDF-SHA-256 (RFC 5869): salt = conversationId, info = "enctxt-v1-e2ee"
-  │     └── AES-256-GCM: 96-bit IV, 128-bit tag, AAD = "${conversationId}:${senderId}:v1"
+  │     ├── AES-256-GCM: 96-bit CSPRNG Nonce, 128-bit Tag, AAD = "${conversationId}:${senderId}:v1"
+  │     ├── SHA-256 Identity Fingerprints (8 groups × 4 uppercase hex characters)
+  │     └── Lexicographical Symmetric Safety Numbers (4 groups × 5 decimal digits)
   │
-  ├── 3. Network Transport (OkHttp 4.x + Retrofit)
-  │     ├── Persistent CookieJar for HttpOnly session cookie
-  │     ├── HTTPS REST API (/api/*)
-  │     └── WebSocket client (wss://<host>/ws) with automatic heartbeat & reconnect
+  ├── 3. Network Transport (OkHttp 4.x + MemoryCookieJar)
+  │     ├── HTTPS REST API (/api/*) with secure JSON serialization
+  │     ├── WebSocket client (wss://<host>/ws) with heartbeat, queue, & reconnect
+  │     └── Network Security Config: Cleartext traffic strictly forbidden in production
   │
   └── 4. Privacy UX Engine
-        ├── Protected Message UI: Visual homoglyphs before reveal
-        ├── Biometric / Custom Gesture Reveal: 8-second temporary reveal duration
-        └── Auto Re-protection: On Activity onPause, onStop, or App Switcher
+        ├── Protected Message UI: Visual homoglyphs before reveal (Zero Plaintext Display by Default)
+        ├── Dynamic FLAG_SECURE: Screenshot, screen recorder, & recent-app protection during reveal
+        ├── 64-point Arc-Length Normalized Gesture Reveal: ≤ 8-second temporary reveal duration
+        └── Fail-Closed Re-protection: On Activity ON_STOP, Window Focus Loss, or Lockout
 ```
 
 ---
 
-## 2. Cryptographic Interoperability Checklist
+## 2. Release & Security Invariants
 
-To ensure complete interoperability with Web users:
-1. **Public Key Format**: Android must export its public identity key as Base64-encoded `SubjectPublicKeyInfo` (SPKI) DER bytes when calling `POST /api/crypto/identity`.
-2. **Key Derivation (HKDF)**: Use standard BouncyCastle or Java `HKDF` with:
-   - `IKM`: 32-byte raw shared secret from `ECDH(Android_Priv, Peer_Pub)`.
-   - `Salt`: UTF-8 bytes of `conversationId`.
-   - `Info`: UTF-8 bytes of `"enctxt-v1-e2ee"`.
-   - Output length: 32 bytes (256 bits).
-3. **Envelope Packaging**: Encrypt message plaintext to AES-256-GCM ciphertext + 16-byte tag, encode to Base64, and transmit via `POST /api/conversations/:id/messages`.
-4. **AAD Binding**: Exact byte string `"${conversationId}:${senderId}:v1"`.
-5. **Safety Number Verification**: Compute `SHA-256(min(pkA, pkB) + ":" + max(pkA, pkB) + ":v1")` matching the Web client format.
-
----
-
-## 3. Cross-Platform Test Vector Verification
-
-Prior to writing UI or network code, the Android crypto engine must execute unit tests validating against `docs/test-vectors/crypto-test-vectors.json`.
-
-Expected test output:
-- ECDH Shared Secret + HKDF produces AES key: `900410531c9a5c2a304d738dee0c4734b2117e5ed4add6f5e19059f62a10ca03`.
-- Decryption of `Mz/hwY9pM8oHVHzJC+Us8fMQwglUGvXpyxVN9csUET6U2NbN/m8/ArvV9vbBGBbDruDY4LU2IzePl0XKRkzPjRYHVzdUqxU=` yields `"Cross-platform cryptographic test vector for ENCTXT v1."`.
-
----
-
-## 4. Invariant Rules for Android
-
-- [x] **Zero Plaintext Persistence**: Android Room database must never store decrypted plaintext.
-- [x] **Zero Server-Side Plaintext**: Android client must never send unencrypted message payloads.
-- [x] **Hardware Key Protection**: Private keys must never leave Android Keystore (KeyGenParameterSpec with `PURPOSE_AGREE_KEY`).
-- [x] **Instant Re-Protection**: Revealed messages must immediately hide when the app loses focus (`onPause` / `FLAG_SECURE` window setting).
+- [x] **Zero Plaintext Persistence**: Android Room database entities contain only ciphertext envelopes and nonces.
+- [x] **Zero Server-Side Plaintext**: Android client only transmits AES-256-GCM encrypted envelopes to the server.
+- [x] **Hardware Key Protection**: Identity private keys never leave `AndroidKeyStore`.
+- [x] **Dynamic Screenshot Protection**: `FLAG_SECURE` is active during gesture authentication and plaintext reveal.
+- [x] **Instant Re-Protection**: Revealed messages immediately re-protect on app backgrounding, window blur, or navigation.
+- [x] **Non-Silent Re-Verification**: Key changes transition contact state to `KeyChanged` and require explicit re-verification.
+- [x] **Fail-Closed Storage**: Corrupted or incompatible gesture/verification storage fails closed.
+- [x] **Monotonic Delivery States**: Message delivery state progression (`Sending` $\to$ `Sent` $\to$ `Delivered` $\to$ `Read`) never regresses.

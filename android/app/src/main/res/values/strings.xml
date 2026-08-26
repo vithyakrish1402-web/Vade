@@ -1,7 +1,7 @@
 <resources>
-    <string name="app_name">ENCTXT</string>
+    <string name="app_name">Vade</string>
     <string name="title_login">Sign In</string>
     <string name="title_register">Create Account</string>
     <string name="title_home">Workspace</string>
-    <string name="desc_logo">ENCTXT Logo</string>
+    <string name="desc_logo">Vade Logo</string>
 </resources>
