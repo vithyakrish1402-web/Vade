@@ -110,12 +110,12 @@ export async function getOrInitializeIdentity(userId: string): Promise<{
 }
 
 // In-memory cache of retrieved peer public keys
-const peerKeyCache = new Map<string, { keyId: string; key: CryptoKey }>();
+const peerKeyCache = new Map<string, { keyId: string; publicKey: string; key: CryptoKey }>();
 
 /**
  * Fetches and imports the public key of a peer user.
  */
-export async function fetchPeerPublicKey(peerUserId: string): Promise<{ keyId: string; key: CryptoKey }> {
+export async function fetchPeerPublicKey(peerUserId: string): Promise<{ keyId: string; publicKey: string; key: CryptoKey }> {
   const cached = peerKeyCache.get(peerUserId);
   if (cached) return cached;
 
@@ -127,6 +127,7 @@ export async function fetchPeerPublicKey(peerUserId: string): Promise<{ keyId: s
   const cryptoKey = await importPublicKey(res.key.publicKey);
   const result = {
     keyId: res.key.keyId,
+    publicKey: res.key.publicKey,
     key: cryptoKey,
   };
 

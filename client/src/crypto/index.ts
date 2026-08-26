@@ -4,3 +4,6 @@ export * from './keyManager';
 export * from './keyExchange';
 export * from './encryption';
 export * from './decryption';
+export * from './fingerprint';
+export * from './safetyNumber';
+export * from './verificationStorage';

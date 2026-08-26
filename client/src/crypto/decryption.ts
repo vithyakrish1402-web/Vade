@@ -1,4 +1,9 @@
-import { AUTH_TAG_LENGTH_BITS, CURRENT_PROTOCOL_VERSION } from './cryptoConfig';
+import {
+  AUTH_TAG_LENGTH_BITS,
+  CURRENT_PROTOCOL_VERSION,
+  ENCRYPTION_ALGORITHM,
+  KEY_AGREEMENT_ALGORITHM,
+} from './cryptoConfig';
 import { base64ToArrayBuffer } from './keyManager';
 import type { EncryptedMessageEnvelope } from '@enctxt/shared';
 
@@ -16,6 +21,7 @@ export class DecryptionError extends Error {
 
 /**
  * Decrypts an EncryptedMessageEnvelope using AES-256-GCM and verifies the authentication tag & AAD.
+ * Strictly enforces protocol versions and cryptographic algorithm allowlists (downgrade defense).
  * Throws DecryptionError upon any tampering or invalid keys.
  */
 export async function decryptMessage(
@@ -23,8 +29,18 @@ export async function decryptMessage(
   conversationKey: CryptoKey,
   options: DecryptionOptions
 ): Promise<string> {
+  // Protocol Version Enforcement
   if (envelope.version !== CURRENT_PROTOCOL_VERSION) {
     throw new DecryptionError(`Unsupported protocol version: ${envelope.version}`);
+  }
+
+  // Algorithm Downgrade & Substitution Defense
+  if (envelope.algorithm !== ENCRYPTION_ALGORITHM) {
+    throw new DecryptionError(`Unsupported encryption algorithm: ${envelope.algorithm}`);
+  }
+
+  if (envelope.keyAgreement && envelope.keyAgreement !== KEY_AGREEMENT_ALGORITHM) {
+    throw new DecryptionError(`Unsupported key agreement: ${envelope.keyAgreement}`);
   }
 
   try {

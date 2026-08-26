@@ -24,6 +24,8 @@ export function useMessages(
   const [nextCursor, setNextCursor] = useState<string | undefined>(undefined);
   const [error, setError] = useState<string | null>(null);
   const [connectionStatus, setConnectionStatus] = useState<WSConnectionStatus>('disconnected');
+  const [myPublicKeyBase64, setMyPublicKeyBase64] = useState<string | undefined>(undefined);
+  const [peerKeyRecord, setPeerKeyRecord] = useState<{ keyId: string; publicKey: string } | null>(null);
 
   // Crypto references for active conversation
   const convKeyRef = useRef<CryptoKey | null>(null);
@@ -38,10 +40,12 @@ export function useMessages(
       // 1. Load self identity keys
       const selfIdentity = await getOrInitializeIdentity(currentUserId);
       myKeyIdRef.current = selfIdentity.keyId;
+      setMyPublicKeyBase64(selfIdentity.publicKeyBase64);
 
       // 2. Fetch peer public key
       const peer = await fetchPeerPublicKey(peerUserId);
       peerKeyIdRef.current = peer.keyId;
+      setPeerKeyRecord({ keyId: peer.keyId, publicKey: peer.publicKey });
 
       // 3. Derive symmetric AES-256-GCM conversation key
       const key = await deriveConversationKey(
@@ -390,6 +394,8 @@ export function useMessages(
     messages,
     decryptedMap,
     getDecryptedText,
+    myPublicKeyBase64,
+    peerKeyRecord,
     isLoading,
     isLoadingOlder,
     hasMore,
