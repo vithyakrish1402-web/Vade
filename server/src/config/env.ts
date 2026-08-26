@@ -24,6 +24,12 @@ const envSchema = z.object({
   NODE_ENV: z.enum(['development', 'production', 'test']).default('development'),
   DATABASE_URL: z.string().min(1, 'DATABASE_URL is required'),
   CORS_ORIGIN: z.string().default('http://localhost:5173'),
+  JWT_SECRET: z.string().default('development_jwt_secret_key_minimum_32_characters_long_for_security!'),
+  SESSION_COOKIE_NAME: z.string().default('enctxt_session'),
+  SESSION_MAX_AGE_DAYS: z
+    .string()
+    .default('7')
+    .transform((val) => parseInt(val, 10)),
 });
 
 const parsedEnv = envSchema.safeParse(process.env);

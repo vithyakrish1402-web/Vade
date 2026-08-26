@@ -4,6 +4,10 @@ import { logger } from '../utils/logger.js';
 
 let prismaInstance: PrismaClient | null = null;
 
+export function setPrismaClient(customClient: any): void {
+  prismaInstance = customClient;
+}
+
 export function getPrismaClient(): PrismaClient {
   if (!prismaInstance) {
     prismaInstance = new PrismaClient({
