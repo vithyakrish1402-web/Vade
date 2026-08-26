@@ -4,9 +4,9 @@ A privacy-focused text communication platform designed with visual privacy, gest
 
 ---
 
-## Current Status: Phase 2 — Authentication & User Identity (Complete)
+## Current Status: Phase 3 — 1-to-1 Conversation System (Complete)
 
-Phase 2 establishes the core authentication, session management, user identity, profile management, and user discovery system.
+Phase 3 establishes the 1-to-1 direct conversation architecture, participant membership, deterministic uniqueness, and authorization controls.
 
 ### Core Architecture
 
@@ -24,14 +24,14 @@ Phase 2 establishes the core authentication, session management, user identity, 
                         │
                         ▼
 ┌───────────────────────────────────────────────┐
-│        Services (AuthService, UserService)    │
+│  Services (AuthService, UserService, Conv)    │
 │            (bcryptjs + JWT Sessions)          │
 └───────────────────────┬───────────────────────┘
                         │
                         ▼
 ┌───────────────────────────────────────────────┐
 │                  Prisma ORM                   │
-│            (User & Session Models)            │
+│   (User, Session, Conversation, Participant)  │
 └───────────────────────┬───────────────────────┘
                         │
                         ▼
@@ -47,15 +47,17 @@ Phase 2 establishes the core authentication, session management, user identity, 
 1. **Separation of Concerns**: UI components, API communication, business services, database access, and security layers are isolated into distinct modules.
 2. **Modular Backend**: Request flow follows `Route` $\to$ `Controller` $\to$ `Service` $\to$ `Database` $\to$ `Response`.
 3. **Security by Default**:
-   - Passwords hashed with `bcrypt` (12 rounds) and never stored in plaintext.
+   - Passwords hashed with `bcrypt` (12 rounds) and never stored or handled in plaintext.
    - Zero password hashes, session tokens, or sensitive credentials leaked in API responses.
    - Structured server logger automatically redacts passwords, tokens, and secrets.
+   - Strict participant authorization checks return `403 Forbidden` on unauthorized conversation access.
+   - Deterministic 1-to-1 pair keys (`[userA, userB].sort().join(':')`) prevent duplicate or race-condition conversations.
    - Generic authentication errors prevent account enumeration.
    - Sessions secured with `HttpOnly`, `SameSite=lax`, and conditional HTTPS `Secure` cookies.
 4. **Shared Type System**: Monorepo structure shares API response and error definitions between frontend and backend.
-5. **Two Distinct Privacy Layers**:
-   - **Layer 1 — Cryptographic Security**: End-to-end encryption across the wire (Phase 3+).
-   - **Layer 2 — Visual Privacy**: Protected/gibberish display on screen with gesture-based reveal (Phase 4+).
+5. **Multi-Layered Privacy Architecture**:
+   - **Layer 1 — Cryptographic Security**: End-to-end encryption across the wire (Phase 5+).
+   - **Layer 2 — Visual Privacy**: Protected/gibberish display on screen with gesture-based reveal (Phase 6+).
 
 ---
 
@@ -70,7 +72,7 @@ enctxt/
 │   │   ├── components/         # Navbar, ConnectionStatus, Layout
 │   │   ├── pages/              # LandingPage, LoginPage, RegisterPage, DashboardPage
 │   │   ├── hooks/              # useHealthCheck
-│   │   ├── services/           # api, authService, userService, healthService
+│   │   ├── services/           # api, authService, userService, conversationService, healthService
 │   │   ├── types/              # Client type definitions
 │   │   ├── App.tsx             # Root routing with protected /app route
 │   │   ├── main.tsx            # DOM entrypoint
@@ -82,22 +84,22 @@ enctxt/
 ├── server/                     # Node.js + Express + Prisma backend
 │   ├── src/
 │   │   ├── config/             # Validated env configuration with Zod
-│   │   ├── controllers/        # authController, userController, healthController
+│   │   ├── controllers/        # authController, userController, conversationController, healthController
 │   │   ├── middleware/         # authMiddleware, rateLimiter, errorHandler, requestLogger
-│   │   ├── routes/             # authRoutes, userRoutes, healthRoutes
-│   │   ├── services/           # authService, userService, db
+│   │   ├── routes/             # authRoutes, userRoutes, conversationRoutes, healthRoutes
+│   │   ├── services/           # authService, userService, conversationService, db
 │   │   ├── utils/              # crypto, jwt, validation, errors, logger
 │   │   ├── app.ts              # Express application setup
 │   │   └── server.ts           # Server bootstrap & lifecycle
 │   ├── prisma/
-│   │   └── schema.prisma       # User, Session, and SystemInfo models
-│   ├── test/                   # Comprehensive Vitest test suite (auth.test.ts)
+│   │   └── schema.prisma       # User, Session, Conversation, Participant models
+│   ├── test/                   # Comprehensive Vitest test suite (auth.test.ts, conversation.test.ts)
 │   ├── package.json
 │   └── tsconfig.json
 │
 ├── shared/                     # Shared TypeScript types
 │   ├── src/
-│   │   ├── types/              # HealthResponse, UserSummary, UserProfile, AuthResponse, etc.
+│   │   ├── types/              # HealthResponse, UserSummary, UserProfile, ConversationSummary, etc.
 │   │   └── index.ts
 │   ├── package.json
 │   └── tsconfig.json
@@ -187,7 +189,7 @@ npm run dev:client    # Frontend runs on http://localhost:5173
 
 ---
 
-## API Endpoints (Phase 2)
+## API Endpoints (Phase 3)
 
 ### System & Health
 
@@ -212,12 +214,20 @@ npm run dev:client    # Frontend runs on http://localhost:5173
 | `PATCH` | `/api/users/me` | Update display name and/or username | Yes |
 | `GET` | `/api/users/search?q=<query>` | Search registered users by username/name | Yes |
 
+### 1-to-1 Conversations
+
+| Method | Endpoint | Description | Auth Required |
+|---|---|---|---|
+| `POST` | `/api/conversations` | Create or fetch existing 1-to-1 conversation | Yes |
+| `GET` | `/api/conversations` | List all active conversations for current user | Yes |
+| `GET` | `/api/conversations/:id` | Get conversation details (participant-only) | Yes |
+
 ---
 
 ## Testing & Quality Assurance
 
 ```bash
-# Run automated backend test suite (20 tests covering Auth, Sessions, Profiles, Search)
+# Run automated backend test suite (32 tests covering Auth, Sessions, Profiles, Search, Conversations)
 npm test
 
 # Run TypeScript typechecks across all workspaces
@@ -236,7 +246,8 @@ npm run prisma:validate --workspace=server
 
 - [x] **Phase 1 — Project Foundation** (Complete)
 - [x] **Phase 2 — Authentication & User Identity** (Complete)
-- [ ] **Phase 3 — Conversation Architecture & Message Storage**
-- [ ] **Phase 4 — Cryptographic Engine (Layer 1 Security)**
-- [ ] **Phase 5 — Visual Privacy Engine & Gesture Recognition (Layer 2)**
-- [ ] **Phase 6 — Multi-Client Support (Web & Android)**
+- [x] **Phase 3 — 1-to-1 Conversation Architecture** (Complete)
+- [ ] **Phase 4 — Actual Messaging & Real-Time Transport**
+- [ ] **Phase 5 — End-to-End Encryption (Layer 1 Security)**
+- [ ] **Phase 6 — Visual Privacy Engine & Gesture Recognition (Layer 2)**
+- [ ] **Phase 7 — Multi-Client Support (Web & Android)**

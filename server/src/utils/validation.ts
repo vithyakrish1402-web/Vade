@@ -66,3 +66,18 @@ export const searchQuerySchema = z.object({
     .optional()
     .transform((val) => (val ? Math.min(50, Math.max(1, parseInt(val, 10) || 20)) : 20)),
 });
+
+export const createConversationSchema = z
+  .object({
+    recipientId: z.string().uuid('Invalid recipient ID format').optional(),
+    recipientUsername: z
+      .string()
+      .trim()
+      .min(3, 'Recipient username must be at least 3 characters')
+      .max(30)
+      .transform((val) => val.toLowerCase())
+      .optional(),
+  })
+  .refine((data) => data.recipientId !== undefined || data.recipientUsername !== undefined, {
+    message: 'Either recipientId or recipientUsername must be provided',
+  });

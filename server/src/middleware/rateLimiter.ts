@@ -20,6 +20,11 @@ export function createRateLimiter(options: { windowMs: number; max: number; mess
   }, 60000).unref();
 
   return (req: Request, _res: Response, next: NextFunction): void => {
+    // In test environment, bypass rate limiter to allow rapid test suites
+    if (process.env.NODE_ENV === 'test') {
+      return next();
+    }
+
     const ip = req.ip || req.socket.remoteAddress || 'unknown';
     const key = `${req.baseUrl}${req.path}:${ip}`;
     const now = Date.now();

@@ -1,5 +1,5 @@
 // Prisma Schema for enctxt / private-chat
-// Phase 2: Authentication & User Identity
+// Phase 3: 1-to-1 Conversation Architecture
 
 generator client {
   provider = "prisma-client-js"
@@ -23,14 +23,15 @@ model SystemInfo {
 
 // User Identity Model
 model User {
-  id           String    @id @default(uuid())
-  username     String    @unique
-  email        String    @unique
-  passwordHash String
-  displayName  String
-  createdAt    DateTime  @default(now())
-  updatedAt    DateTime  @updatedAt
-  sessions     Session[]
+  id                      String                    @id @default(uuid())
+  username                String                    @unique
+  email                   String                    @unique
+  passwordHash            String
+  displayName             String
+  createdAt               DateTime                  @default(now())
+  updatedAt               DateTime                  @updatedAt
+  sessions                Session[]
+  conversationParticipants ConversationParticipant[]
 
   @@index([username])
   @@index([email])
@@ -49,4 +50,32 @@ model Session {
   @@index([userId])
   @@index([tokenHash])
   @@map("sessions")
+}
+
+// Conversation Model
+model Conversation {
+  id           String                    @id @default(uuid())
+  type         String                    @default("DIRECT") // DIRECT | GROUP
+  directKey    String?                   @unique // Deterministic sorted pair of user IDs: "idA:idB"
+  createdAt    DateTime                  @default(now())
+  updatedAt    DateTime                  @updatedAt
+  participants ConversationParticipant[]
+
+  @@index([directKey])
+  @@map("conversations")
+}
+
+// Conversation Participant Model
+model ConversationParticipant {
+  id             String       @id @default(uuid())
+  conversationId String
+  userId         String
+  joinedAt       DateTime     @default(now())
+  conversation   Conversation @relation(fields: [conversationId], references: [id], onDelete: Cascade)
+  user           User         @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([conversationId, userId])
+  @@index([userId])
+  @@index([conversationId])
+  @@map("conversation_participants")
 }

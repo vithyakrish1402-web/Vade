@@ -5,6 +5,7 @@ import { mockDb } from './mockDb.js';
 const mockPrisma = {
   user: mockDb.userDelegate,
   session: mockDb.sessionDelegate,
+  conversation: mockDb.conversationDelegate,
   $queryRaw: async () => [{ 1: 1 }],
   $disconnect: async () => {},
 };
