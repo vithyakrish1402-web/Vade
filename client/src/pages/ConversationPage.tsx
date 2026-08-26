@@ -4,12 +4,14 @@ import { useAuth } from '../auth/AuthContext';
 import { conversationService } from '../services/conversationService';
 import { useMessages } from '../hooks/useMessages';
 import { useMessageReveal } from '../hooks/useMessageReveal';
+import { useContactSecurity } from '../hooks/useContactSecurity';
 import { useGesture } from '../hooks/useGesture';
 import type { ConversationDetails } from '@enctxt/shared';
 import { ApiClientError } from '../services/api';
 import { ProtectedMessage } from '../components/messages/ProtectedMessage';
 import { GestureRevealModal } from '../components/gesture/GestureRevealModal';
 import { GestureSequenceSetup } from '../components/gesture/GestureSequenceSetup';
+import { ContactSecurityModal } from '../components/security/ContactSecurityModal';
 import {
   ArrowLeft,
   Loader2,
@@ -24,7 +26,7 @@ import {
   EyeOff,
   Shield,
   ShieldCheck,
-  Lock,
+  ShieldAlert,
 } from 'lucide-react';
 
 export const ConversationPage: React.FC = () => {
@@ -44,6 +46,7 @@ export const ConversationPage: React.FC = () => {
   // Gesture reveal state
   const [revealModalTargetId, setRevealModalTargetId] = useState<string | null>(null);
   const [isSetupOpen, setIsSetupOpen] = useState(false);
+  const [isSecurityModalOpen, setIsSecurityModalOpen] = useState(false);
 
   // Reveal hook
   const { isRevealed, revealMessage, hideMessage } = useMessageReveal();
@@ -54,6 +57,8 @@ export const ConversationPage: React.FC = () => {
   const {
     messages,
     getDecryptedText,
+    myPublicKeyBase64,
+    peerKeyRecord,
     isLoading: messagesLoading,
     isLoadingOlder,
     hasMore,
@@ -62,6 +67,16 @@ export const ConversationPage: React.FC = () => {
     retryMessage,
     loadOlderMessages,
   } = useMessages(conversationId, user?.id, otherParticipant?.id);
+
+  // Contact Security & Key Verification Hook
+  const {
+    verificationState,
+    peerFingerprint,
+    safetyNumber,
+    isKeyChanged,
+    markAsVerified,
+    unverify,
+  } = useContactSecurity(otherParticipant?.id, myPublicKeyBase64, peerKeyRecord);
 
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const scrollContainerRef = useRef<HTMLDivElement>(null);
@@ -191,14 +206,42 @@ export const ConversationPage: React.FC = () => {
               <h2 className="text-sm font-bold text-slate-100 flex items-center gap-2">
                 <span>{otherParticipant?.displayName}</span>
               </h2>
-              <p className="text-[11px] text-slate-400 font-mono flex items-center gap-1.5">
-                <span>@{otherParticipant?.username}</span>
-                <span className="text-slate-600">•</span>
-                <span className="inline-flex items-center gap-1 text-[10px] text-emerald-400 font-sans">
-                  <Lock className="w-2.5 h-2.5" />
-                  <span>E2EE Active</span>
-                </span>
-              </p>
+              <div className="flex items-center gap-2">
+                <p className="text-[11px] text-slate-400 font-mono">
+                  @{otherParticipant?.username}
+                </p>
+
+                {/* Interactive Security Verification Badge */}
+                <button
+                  type="button"
+                  onClick={() => setIsSecurityModalOpen(true)}
+                  className={`inline-flex items-center gap-1 text-[10px] font-sans px-2 py-0.5 rounded-full border transition-colors cursor-pointer ${
+                    verificationState === 'verified'
+                      ? 'bg-emerald-500/10 text-emerald-400 border-emerald-500/30 hover:bg-emerald-500/20'
+                      : verificationState === 'key_changed'
+                      ? 'bg-amber-500/15 text-amber-300 border-amber-500/40 hover:bg-amber-500/25 animate-pulse'
+                      : 'bg-slate-800 text-slate-400 border-slate-700 hover:text-slate-200'
+                  }`}
+                  title="Click to view safety number and verify cryptographic identity"
+                >
+                  {verificationState === 'verified' ? (
+                    <>
+                      <ShieldCheck className="w-3 h-3 text-emerald-400" />
+                      <span>Verified</span>
+                    </>
+                  ) : verificationState === 'key_changed' ? (
+                    <>
+                      <ShieldAlert className="w-3 h-3 text-amber-400" />
+                      <span>Key Changed</span>
+                    </>
+                  ) : (
+                    <>
+                      <Shield className="w-3 h-3 text-slate-400" />
+                      <span>Unverified</span>
+                    </>
+                  )}
+                </button>
+              </div>
             </div>
           </div>
 
@@ -234,6 +277,25 @@ export const ConversationPage: React.FC = () => {
             )}
           </div>
         </div>
+
+        {/* Key Change Warning Banner */}
+        {isKeyChanged && (
+          <div className="px-5 py-2.5 bg-amber-950/60 border-b border-amber-700/50 flex items-center justify-between gap-3 text-xs text-amber-200">
+            <div className="flex items-center gap-2">
+              <ShieldAlert className="w-4 h-4 text-amber-400 shrink-0" />
+              <span>
+                <strong>Security Alert:</strong> @{otherParticipant?.username}&apos;s encryption identity has changed.
+              </span>
+            </div>
+            <button
+              type="button"
+              onClick={() => setIsSecurityModalOpen(true)}
+              className="px-2.5 py-1 bg-amber-500/20 hover:bg-amber-500/30 text-amber-300 rounded-lg font-medium transition-colors border border-amber-500/30 cursor-pointer shrink-0"
+            >
+              Verify Code
+            </button>
+          </div>
+        )}
 
         {/* Message Area Timeline */}
         <div
@@ -430,6 +492,22 @@ export const ConversationPage: React.FC = () => {
           </div>
         </form>
       </div>
+
+      {/* Contact Security & Key Verification Modal */}
+      {otherParticipant && (
+        <ContactSecurityModal
+          isOpen={isSecurityModalOpen}
+          onClose={() => setIsSecurityModalOpen(false)}
+          peerUsername={otherParticipant.username}
+          peerDisplayName={otherParticipant.displayName}
+          verificationState={verificationState}
+          safetyNumber={safetyNumber}
+          peerFingerprint={peerFingerprint}
+          peerKeyId={peerKeyRecord?.keyId}
+          onVerify={markAsVerified}
+          onUnverify={unverify}
+        />
+      )}
 
       {/* Gesture Reveal Modal Overlay */}
       <GestureRevealModal
