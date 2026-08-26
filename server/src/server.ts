@@ -1,16 +1,23 @@
+import http from 'node:http';
 import { createApp } from './app.js';
 import { config } from './config/env.js';
 import { logger } from './utils/logger.js';
 import { checkDatabaseConnection, disconnectDatabase } from './services/db.js';
+import { wsService } from './services/websocket.js';
 
 async function startServer(): Promise<void> {
   const app = createApp();
+  const server = http.createServer(app);
 
-  const server = app.listen(config.PORT, () => {
+  // Initialize WebSocket server attached to HTTP server
+  wsService.init(server);
+
+  server.listen(config.PORT, () => {
     logger.info(`Server started successfully on port ${config.PORT}`, {
       port: config.PORT,
       environment: config.NODE_ENV,
       apiUrl: `http://localhost:${config.PORT}/api`,
+      wsUrl: `ws://localhost:${config.PORT}/ws`,
       healthUrl: `http://localhost:${config.PORT}/api/health`,
     });
   });
