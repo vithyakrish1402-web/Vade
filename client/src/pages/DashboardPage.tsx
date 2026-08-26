@@ -5,6 +5,7 @@ import { userService } from '../services/userService';
 import { conversationService } from '../services/conversationService';
 import type { UserProfile, UserSummary, SingleConversationItem } from '@enctxt/shared';
 import { ApiClientError } from '../services/api';
+import { GestureSettings } from '../components/gesture/GestureSettings';
 import {
   User,
   Search,
@@ -520,6 +521,11 @@ export const DashboardPage: React.FC = () => {
               </div>
             </div>
           )}
+
+          {/* Local Device Privacy & Reveal Gesture Settings */}
+          <div className="pt-2">
+            <GestureSettings />
+          </div>
         </div>
       )}
     </div>

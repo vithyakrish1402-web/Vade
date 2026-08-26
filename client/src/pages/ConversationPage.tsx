@@ -3,9 +3,13 @@ import { useParams, useNavigate, Link } from 'react-router-dom';
 import { useAuth } from '../auth/AuthContext';
 import { conversationService } from '../services/conversationService';
 import { useMessages } from '../hooks/useMessages';
+import { useMessageReveal } from '../hooks/useMessageReveal';
+import { useGesture } from '../hooks/useGesture';
 import type { ConversationDetails } from '@enctxt/shared';
 import { ApiClientError } from '../services/api';
 import { ProtectedMessage } from '../components/messages/ProtectedMessage';
+import { GestureRevealModal } from '../components/gesture/GestureRevealModal';
+import { GestureSequenceSetup } from '../components/gesture/GestureSequenceSetup';
 import {
   ArrowLeft,
   Loader2,
@@ -17,12 +21,16 @@ import {
   RotateCcw,
   MessageSquare,
   ChevronDown,
+  Eye,
+  EyeOff,
+  Shield,
 } from 'lucide-react';
 
 export const ConversationPage: React.FC = () => {
   const { conversationId } = useParams<{ conversationId: string }>();
   const navigate = useNavigate();
   const { user } = useAuth();
+  const { isConfigured } = useGesture();
 
   const [conversation, setConversation] = useState<ConversationDetails | null>(null);
   const [convLoading, setConvLoading] = useState(true);
@@ -31,6 +39,13 @@ export const ConversationPage: React.FC = () => {
   // Message composition state
   const [inputContent, setInputContent] = useState('');
   const [showScrollBottom, setShowScrollBottom] = useState(false);
+
+  // Gesture reveal state
+  const [revealModalTargetId, setRevealModalTargetId] = useState<string | null>(null);
+  const [isSetupOpen, setIsSetupOpen] = useState(false);
+
+  // Reveal hook
+  const { isRevealed, revealMessage, hideMessage } = useMessageReveal();
 
   // Message hook
   const {
@@ -178,8 +193,20 @@ export const ConversationPage: React.FC = () => {
             </div>
           </div>
 
-          {/* Connection Status Pill */}
+          {/* Right Header Actions: Connection & Gesture Status */}
           <div className="flex items-center gap-2">
+            {!isConfigured && (
+              <button
+                type="button"
+                onClick={() => setIsSetupOpen(true)}
+                className="hidden sm:inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[11px] font-medium bg-amber-500/10 text-amber-400 border border-amber-500/20 hover:bg-amber-500/20 transition-colors cursor-pointer"
+                title="Configure gesture reveal sequence"
+              >
+                <Shield className="w-3 h-3" />
+                <span>Setup Gesture</span>
+              </button>
+            )}
+
             {connectionStatus === 'connected' ? (
               <div className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[11px] font-medium bg-emerald-500/10 text-emerald-400 border border-emerald-500/20">
                 <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse" />
@@ -205,7 +232,7 @@ export const ConversationPage: React.FC = () => {
           onScroll={handleScroll}
           className="flex-1 overflow-y-auto p-4 sm:p-6 space-y-3.5 bg-slate-950/40 relative"
         >
-          {/* Older messages loading trigger / button */}
+          {/* Older messages loading trigger */}
           {hasMore && (
             <div className="flex justify-center pb-2">
               <button
@@ -225,7 +252,6 @@ export const ConversationPage: React.FC = () => {
               <p className="text-xs text-slate-500 font-mono">Loading messages...</p>
             </div>
           ) : messages.length === 0 ? (
-            /* Section 35: Empty Conversation State */
             <div className="flex-1 flex flex-col items-center justify-center py-20 text-center space-y-3">
               <div className="w-12 h-12 rounded-2xl bg-slate-900 border border-slate-800 flex items-center justify-center text-slate-500 shadow">
                 <MessageSquare className="w-6 h-6 text-emerald-500" />
@@ -240,24 +266,67 @@ export const ConversationPage: React.FC = () => {
           ) : (
             messages.map((msg) => {
               const isMe = msg.senderId === user?.id;
+              const revealed = isRevealed(msg.id);
 
               return (
                 <div
                   key={msg.id}
-                  className={`flex flex-col ${isMe ? 'items-end' : 'items-start'}`}
+                  className={`flex flex-col ${isMe ? 'items-end' : 'items-start'} group`}
                 >
-                  <div
-                    className={`max-w-[85%] sm:max-w-[70%] px-4 py-2.5 rounded-2xl text-xs sm:text-sm leading-relaxed shadow-sm break-words whitespace-pre-wrap ${
-                      isMe
-                        ? 'bg-emerald-600 text-white rounded-tr-xs'
-                        : 'bg-slate-800 text-slate-100 rounded-tl-xs border border-slate-700/60'
-                    }`}
-                  >
-                    <ProtectedMessage content={msg.content} />
+                  <div className="relative max-w-[85%] sm:max-w-[70%]">
+                    {/* Message Bubble */}
+                    <div
+                      className={`px-4 py-2.5 rounded-2xl text-xs sm:text-sm leading-relaxed shadow-sm break-words whitespace-pre-wrap ${
+                        isMe
+                          ? revealed
+                            ? 'bg-emerald-700 text-white rounded-tr-xs ring-2 ring-emerald-400/40'
+                            : 'bg-emerald-600 text-white rounded-tr-xs'
+                          : revealed
+                          ? 'bg-slate-700 text-white rounded-tl-xs border border-emerald-500/40 ring-2 ring-emerald-500/20'
+                          : 'bg-slate-800 text-slate-100 rounded-tl-xs border border-slate-700/60'
+                      }`}
+                    >
+                      <ProtectedMessage
+                        content={msg.content}
+                        displayMode={revealed ? 'revealed' : 'protected'}
+                      />
+                    </div>
+
+                    {/* Reveal Action Pill / Button */}
+                    <button
+                      type="button"
+                      onClick={() => {
+                        if (revealed) {
+                          hideMessage(msg.id);
+                        } else {
+                          setRevealModalTargetId(msg.id);
+                        }
+                      }}
+                      className={`absolute ${
+                        isMe ? '-left-8' : '-right-8'
+                      } top-1/2 -translate-y-1/2 p-1.5 rounded-full opacity-0 group-hover:opacity-100 focus:opacity-100 transition-opacity cursor-pointer ${
+                        revealed
+                          ? 'bg-emerald-950/80 text-emerald-400 border border-emerald-700/60 opacity-100'
+                          : 'bg-slate-800/80 text-slate-400 hover:text-slate-200 border border-slate-700'
+                      }`}
+                      title={revealed ? 'Click to hide plaintext' : 'Draw gesture to reveal message'}
+                    >
+                      {revealed ? (
+                        <EyeOff className="w-3.5 h-3.5 text-emerald-400" />
+                      ) : (
+                        <Eye className="w-3.5 h-3.5" />
+                      )}
+                    </button>
                   </div>
 
                   {/* Message Meta: Timestamp & Delivery Status */}
                   <div className="flex items-center gap-1.5 mt-1 px-1 text-[10px] text-slate-500 font-mono">
+                    {revealed && (
+                      <span className="text-[10px] text-emerald-400 font-semibold uppercase tracking-wider">
+                        Revealed
+                      </span>
+                    )}
+
                     <span>
                       {new Date(msg.createdAt).toLocaleTimeString([], {
                         hour: '2-digit',
@@ -351,6 +420,21 @@ export const ConversationPage: React.FC = () => {
           </div>
         </form>
       </div>
+
+      {/* Gesture Reveal Modal Overlay */}
+      <GestureRevealModal
+        isOpen={Boolean(revealModalTargetId)}
+        targetMessageId={revealModalTargetId}
+        onClose={() => setRevealModalTargetId(null)}
+        onRevealed={(messageId) => revealMessage(messageId)}
+        onOpenSetup={() => setIsSetupOpen(true)}
+      />
+
+      {/* Gesture Enrollment Modal */}
+      <GestureSequenceSetup
+        isOpen={isSetupOpen}
+        onClose={() => setIsSetupOpen(false)}
+      />
     </div>
   );
 };
