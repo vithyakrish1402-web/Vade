@@ -1,5 +1,5 @@
 // Prisma Schema for enctxt / private-chat
-// Phase 7: End-to-End Encryption
+// Phase 8: Security Hardening, Key Verification & Device Trust
 
 generator client {
   provider = "prisma-client-js"
@@ -31,6 +31,7 @@ model User {
   createdAt           DateTime             @default(now())
   updatedAt           DateTime             @updatedAt
   sessions            Session[]
+  devices             Device[]
   conversationMembers ConversationMember[]
   sentMessages        Message[]
   publicKey           PublicKey?
@@ -40,13 +41,14 @@ model User {
   @@map("users")
 }
 
-// Public Key Distribution Model (Phase 7: E2EE)
+// Public Key Distribution Model (Phase 7: E2EE & Phase 8: Status/Lifecycle)
 model PublicKey {
   id        String   @id @default(uuid())
   userId    String   @unique
   keyId     String   @unique
   publicKey String   @db.Text
   algorithm String   @default("ECDH-P256")
+  status    String   @default("active") // "active" | "revoked" | "superseded"
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
   user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
@@ -54,6 +56,24 @@ model PublicKey {
   @@index([userId])
   @@index([keyId])
   @@map("public_keys")
+}
+
+// Device Identity Model (Phase 8: Device Trust & Management)
+model Device {
+  id         String   @id @default(uuid())
+  userId     String
+  deviceName String
+  platform   String   @default("web")
+  keyId      String
+  status     String   @default("active") // "active" | "revoked"
+  lastSeenAt DateTime @default(now())
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
+  user       User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@index([keyId])
+  @@map("devices")
 }
 
 // Authenticated Session Model
