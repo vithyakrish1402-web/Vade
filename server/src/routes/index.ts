@@ -4,6 +4,7 @@ import authRoutes from './authRoutes.js';
 import userRoutes from './userRoutes.js';
 import conversationRoutes from './conversationRoutes.js';
 import cryptoRoutes from './cryptoRoutes.js';
+import { deviceRoutes } from './deviceRoutes.js';
 
 const apiRouter = Router();
 
@@ -13,5 +14,6 @@ apiRouter.use('/auth', authRoutes);
 apiRouter.use('/users', userRoutes);
 apiRouter.use('/conversations', conversationRoutes);
 apiRouter.use('/crypto', cryptoRoutes);
+apiRouter.use('/devices', deviceRoutes);
 
 export default apiRouter;
