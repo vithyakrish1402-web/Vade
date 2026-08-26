@@ -6,6 +6,7 @@ import { mockDb } from './mockDb.js';
 const mockPrisma = {
   user: mockDb.userDelegate,
   publicKey: mockDb.publicKeyDelegate,
+  device: mockDb.deviceDelegate,
   session: mockDb.sessionDelegate,
   conversation: mockDb.conversationDelegate,
   conversationMember: mockDb.conversationMemberDelegate,

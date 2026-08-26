@@ -1,7 +1,7 @@
 # System Architecture & Technical Specifications
 
 > **Project**: `enctxt` (Private Chat)  
-> **Current Version**: `0.1.0` (Phase 7 Complete)  
+> **Current Version**: `0.1.0` (Phase 8 Complete)  
 > **Last Updated**: 2026-08-26  
 > **Status**: Maintained & Updated Continuously with System Changes
 
@@ -13,18 +13,33 @@
 
 ```text
 ┌───────────────────────────────────────────────────────────────────────────┐
-│                     LAYER 2: VISUAL PRIVACY ENGINE                        │
-│  - Protected Homoglyph Rendering on screen by default (Phase 5)           │
-│  - Custom Multi-Step Gesture Sequence for temporary reveal (Phase 6)      │
+│                     LAYER 4: IDENTITY VERIFICATION                        │
+│  - Public-Key Fingerprints (SHA-256 SPKI hex)                             │
+│  - Symmetric Safety Numbers: SHA-256(min(A, B) + max(A, B) + v1)          │
+│  - Key-Change Detection & Warnings (invalidates previous verification)    │
+│  - Local-Only Contact Verification Storage (IndexedDB / localStorage)     │
+└─────────────────────────────────────┬─────────────────────────────────────┘
+                                      │
+                                      ▼
+┌───────────────────────────────────────────────────────────────────────────┐
+│                 LAYER 3: CUSTOM GESTURE REVEAL (PHASE 6)                  │
+│  - Local 8-second temporary plaintext reveal authorization                │
 │  - Automatic Re-Protection (8s timer, tab hide, window blur, nav, logout) │
 └─────────────────────────────────────┬─────────────────────────────────────┘
                                       │
                                       ▼
 ┌───────────────────────────────────────────────────────────────────────────┐
-│                   LAYER 1: CRYPTOGRAPHIC SECURITY (E2EE)                  │
-│  - Web Crypto ECDH (P-256) Identity Key Agreement (Phase 7)               │
-│  - HKDF-SHA-256 Symmetric Conversation Key Derivation (Phase 7)           │
-│  - AES-256-GCM Authenticated Encryption with 128-bit Tag & AAD (Phase 7)  │
+│             LAYER 2: PROTECTED MESSAGE RENDERING (PHASE 5)                │
+│  - Protected Homoglyph Rendering on screen by default                     │
+└─────────────────────────────────────┬─────────────────────────────────────┘
+                                      │
+                                      ▼
+┌───────────────────────────────────────────────────────────────────────────┐
+│               LAYER 1: END-TO-END ENCRYPTION (PHASE 7 & 8)                │
+│  - Web Crypto ECDH (P-256) Identity Key Agreement                         │
+│  - HKDF-SHA-256 Symmetric Conversation Key Derivation                     │
+│  - AES-256-GCM Authenticated Encryption with 128-bit Tag & AAD            │
+│  - Protocol Downgrade & Replay Protections                                │
 │  - Zero Plaintext on Server (PostgreSQL stores ciphertext envelopes only) │
 └─────────────────────────────────────┬─────────────────────────────────────┘
                                       │
@@ -34,7 +49,8 @@
 │  - Session-based authentication & bcrypt password hashing (Phase 2)       │
 │  - 1-to-1 conversation engine with deterministic pair keys (Phase 3)      │
 │  - Real-Time WebSocket transport & PostgreSQL persistence (Phase 4)       │
-│  - Public Key Infrastructure & Distribution API (Phase 7)                 │
+│  - Public Key Infrastructure & Device Trust Management (Phases 7 & 8)     │
+│  - HTTP Security Headers: CSP, HSTS, X-Content-Type-Options, Referrer     │
 └───────────────────────────────────────────────────────────────────────────┘
 ```
 
@@ -54,29 +70,29 @@ enctxt/
 │       ├── conversation.ts     # Conversation structures, participants
 │       ├── message.ts          # Encrypted message models, delivery statuses
 │       ├── websocket.ts        # WebSocket client/server frame protocols
-│       └── crypto.ts           # Encrypted envelopes, PKI DTOs
+│       └── crypto.ts           # Encrypted envelopes, PKI DTOs, verification & device types
 │
 ├── server/                     # @enctxt/server: Node.js + Express + Prisma + WebSocket
 │   ├── src/
 │   │   ├── config/             # Zod-validated environment variables
-│   │   ├── controllers/        # Express HTTP route controllers (Auth, User, Conv, Message, Crypto)
-│   │   ├── middleware/         # Auth, rate limiting, error handling, logging
-│   │   ├── routes/             # REST route declarations (/api/auth, /api/users, /api/conversations, /api/crypto)
-│   │   ├── services/           # Business logic, DB operations, WebSocket server, Crypto PKI
+│   │   ├── controllers/        # Express HTTP route controllers (Auth, User, Conv, Message, Crypto, Device)
+│   │   ├── middleware/         # Auth, rate limiting, error handling, logging, securityHeaders
+│   │   ├── routes/             # REST route declarations (/api/auth, /api/users, /api/conversations, /api/crypto, /api/devices)
+│   │   ├── services/           # Business logic, DB operations, WebSocket server, Crypto PKI, DeviceService
 │   │   └── utils/              # Crypto, JWT, Zod schemas, structured logger
-│   ├── prisma/                 # Prisma PostgreSQL schema (User, PublicKey, Session, Conversation, Message)
-│   └── test/                   # Vitest automated server integration tests (Auth, Conv, Message, WS, Crypto)
+│   ├── prisma/                 # Prisma PostgreSQL schema (User, PublicKey, Device, Session, Conversation, Message)
+│   └── test/                   # Vitest automated server integration tests (Auth, Conv, Message, WS, Crypto, Device, SecurityHeaders)
 │
 └── client/                     # @enctxt/client: React 18 + Vite + Tailwind CSS
     ├── src/
     │   ├── auth/               # AuthContext, session hooks, ProtectedRoute
-    │   ├── components/         # UI components (Gesture, Messages, Layout)
-    │   ├── crypto/             # Web Crypto keyManager, keyExchange, encryption, decryption, cryptoStorage
-    │   ├── hooks/              # useMessages (E2EE), useGesture, useMessageReveal
+    │   ├── components/         # UI components (Gesture, Messages, Security, Layout)
+    │   ├── crypto/             # Web Crypto keyManager, keyExchange, encryption, decryption, fingerprint, safetyNumber, verificationStorage
+    │   ├── hooks/              # useMessages (E2EE), useContactSecurity, useGesture, useMessageReveal
     │   ├── pages/              # Landing, Login, Register, Dashboard, ConversationPage
     │   ├── services/           # REST api client, WebSocket client manager
     │   └── utils/              # protectMessage, gesture normalization & recognizer
-    └── test/                   # Vitest unit and privacy test suites (protectMessage, gesture, sequence, crypto)
+    └── test/                   # Vitest unit and privacy test suites (protectMessage, gesture, sequence, crypto, verification)
 ```
 
 ---
@@ -88,6 +104,7 @@ Data persistence is managed through Prisma ORM targeting PostgreSQL.
 ```mermaid
 erDiagram
     User ||--o{ PublicKey : "publishes"
+    User ||--o{ Device : "owns"
     User ||--o{ Session : "has many"
     User ||--o{ ConversationMember : "participates in"
     User ||--o{ Message : "sends"
@@ -110,6 +127,19 @@ erDiagram
         string keyId UK "k_..."
         string publicKey "Base64 SPKI"
         string algorithm "ECDH-P256"
+        string status "active | revoked | superseded"
+        datetime createdAt
+        datetime updatedAt
+    }
+
+    Device {
+        string id PK "UUID"
+        string userId FK
+        string deviceName "e.g. Chrome on Windows"
+        string platform "web | mobile"
+        string keyId "k_..."
+        string status "active | revoked"
+        datetime lastSeenAt
         datetime createdAt
         datetime updatedAt
     }
@@ -156,48 +186,31 @@ erDiagram
 
 ## 4. Subsystem Specifications
 
-### 4.1. End-to-End Encryption — Layer 1 (Phase 7)
-- **Zero Plaintext on Server**: All messages are encrypted locally on the sender's device using native Web Crypto APIs before transmission.
-- **Identity & Key Agreement**:
-  - Each client generates an ECDH keypair on NIST curve P-256 (`secp256r1`).
-  - Private key is stored locally in client `IndexedDB` (`enctxt_crypto_db`) and **never transmitted**.
-  - Public key is exported as Base64 SPKI and published via `POST /api/crypto/identity`.
-- **Key Derivation (KDF)**:
-  - Shared secret: $Z = \text{ECDH}(\text{Priv}_A, \text{Pub}_B) \equiv \text{ECDH}(\text{Priv}_B, \text{Pub}_A)$.
-  - 256-bit symmetric conversation key: $\text{Key} = \text{HKDF}(\text{IKM}=Z, \text{salt}=\text{conversationId}, \text{info}=\text{"enctxt-v1-e2ee"})$.
-- **Authenticated Encryption (AEAD)**:
-  - Algorithm: `AES-256-GCM` with a 128-bit authentication tag.
-  - Nonce/IV: 96-bit (12-byte) cryptographically secure random value freshly generated per message.
-  - Authenticated Associated Data (AAD): Context-bound to `${conversationId}:${senderId}:v1`, preventing ciphertext splicing.
-- **Envelope Wire Format**:
-  ```json
-  {
-    "version": 1,
-    "algorithm": "AES-256-GCM",
-    "keyAgreement": "ECDH-P256",
-    "senderKeyId": "k_...",
-    "recipientKeyId": "k_...",
-    "nonce": "Base64 (12 bytes)",
-    "ciphertext": "Base64 (payload + tag)",
-    "aad": "Base64"
-  }
-  ```
+### 4.1. Identity Verification & Safety Numbers — Layer 4 (Phase 8)
+- **Public Key Fingerprint**: Deterministic SHA-256 hash of canonical SPKI bytes formatted in 8 groups of 4 hex characters (`A7D4 92F1 8C20 4E73 19AB 63D0 7F2A 91CC`).
+- **Symmetric Safety Numbers**:
+  - Derived from $\text{SHA-256}(\min(K_A, K_B) + ":" + \max(K_A, K_B) + ":\text{v" + version + "})$.
+  - Formatted into four 5-digit decimal blocks (`48321 72904 18273 66421`).
+  - Symmetric for both participants.
+- **Key Change Detection**:
+  - Local verification records store `{ userId, keyId, fingerprint, verifiedAt }`.
+  - When peer key ID changes, verification state automatically flips to `'key_changed'`.
+  - Prominent in-app warning banner prevents silent public-key substitution.
+  - Re-verifying binds to the new key ID.
 
-### 4.2. Visual Privacy Engine & Gesture Reveals — Layer 2 (Phases 5 & 6)
-- **Deterministic Visual Homoglyphs (`protectMessage`)**:
-  - Replaces Latin characters with lookalike visual homoglyphs on screen by default.
-  - Preserves word lengths, whitespace, numbers, punctuation, and multi-byte emojis.
-- **Custom Gesture Reveal System**:
-  - 64-point normalized equidistant resampling, centroid translation to $(0, 0)$, $100 \times 100$ bounding box scaling.
-  - Average Euclidean point distance recognizer ($D \le 28.0$).
-  - Multi-step gesture sequence (2-5 steps) with mandatory confirmation.
-  - 8-second temporary reveal timer and 5-strike lockout (30-second cooldown).
-  - Auto re-protection on timer expiry, tab hide (`document.visibilityState === 'hidden'`), window blur, navigation, or logout.
+### 4.2. Device Identity & Session Management — Phase 8
+- **Device Registration & Listing**: `GET /api/devices`, `POST /api/devices/register`.
+- **Device Revocation**: `POST /api/devices/:id/revoke` with strict user ownership checks (`403 Forbidden` for unauthorized attempts).
+- **Session vs. Device Separation**: Session expiration does not destroy long-term device identity.
 
-### 4.3. Authoritative Transport & Server (Phases 1–4)
-- **Authentication**: `bcrypt` (12 rounds), JWT session tokens in `HttpOnly`/`SameSite=lax`/`Secure` cookies, IP rate limiting.
-- **1-to-1 Conversations**: Idempotent creation via deterministic pair keys (`[idA, idB].sort().join(':')`). Non-members blocked with `403 Forbidden`.
-- **Real-Time Messaging**: WebSocket server mounted at `/ws`, multi-session user routing, cursor-based pagination, read receipts, and reconnect synchronization.
+### 4.3. End-to-End Encryption — Layer 1 (Phases 7 & 8)
+- **Primitives**: Web Crypto `ECDH P-256`, `HKDF-SHA-256`, `AES-256-GCM` (128-bit tag), 96-bit random CSPRNG IVs, AAD context binding.
+- **Downgrade Defense**: Strict algorithm allowlist. Rejects unapproved algorithms (`AES-128`, `PLAINTEXT`) and unsupported protocol versions.
+- **Replay Protection**: Client message deduplication by unique `messageId`.
+
+### 4.4. Visual Privacy Engine & Gesture Reveals — Layers 2 & 3 (Phases 5 & 6)
+- **Homoglyph Protection (`protectMessage`)**: Lookalike replacement on screen by default.
+- **Custom Gesture Recognition**: 64-point resampled geometric normalizer, Euclidean distance classifier, 8s reveal timer, auto re-protection, 5-strike lockout.
 
 ---
 
@@ -205,14 +218,15 @@ erDiagram
 
 | Security / Privacy Control | Implementation | Verification Status |
 |---|---|---|
-| **E2EE Message Confidentiality** | Client-side AES-256-GCM + ECDH P-256 | Verified (14/14 crypto unit tests) |
-| **Message Tamper Detection** | AES-GCM 128-bit authentication tag + AAD | Verified (Fails closed on modified ciphertext/nonce/AAD/key) |
+| **Identity Verification** | SHA-256 fingerprint & symmetric safety numbers | Verified (8/8 verification tests) |
+| **Key-Change Detection** | Local verification binding to exact keyId | Verified |
+| **Algorithm Downgrade Defense** | Strict allowlist for v1/AES-GCM/ECDH | Verified |
+| **Device Trust & Revocation** | Authorized device listing & revoke endpoints | Verified (5/5 device tests) |
+| **HTTP Security Headers** | CSP, HSTS, X-Content-Type-Options, Referrer, Permissions | Verified (5/5 header tests) |
+| **E2EE Message Confidentiality** | Client-side AES-256-GCM + ECDH P-256 | Verified (14/14 crypto tests) |
 | **Server Plaintext Isolation** | Ciphertext-only in DB, REST, WebSockets, and logs | Verified (13/13 message tests, 8/8 WS tests) |
-| **Private Key Security** | Local client IndexedDB storage, zero server traffic | Verified |
 | **Visual Message Protection** | Deterministic homoglyphs by default | Verified (17/17 protectMessage tests) |
 | **Gesture Authorization** | Local-only browser storage (`localStorage`) | Verified (22/22 gesture tests) |
-| **Auto Re-Protection** | Timers, visibility change, blur, navigation, logout | Verified |
-| **Password Storage** | `bcrypt` (12 rounds) | Verified (20/20 auth tests) |
 
 ---
 
@@ -227,7 +241,7 @@ erDiagram
 | **Phase 5** | Protected Message Rendering | Visual privacy engine (`protectMessage`), `<ProtectedMessage>` component, zero visual plaintext |
 | **Phase 6** | Custom Gesture Reveal System | Geometric normalization (64-point resample), Euclidean recognizer, `GestureCanvas`, local storage, 8s reveal timer, auto re-protection, 5-strike lockout |
 | **Phase 7** | End-to-End Encryption (Layer 1) | Web Crypto ECDH (P-256) identity keys, HKDF-SHA-256 conversation keys, AES-256-GCM AEAD encryption with AAD, `PublicKey` model & distribution API, encrypted message envelopes, zero plaintext on server |
-| **Phase 8** | Multi-Client & Mobile Support | *(Planned)* Android client, push notifications architecture |
+| **Phase 8** | Security Hardening & Trust | Public key fingerprints, symmetric safety numbers, key-change detection and warnings, device trust and revocation API, protocol downgrade and replay protection, HTTP security headers (CSP, HSTS) |
 
 ---
 
