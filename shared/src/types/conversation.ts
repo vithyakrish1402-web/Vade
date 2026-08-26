@@ -1,27 +1,40 @@
-export type ConversationType = 'DIRECT' | 'GROUP';
-
-export interface ConversationParticipantSummary {
-  userId: string;
+export interface ParticipantSummary {
+  id: string;
   username: string;
   displayName: string;
-  joinedAt: string;
 }
 
-export interface ConversationSummary {
+export interface SingleConversationItem {
   id: string;
-  type: ConversationType;
-  participants: ConversationParticipantSummary[];
-  otherParticipant?: ConversationParticipantSummary;
   createdAt: string;
   updatedAt: string;
+  participant: ParticipantSummary;
 }
 
-export interface CreateDirectConversationInput {
+export interface ConversationDetails {
+  id: string;
+  createdAt: string;
+  updatedAt: string;
+  participants: ParticipantSummary[];
+}
+
+export interface CreateConversationInput {
+  userId?: string;
   recipientId?: string;
   recipientUsername?: string;
 }
 
+export interface CreateConversationResponse {
+  conversation: SingleConversationItem;
+}
+
 export interface ConversationListResponse {
-  conversations: ConversationSummary[];
+  conversations: SingleConversationItem[];
   total: number;
+  page: number;
+  limit: number;
+}
+
+export interface ConversationDetailResponse {
+  conversation: ConversationDetails;
 }

@@ -1,5 +1,5 @@
 // Prisma Schema for enctxt / private-chat
-// Phase 3: 1-to-1 Conversation Architecture
+// Phase 3: 1-to-1 Conversations
 
 generator client {
   provider = "prisma-client-js"
@@ -23,15 +23,15 @@ model SystemInfo {
 
 // User Identity Model
 model User {
-  id                      String                    @id @default(uuid())
-  username                String                    @unique
-  email                   String                    @unique
-  passwordHash            String
-  displayName             String
-  createdAt               DateTime                  @default(now())
-  updatedAt               DateTime                  @updatedAt
-  sessions                Session[]
-  conversationParticipants ConversationParticipant[]
+  id                  String               @id @default(uuid())
+  username            String               @unique
+  email               String               @unique
+  passwordHash        String
+  displayName         String
+  createdAt           DateTime             @default(now())
+  updatedAt           DateTime             @updatedAt
+  sessions            Session[]
+  conversationMembers ConversationMember[]
 
   @@index([username])
   @@index([email])
@@ -52,21 +52,20 @@ model Session {
   @@map("sessions")
 }
 
-// Conversation Model
+// Conversation Model (Phase 3: 1-to-1 Conversations)
 model Conversation {
-  id           String                    @id @default(uuid())
-  type         String                    @default("DIRECT") // DIRECT | GROUP
-  directKey    String?                   @unique // Deterministic sorted pair of user IDs: "idA:idB"
-  createdAt    DateTime                  @default(now())
-  updatedAt    DateTime                  @updatedAt
-  participants ConversationParticipant[]
+  id        String               @id @default(uuid())
+  directKey String               @unique // Deterministic sorted pair of user IDs: "idA:idB"
+  createdAt DateTime             @default(now())
+  updatedAt DateTime             @updatedAt
+  members   ConversationMember[]
 
   @@index([directKey])
   @@map("conversations")
 }
 
-// Conversation Participant Model
-model ConversationParticipant {
+// Conversation Member Model
+model ConversationMember {
   id             String       @id @default(uuid())
   conversationId String
   userId         String
@@ -77,5 +76,5 @@ model ConversationParticipant {
   @@unique([conversationId, userId])
   @@index([userId])
   @@index([conversationId])
-  @@map("conversation_participants")
+  @@map("conversation_members")
 }
