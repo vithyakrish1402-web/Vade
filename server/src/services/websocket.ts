@@ -20,6 +20,7 @@ export class WebSocketService {
   private wss: WebSocketServer | null = null;
   private userSockets: Map<string, Set<AuthenticatedSocket>> = new Map();
   private conversationSockets: Map<string, Set<AuthenticatedSocket>> = new Map();
+  private heartbeatInterval: ReturnType<typeof setInterval> | null = null;
 
   private constructor() {}
 
@@ -38,7 +39,12 @@ export class WebSocketService {
   }
 
   init(server: HttpServer): WebSocketServer {
-    this.wss = new WebSocketServer({ server, path: '/ws' });
+    // Limit maxPayload to 64KB for frame security
+    this.wss = new WebSocketServer({
+      server,
+      path: '/ws',
+      maxPayload: 64 * 1024,
+    });
 
     this.wss.on('connection', async (ws: AuthenticatedSocket, req: IncomingMessage) => {
       ws.isAlive = true;
@@ -48,7 +54,7 @@ export class WebSocketService {
         ws.isAlive = true;
       });
 
-      // Attempt to authenticate from cookies or query during handshake
+      // Attempt to authenticate from cookies during handshake
       const authenticatedUser = await this.authenticateRequest(req);
       if (authenticatedUser) {
         this.registerUserSocket(authenticatedUser.id, ws);
@@ -61,7 +67,7 @@ export class WebSocketService {
           const parsed = JSON.parse(raw) as WSClientMessage;
           await this.handleClientMessage(ws, parsed);
         } catch (err: any) {
-          logger.warn('Failed to parse WebSocket message', { error: err.message });
+          logger.warn('Failed to parse WebSocket message frame', { error: err.message });
           this.send(ws, { type: 'error', message: 'Invalid message payload' });
         }
       });
@@ -71,13 +77,13 @@ export class WebSocketService {
       });
 
       ws.on('error', (err) => {
-        logger.warn('WebSocket error', { error: err.message });
+        logger.warn('WebSocket client socket error', { error: err.message });
         this.handleDisconnect(ws);
       });
     });
 
-    // Heartbeat interval
-    const interval = setInterval(() => {
+    // Heartbeat interval (30s)
+    this.heartbeatInterval = setInterval(() => {
       if (!this.wss) return;
       this.wss.clients.forEach((wsClient) => {
         const socket = wsClient as AuthenticatedSocket;
@@ -91,10 +97,13 @@ export class WebSocketService {
     }, 30000);
 
     this.wss.on('close', () => {
-      clearInterval(interval);
+      if (this.heartbeatInterval) {
+        clearInterval(this.heartbeatInterval);
+        this.heartbeatInterval = null;
+      }
     });
 
-    logger.info('WebSocket server initialized on path /ws');
+    logger.info('WebSocket server initialized on path /ws with 64KB max payload');
     return this.wss;
   }
 
@@ -361,6 +370,43 @@ export class WebSocketService {
     } catch {
       return null;
     }
+  }
+
+  /**
+   * Gracefully drains and closes all active WebSocket connections on server shutdown.
+   */
+  async close(): Promise<void> {
+    if (this.heartbeatInterval) {
+      clearInterval(this.heartbeatInterval);
+      this.heartbeatInterval = null;
+    }
+
+    if (!this.wss) return;
+
+    logger.info('Draining active WebSocket connections...');
+    const closePromises: Promise<void>[] = [];
+
+    this.wss.clients.forEach((client) => {
+      if (client.readyState === WebSocket.OPEN) {
+        closePromises.push(
+          new Promise<void>((resolve) => {
+            client.close(1001, 'Server shutting down');
+            client.once('close', () => resolve());
+            setTimeout(resolve, 2000); // 2s per-socket timeout
+          })
+        );
+      }
+    });
+
+    await Promise.all(closePromises);
+
+    return new Promise((resolve) => {
+      this.wss?.close(() => {
+        this.reset();
+        this.wss = null;
+        resolve();
+      });
+    });
   }
 
   /**

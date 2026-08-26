@@ -1,20 +1,28 @@
 import type { Request, Response, NextFunction } from 'express';
 import { logger } from '../utils/logger.js';
+import crypto from 'node:crypto';
+
+declare global {
+  namespace Express {
+    interface Request {
+      id?: string;
+    }
+  }
+}
 
 export function requestLogger(req: Request, res: Response, next: NextFunction): void {
   const start = Date.now();
-
-  logger.debug(`HTTP request received: ${req.method} ${req.originalUrl}`, {
-    method: req.method,
-    url: req.originalUrl,
-    ip: req.ip,
-  });
+  const requestId = (req.headers['x-request-id'] as string) || `req_${crypto.randomBytes(8).toString('hex')}`;
+  req.id = requestId;
+  res.setHeader('X-Request-Id', requestId);
 
   res.on('finish', () => {
     const duration = Date.now() - start;
     const statusCode = res.statusCode;
 
-    logger.info(`HTTP request completed: ${req.method} ${req.originalUrl} ${statusCode} in ${duration}ms`, {
+    // Log operational metadata only - never log request bodies or payloads
+    logger.info(`HTTP ${req.method} ${req.originalUrl} ${statusCode} ${duration}ms`, {
+      requestId,
       method: req.method,
       url: req.originalUrl,
       statusCode,

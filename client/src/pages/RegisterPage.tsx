@@ -2,7 +2,9 @@ import React, { useState } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
 import { useAuth } from '../auth/AuthContext';
 import { ApiClientError } from '../services/api';
-import { UserPlus, Loader2, AlertCircle, ArrowRight } from 'lucide-react';
+import { UserPlus, ArrowRight } from 'lucide-react';
+import { Input } from '../components/ui/Input';
+import { Button } from '../components/ui/Button';
 
 export const RegisterPage: React.FC = () => {
   const navigate = useNavigate();
@@ -74,120 +76,84 @@ export const RegisterPage: React.FC = () => {
 
   return (
     <div className="flex-1 flex items-center justify-center px-4 py-12">
-      <div className="max-w-md w-full bg-slate-900 border border-slate-800 rounded-2xl p-8 shadow-xl space-y-6">
+      <div className="max-w-md w-full bg-slate-900 border border-slate-800 rounded-3xl p-6 sm:p-8 shadow-2xl space-y-6">
         <div className="text-center space-y-2">
-          <div className="w-12 h-12 rounded-xl bg-emerald-500/10 border border-emerald-500/30 flex items-center justify-center mx-auto text-emerald-400">
-            <UserPlus className="w-6 h-6" />
+          <div className="w-12 h-12 rounded-2xl bg-emerald-500/10 border border-emerald-500/30 flex items-center justify-center mx-auto text-emerald-400 shadow-sm">
+            <UserPlus className="w-6 h-6" aria-hidden="true" />
           </div>
           <h2 className="text-2xl font-bold text-slate-100">Create Account</h2>
           <p className="text-xs text-slate-400">
-            Initialize your identity for privacy-first chat
+            Initialize your encrypted identity for private messaging
           </p>
         </div>
 
-        {error && (
-          <div className="p-3 bg-rose-950/50 border border-rose-800/60 rounded-xl flex items-start gap-2.5 text-xs text-rose-300">
-            <AlertCircle className="w-4 h-4 text-rose-400 shrink-0 mt-0.5" />
-            <span>{error}</span>
-          </div>
-        )}
-
         <form onSubmit={handleSubmit} className="space-y-3.5">
-          <div>
-            <label className="block text-xs font-medium text-slate-300 mb-1">
-              Username <span className="text-emerald-500">*</span>
-            </label>
-            <input
-              type="text"
-              autoComplete="username"
-              value={username}
-              onChange={(e) => setUsername(e.target.value)}
-              placeholder="e.g. alice_wonder"
-              disabled={isLoading}
-              className="w-full px-3.5 py-2 bg-slate-950 border border-slate-800 rounded-xl text-sm text-slate-100 placeholder-slate-500 focus:outline-none focus:border-emerald-500 focus:ring-1 focus:ring-emerald-500 transition-colors disabled:opacity-50"
-              required
-            />
-          </div>
-
-          <div>
-            <label className="block text-xs font-medium text-slate-300 mb-1">
-              Display Name <span className="text-slate-500">(optional)</span>
-            </label>
-            <input
-              type="text"
-              value={displayName}
-              onChange={(e) => setDisplayName(e.target.value)}
-              placeholder="e.g. Alice W."
-              disabled={isLoading}
-              className="w-full px-3.5 py-2 bg-slate-950 border border-slate-800 rounded-xl text-sm text-slate-100 placeholder-slate-500 focus:outline-none focus:border-emerald-500 focus:ring-1 focus:ring-emerald-500 transition-colors disabled:opacity-50"
-            />
-          </div>
-
-          <div>
-            <label className="block text-xs font-medium text-slate-300 mb-1">
-              Email Address <span className="text-emerald-500">*</span>
-            </label>
-            <input
-              type="email"
-              autoComplete="email"
-              value={email}
-              onChange={(e) => setEmail(e.target.value)}
-              placeholder="alice@example.com"
-              disabled={isLoading}
-              className="w-full px-3.5 py-2 bg-slate-950 border border-slate-800 rounded-xl text-sm text-slate-100 placeholder-slate-500 focus:outline-none focus:border-emerald-500 focus:ring-1 focus:ring-emerald-500 transition-colors disabled:opacity-50"
-              required
-            />
-          </div>
-
-          <div>
-            <label className="block text-xs font-medium text-slate-300 mb-1">
-              Password <span className="text-emerald-500">*</span>
-            </label>
-            <input
-              type="password"
-              autoComplete="new-password"
-              value={password}
-              onChange={(e) => setPassword(e.target.value)}
-              placeholder="At least 8 characters"
-              disabled={isLoading}
-              className="w-full px-3.5 py-2 bg-slate-950 border border-slate-800 rounded-xl text-sm text-slate-100 placeholder-slate-500 focus:outline-none focus:border-emerald-500 focus:ring-1 focus:ring-emerald-500 transition-colors disabled:opacity-50"
-              required
-            />
-          </div>
-
-          <div>
-            <label className="block text-xs font-medium text-slate-300 mb-1">
-              Confirm Password <span className="text-emerald-500">*</span>
-            </label>
-            <input
-              type="password"
-              autoComplete="new-password"
-              value={confirmPassword}
-              onChange={(e) => setConfirmPassword(e.target.value)}
-              placeholder="Re-enter password"
-              disabled={isLoading}
-              className="w-full px-3.5 py-2 bg-slate-950 border border-slate-800 rounded-xl text-sm text-slate-100 placeholder-slate-500 focus:outline-none focus:border-emerald-500 focus:ring-1 focus:ring-emerald-500 transition-colors disabled:opacity-50"
-              required
-            />
-          </div>
-
-          <button
-            type="submit"
+          <Input
+            label="Username"
+            type="text"
+            autoComplete="username"
+            value={username}
+            onChange={(e) => setUsername(e.target.value)}
+            placeholder="e.g. alice_wonder"
+            helperText="At least 3 characters. Letters, numbers, hyphens, and underscores."
             disabled={isLoading}
-            className="w-full mt-2 py-2.5 px-4 bg-emerald-600 hover:bg-emerald-500 text-white font-medium text-sm rounded-xl transition-colors shadow-lg shadow-emerald-950 flex items-center justify-center gap-2 disabled:opacity-50 cursor-pointer"
+            required
+          />
+
+          <Input
+            label="Display Name (Optional)"
+            type="text"
+            autoComplete="name"
+            value={displayName}
+            onChange={(e) => setDisplayName(e.target.value)}
+            placeholder="e.g. Alice W."
+            disabled={isLoading}
+          />
+
+          <Input
+            label="Email Address"
+            type="email"
+            autoComplete="email"
+            value={email}
+            onChange={(e) => setEmail(e.target.value)}
+            placeholder="alice@example.com"
+            disabled={isLoading}
+            required
+          />
+
+          <Input
+            label="Password"
+            type="password"
+            autoComplete="new-password"
+            value={password}
+            onChange={(e) => setPassword(e.target.value)}
+            placeholder="At least 8 characters"
+            disabled={isLoading}
+            required
+          />
+
+          <Input
+            label="Confirm Password"
+            type="password"
+            autoComplete="new-password"
+            value={confirmPassword}
+            onChange={(e) => setConfirmPassword(e.target.value)}
+            placeholder="Re-enter password"
+            error={error}
+            disabled={isLoading}
+            required
+          />
+
+          <Button
+            type="submit"
+            variant="primary"
+            size="md"
+            isLoading={isLoading}
+            className="w-full mt-3"
+            rightIcon={<ArrowRight className="w-4 h-4" />}
           >
-            {isLoading ? (
-              <>
-                <Loader2 className="w-4 h-4 animate-spin" />
-                <span>Creating account...</span>
-              </>
-            ) : (
-              <>
-                <span>Register & Continue</span>
-                <ArrowRight className="w-4 h-4" />
-              </>
-            )}
-          </button>
+            Register & Continue
+          </Button>
         </form>
 
         <div className="text-center pt-2 border-t border-slate-800/80">
@@ -195,7 +161,7 @@ export const RegisterPage: React.FC = () => {
             Already have an account?{' '}
             <Link
               to="/login"
-              className="font-medium text-emerald-400 hover:text-emerald-300 transition-colors"
+              className="font-semibold text-emerald-400 hover:text-emerald-300 transition-colors focus:outline-none focus-visible:underline"
             >
               Sign In
             </Link>

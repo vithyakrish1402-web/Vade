@@ -1,140 +1,70 @@
-# enctxt (Private Chat)
+# ENCTXT (Private Chat)
 
-A privacy-focused text communication platform designed with visual privacy, custom gesture-based reveals, and end-to-end cryptographic security architecture.
+A privacy-focused text communication platform designed with visual privacy, custom gesture-based reveals, end-to-end cryptographic security architecture, accessible production UX, and reproducible, secure production deployment infrastructure.
 
 ---
 
-## Current Status: Phase 8 — Security Hardening, Key Verification & Device Trust (Complete)
+## Current Status: Phase 11 — Web Release Candidate, Final Security Audit & Android Readiness (Complete)
 
-Phase 8 introduces cryptographic identity verification, public-key fingerprints, symmetric safety numbers, key-change warnings, device trust and revocation management, and HTTP security headers to protect against server-side key substitution attacks, protocol downgrades, and replay attempts.
+Phase 11 freezes the core web architecture, establishes definitive API, WebSocket, and E2EE protocol contracts, provides cross-platform cryptographic test vectors for future Android client integration, validates the complete threat model, and produces **Release Candidate `v1.0.0-rc.1`**.
 
 > [!NOTE]
 > **4-Layer Defense-in-Depth Privacy Model**:
 > - **Layer 4 — Identity Verification**: Users compare symmetric safety numbers (`48321 72904 18273 66421`) and key fingerprints (`A7D4 92F1 8C20 4E73...`) to verify whom they are communicating with. Key changes trigger in-app warnings and invalidate verification.
-> - **Layer 3 — Gesture Reveal Authorization**: Custom multi-stroke geometric gestures grant 8-second temporary plaintext reveals.
+> - **Layer 3 — Gesture Reveal Authorization**: Custom multi-stroke geometric gestures grant 8-second temporary plaintext reveals with active countdown UX.
 > - **Layer 2 — Protected Message Rendering**: Messages appear as deterministic visual homoglyphs on screen by default (`protectMessage`).
 > - **Layer 1 — End-to-End Encryption (E2EE)**: Messages are encrypted locally on client devices via Web Crypto (`ECDH P-256`, `HKDF-SHA-256`, `AES-256-GCM`). Zero plaintext on the server.
 
-### Core Architecture
+---
+
+### Core Architecture & Production Topology
 
 ```text
-┌───────────────────────────────────────────────────────────────────────────┐
-│                                Web Client                                 │
-│                                                                           │
-│  [Identity Verification] ──> Safety Number / Fingerprint ──> Local State  │
-│                                                                           │
-│  Plaintext ──> [encryptMessage] ──> [EncryptedMessageEnvelope]            │
-│                       ▲                                                   │
-│                       │                                                   │
-│            [ECDH P-256 + HKDF] (from local IndexedDB keys)                │
-│                                                                           │
-│  [decryptMessage] ──> Plaintext in memory ──> <ProtectedMessage />        │
-└─────────────────────┬───────────────────────────────┬─────────────────────┘
-                      │ HTTP REST (Cookie + CSP)      │ WebSocket (/ws)
-                      ▼                               ▼
-┌───────────────────────────────────────────────────────────────────────────┐
-│                           Node.js + Express API                           │
-│  (Ciphertext Routing, PKI Public Key API, Device Trust, Auth & Limiting)  │
-└─────────────────────┬───────────────────────────────┬─────────────────────┘
-                      │                               │
-                      ▼                               ▼
-┌───────────────────────────────────────────────────────────────────────────┐
-│            Services (AuthService, UserService, MessageService, Device)    │
-│                       (Ciphertext Envelopes Only)                         │
-└─────────────────────────────────┬─────────────────────────────────────────┘
-                                  │
-                                  ▼
-┌───────────────────────────────────────────────────────────────────────────┐
-│                              Prisma ORM                                   │
-│    (User, PublicKey, Device, Session, Conversation, Member, Message)      │
-└─────────────────────────────────┬─────────────────────────────────────────┘
-                                  │
-                                  ▼
-┌───────────────────────────────────────────────────────────────────────────┐
-│                              PostgreSQL                                   │
-│                       (Stores Ciphertext Only)                            │
-└───────────────────────────────────────────────────────────────────────────┘
+                         Internet (HTTPS / WSS)
+                                   │
+                                   ▼
+                    ┌─────────────────────────────┐
+                    │ Reverse Proxy (TLS / HTTPS) │
+                    │ Nginx / Caddy (Let's Enc)   │
+                    └──────────────┬──────────────┘
+                                   │
+              ┌────────────────────┴────────────────────┐
+              │                                         │
+              ▼                                         ▼
+    Static React/Vite SPA                     Node.js Express API & WS
+    (dist/ - Hashed Assets)                   (http://backend:5000)
+    - Zero-Plaintext Previews                 - /api/* (REST API)
+    - Protected Message UI                    - /ws (WebSocket WSS)
+    - 8s Gesture Reveal                                 │
+              │                                         ▼
+              │                                    PostgreSQL
+              │                             (Ciphertext Envelopes Only)
+              │
+              ▼
+    Client Browser Security
+    (WebCrypto P-256 + IndexedDB Keys)
 ```
 
 ---
 
-## Architectural Principles
+### Protocol Specifications & Documentation
 
-1. **Multi-Layered Privacy Architecture**:
-   - **Layer 1 — Cryptographic Security**: End-to-end encryption with Web Crypto `ECDH P-256`, `HKDF-SHA-256`, and `AES-256-GCM` with 128-bit authentication tags and AAD context binding.
-   - **Layer 2 — Visual Privacy**: Protected homoglyph display on screen (`protectMessage`).
-   - **Layer 3 — Gesture Reveal Authorization**: Custom gesture recognition (64-point resample) for temporary 8-second plaintext visibility.
-   - **Layer 4 — Identity Verification**: Cryptographic key fingerprints and symmetric safety numbers to verify identity and detect key substitution.
-2. **Device Trust & Session Independence**:
-   - Long-term cryptographic device identities are separated from temporary authentication sessions.
-   - Device revocation API (`POST /api/devices/:id/revoke`) allows users to revoke untrusted devices.
-3. **Defense-in-Depth HTTP Hardening**:
-   - `Content-Security-Policy`, `X-Content-Type-Options: nosniff`, `X-Frame-Options: DENY`, `Referrer-Policy: strict-origin-when-cross-origin`, `Permissions-Policy`.
-
----
-
-## API Endpoints
-
-### System & Health
-
-| Method | Endpoint | Description | Auth Required |
-|---|---|---|---|
-| `GET` | `/api/health` | System and database connectivity health check | No |
-
-### Authentication
-
-| Method | Endpoint | Description | Auth Required |
-|---|---|---|---|
-| `POST` | `/api/auth/register` | Register account, establish session cookie | No (Rate Limited) |
-| `POST` | `/api/auth/login` | Authenticate with username/email & password | No (Rate Limited) |
-| `GET` | `/api/auth/me` | Retrieve current authenticated user session | No |
-| `POST` | `/api/auth/logout` | Invalidate active session & clear cookie | No |
-
-### Users & Profiles
-
-| Method | Endpoint | Description | Auth Required |
-|---|---|---|---|
-| `GET` | `/api/users/me` | Get full user profile | Yes |
-| `PATCH` | `/api/users/me` | Update display name and/or username | Yes |
-| `GET` | `/api/users/search?q=<query>` | Search registered users by username/name | Yes |
-
-### Public Key Infrastructure (PKI)
-
-| Method | Endpoint | Description | Auth Required |
-|---|---|---|---|
-| `POST` | `/api/crypto/identity` | Publish or rotate user's ECDH public identity key | Yes |
-| `GET` | `/api/crypto/users/:userId/key` | Retrieve public key for target user | Yes |
-
-### Device Management
-
-| Method | Endpoint | Description | Auth Required |
-|---|---|---|---|
-| `GET` | `/api/devices` | List authenticated user's registered devices | Yes |
-| `POST` | `/api/devices/register` | Register a new device identity | Yes |
-| `POST` | `/api/devices/:id/revoke` | Revoke an existing device (owner only) | Yes |
-
-### 1-to-1 Conversations
-
-| Method | Endpoint | Description | Auth Required |
-|---|---|---|---|
-| `POST` | `/api/conversations` | Create or fetch existing 1-to-1 conversation | Yes |
-| `GET` | `/api/conversations` | List all active conversations for current user | Yes |
-| `GET` | `/api/conversations/:id` | Get conversation details (participant-only) | Yes |
-
-### Encrypted Messaging (E2EE)
-
-| Method | Endpoint | Description | Auth Required |
-|---|---|---|---|
-| `POST` | `/api/conversations/:id/messages` | Send encrypted envelope (persists ciphertext in PostgreSQL, emits WS event) | Yes |
-| `GET` | `/api/conversations/:id/messages` | Retrieve encrypted message history with cursor pagination | Yes |
-| `POST` | `/api/conversations/:id/read` | Mark conversation read & emit read receipt | Yes |
+- [docs/api-contract.md](docs/api-contract.md): Frozen REST API specification (Auth, Users, Conversations, Messages, PKI Crypto, Devices, Health).
+- [docs/websocket-protocol.md](docs/websocket-protocol.md): Frozen WebSocket protocol specification (Auth, Room subscriptions, Real-time events, Heartbeat).
+- [docs/crypto-protocol.md](docs/crypto-protocol.md): Frozen E2EE Protocol v1 specification (ECDH P-256, HKDF, AES-256-GCM, AAD, Safety numbers).
+- [docs/test-vectors/crypto-test-vectors.json](docs/test-vectors/crypto-test-vectors.json): Deterministic cross-platform test fixtures for Android client verification.
+- [docs/android-readiness.md](docs/android-readiness.md): Complete Android client implementation requirements, Keystore bindings, and architecture guide.
+- [docs/threat-model.md](docs/threat-model.md): Security boundaries, defended threat vectors, and explicit non-protections.
+- [docs/deployment.md](docs/deployment.md): Step-by-step production deployment and migration guide.
+- [docs/runbook.md](docs/runbook.md): Operational metrics, health alerts, and incident response procedures.
+- [docs/disaster-recovery.md](docs/disaster-recovery.md): Database backup strategies (`pg_dump` + AES-256-CBC encryption) and restore verification.
 
 ---
 
 ## Testing & Quality Assurance
 
 ```bash
-# Run automated test suites across all workspaces (132 tests: 71 backend + 61 frontend)
+# Run automated test suites across all workspaces (165 tests: 83 backend + 82 frontend)
 npm test
 
 # Run TypeScript typechecks across all workspaces
@@ -156,4 +86,7 @@ npm run build
 - [x] **Phase 6 — Custom Gesture Sequence & Reveal Authorization (Layer 3)** (Complete)
 - [x] **Phase 7 — End-to-End Encryption Architecture (Layer 1)** (Complete)
 - [x] **Phase 8 — Security Hardening, Key Verification & Device Trust (Layer 4)** (Complete)
-- [ ] **Phase 9 — Multi-Client & Mobile Support (Web & Android)**
+- [x] **Phase 9 — Production UX, Reliability & Application Polish** (Complete)
+- [x] **Phase 10 — Production Web Deployment & Infrastructure** (Complete)
+- [x] **Phase 11 — Web Release Candidate, Final Security Audit & Android Readiness** (Complete)
+- [ ] **Phase 12 — Android Native Client Implementation**

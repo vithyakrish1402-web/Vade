@@ -22,7 +22,7 @@ async function startServer(): Promise<void> {
     });
   });
 
-  // Test database connection at startup in background
+  // Test database connection at startup
   checkDatabaseConnection()
     .then((dbStatus) => {
       if (dbStatus === 'connected') {
@@ -38,20 +38,50 @@ async function startServer(): Promise<void> {
     });
 
   // Graceful shutdown handling
-  const shutdown = async (signal: string) => {
-    logger.info(`Received ${signal}. Starting graceful shutdown...`);
-    server.close(async () => {
-      logger.info('HTTP server closed');
-      await disconnectDatabase();
-      logger.info('Application shutdown complete');
-      process.exit(0);
-    });
+  let isShuttingDown = false;
 
-    // Force close after 10 seconds
-    setTimeout(() => {
-      logger.error('Could not close connections in time, forcefully shutting down');
+  const shutdown = async (signal: string) => {
+    if (isShuttingDown) return;
+    isShuttingDown = true;
+
+    logger.info(`Received ${signal}. Starting graceful shutdown...`);
+
+    // Hard timeout fallback after 30 seconds
+    const hardTimeout = setTimeout(() => {
+      logger.error('Could not close connections in time (30s limit), forcefully terminating');
       process.exit(1);
-    }, 10000);
+    }, 30000);
+
+    // Unref so hardTimeout doesn't hold the event loop open if everything closes cleanly
+    hardTimeout.unref();
+
+    try {
+      // 1. Drain and close all WebSocket connections
+      await wsService.close();
+      logger.info('WebSocket connections drained and closed');
+
+      // 2. Stop accepting new HTTP requests
+      await new Promise<void>((resolve) => {
+        server.close((err) => {
+          if (err) {
+            logger.warn('Error during HTTP server close', { error: err.message });
+          } else {
+            logger.info('HTTP server closed');
+          }
+          resolve();
+        });
+      });
+
+      // 3. Disconnect PostgreSQL Prisma client
+      await disconnectDatabase();
+      logger.info('Database connection closed cleanly');
+
+      logger.info('Application shutdown complete. Exiting.');
+      process.exit(0);
+    } catch (err: any) {
+      logger.error('Error occurred during graceful shutdown', { error: err?.message });
+      process.exit(1);
+    }
   };
 
   process.on('SIGINT', () => shutdown('SIGINT'));

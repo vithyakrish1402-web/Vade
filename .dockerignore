@@ -1,0 +1,31 @@
+# Ignore local node_modules and builds
+node_modules
+dist
+.env
+.env.*
+!.env.example
+
+# Ignore logs and runtime data
+logs
+*.log
+npm-debug.log*
+
+# Ignore Git and IDE files
+.git
+.gitignore
+.github
+.vscode
+.idea
+
+# Ignore testing artifacts and coverage
+coverage
+.nyc_output
+*.test.ts
+*.test.tsx
+*.spec.ts
+*.spec.tsx
+test
+
+# Ignore documentation & markdown
+docs
+*.md

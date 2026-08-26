@@ -1,0 +1,44 @@
+{
+  "metadata": {
+    "description": "ENCTXT E2EE Protocol v1 Deterministic Cryptographic Test Vector",
+    "protocolVersion": 1,
+    "keyAgreement": "ECDH-P256",
+    "kdf": "HKDF-SHA-256",
+    "cipher": "AES-256-GCM",
+    "tagLengthBits": 128,
+    "nonceLengthBytes": 12,
+    "forTestingOnly": true
+  },
+  "conversation": {
+    "conversationId": "conv-test-vector-001",
+    "senderId": "user-alice-001",
+    "recipientId": "user-bob-002",
+    "senderKeyId": "k_alice_test_key_001",
+    "recipientKeyId": "k_bob_test_key_002",
+    "plaintext": "Cross-platform cryptographic test vector for ENCTXT v1."
+  },
+  "keys": {
+    "alice": {
+      "publicKeySpkiBase64": "MFkwEwYHKoZIzj0CAQYIKoZIzj0DAQcDQgAEawMQ2rcQ7O3eTx0A3MmKjcMKOcqAuojgM68JwnxzDSpi40mxKcY2A/dWMdWvp0C3sGX/aXjlwmzMLOV+EAVJdg==",
+      "privateKeyPkcs8Base64": "MIGHAgEAMBMGByqGSM49AgEGCCqGSM49AwEHBG0wawIBAQQgRraQoKacbhfuCtWQ+Y4Ap+u5Ze2KWwoPRplSvMISIOqhRANCAARrAxDatxDs7d5PHQDcyYqNwwo5yoC6iOAzrwnCfHMNKmLjSbEpxjYD91Yx1a+nQLewZf9peOXCbMws5X4QBUl2"
+    },
+    "bob": {
+      "publicKeySpkiBase64": "MFkwEwYHKoZIzj0CAQYIKoZIzj0DAQcDQgAEJ7Os1SMBOvYE78qWI3qRiHNcNDf9KevsKZSbJWrD8iRYKQP+ho7+QEZUVIfxuv03wn7V5hvgLMEGXYuaQdgZNg==",
+      "privateKeyPkcs8Base64": "MIGHAgEAMBMGByqGSM49AgEGCCqGSM49AwEHBG0wawIBAQQggsLjUcLnbd6T4bAK8UzLdH2+YFKEuT7m1PN+95Ub7GahRANCAAQns6zVIwE69gTvypYjepGIc1w0N/0p6+wplJslasPyJFgpA/6Gjv5ARlRUh/G6/TfCftXmG+AswQZdi5pB2Bk2"
+    }
+  },
+  "kdf": {
+    "saltUtf8": "conv-test-vector-001",
+    "infoUtf8": "enctxt-v1-e2ee",
+    "derivedKeyHex": "900410531c9a5c2a304d738dee0c4734b2117e5ed4add6f5e19059f62a10ca03"
+  },
+  "encryption": {
+    "nonceBase64": "MTIzNDU2Nzg5MDEy",
+    "aadUtf8": "conv-test-vector-001:user-alice-001:v1",
+    "ciphertextBase64": "Mz/hwY9pM8oHVHzJC+Us8fMQwglUGvXpyxVN9csUET6U2NbN/m8/ArvV9vbBGBbDruDY4LU2IzePl0XKRkzPjRYHVzdUqxU="
+  },
+  "verification": {
+    "decryptedPlaintext": "Cross-platform cryptographic test vector for ENCTXT v1.",
+    "matches": true
+  }
+}

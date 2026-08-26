@@ -11,10 +11,11 @@ export function useMessageReveal() {
   const [failedAttempts, setFailedAttempts] = useState(0);
   const [lockedUntil, setLockedUntil] = useState<number | null>(null);
   const [lockoutRemainingSeconds, setLockoutRemainingSeconds] = useState(0);
+  const [, setTick] = useState(0);
 
   const timersRef = useRef<Map<string, ReturnType<typeof setTimeout>>>(new Map());
 
-  // Hide all revealed messages
+  // Hide all revealed messages immediately
   const hideAllMessages = useCallback(() => {
     timersRef.current.forEach((timer) => clearTimeout(timer));
     timersRef.current.clear();
@@ -74,6 +75,28 @@ export function useMessageReveal() {
     },
     [revealedMap]
   );
+
+  // Get remaining reveal seconds for a message
+  const getRemainingRevealSeconds = useCallback(
+    (messageId: string): number => {
+      const expiresAt = revealedMap.get(messageId);
+      if (!expiresAt) return 0;
+      const remainingMs = expiresAt - Date.now();
+      return Math.max(0, Math.ceil(remainingMs / 1000));
+    },
+    [revealedMap]
+  );
+
+  // Periodic tick while messages are revealed to update countdown badges
+  useEffect(() => {
+    if (revealedMap.size === 0) return;
+
+    const interval = setInterval(() => {
+      setTick((t) => t + 1);
+    }, 1000);
+
+    return () => clearInterval(interval);
+  }, [revealedMap.size]);
 
   // Record a failed gesture attempt (triggers lockout at 5 failures)
   const recordFailedAttempt = useCallback(() => {
@@ -141,6 +164,7 @@ export function useMessageReveal() {
 
   return {
     isRevealed,
+    getRemainingRevealSeconds,
     revealMessage,
     hideMessage,
     hideAllMessages,

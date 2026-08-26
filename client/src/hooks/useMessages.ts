@@ -31,6 +31,7 @@ export function useMessages(
   const convKeyRef = useRef<CryptoKey | null>(null);
   const myKeyIdRef = useRef<string | null>(null);
   const peerKeyIdRef = useRef<string | null>(null);
+  const prevConnectionStatusRef = useRef<WSConnectionStatus>('disconnected');
 
   // Setup / initialize conversation key agreement
   const initCrypto = useCallback(async (): Promise<CryptoKey | null> => {
@@ -74,8 +75,17 @@ export function useMessages(
       for (const msg of items) {
         if (decryptedMap.has(msg.id)) continue;
 
-        // If it's a temporary optimistic message, plaintext is already cached
+        // If it's a temporary optimistic message, plaintext is already in memory
         if (msg.id.startsWith('temp-')) continue;
+
+        // Protocol version check
+        if (msg.version > 1) {
+          updates.set(
+            msg.id,
+            'This message uses a security protocol that this version of the app does not support.'
+          );
+          continue;
+        }
 
         try {
           const envelope: EncryptedMessageEnvelope = {
@@ -111,17 +121,39 @@ export function useMessages(
     [conversationId, decryptedMap]
   );
 
-  // Subscribe to WebSocket status
+  // Subscribe to WebSocket status & catch missed messages on reconnect
   useEffect(() => {
     wsClient.connect();
     const unsubStatus = wsClient.addStatusListener((status) => {
+      const prev = prevConnectionStatusRef.current;
+      prevConnectionStatusRef.current = status;
       setConnectionStatus(status);
+
+      // If reconnected from disconnected/reconnecting, fetch missed messages
+      if (status === 'connected' && (prev === 'reconnecting' || prev === 'disconnected')) {
+        if (conversationId) {
+          messageService
+            .getMessages(conversationId, 50)
+            .then(async (res) => {
+              setMessages((existing) => {
+                const existingMap = new Map(existing.map((m) => [m.id, m]));
+                // Merge latest messages, preserving order
+                res.messages.forEach((m) => existingMap.set(m.id, m));
+                return Array.from(existingMap.values()).sort(
+                  (a, b) => new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime()
+                );
+              });
+              await decryptBatch(res.messages, convKeyRef.current);
+            })
+            .catch(() => {});
+        }
+      }
     });
 
     return () => {
       unsubStatus();
     };
-  }, []);
+  }, [conversationId, decryptBatch]);
 
   // Fetch initial messages for conversation
   const fetchInitialMessages = useCallback(async () => {
@@ -151,7 +183,7 @@ export function useMessages(
       if (err instanceof ApiClientError) {
         setError(err.message);
       } else {
-        setError('Failed to load message history.');
+        setError('Failed to load message history. Please check your connection.');
       }
     } finally {
       setIsLoading(false);
@@ -338,7 +370,7 @@ export function useMessages(
     }
   };
 
-  // Retry sending a failed message
+  // Retry sending a failed message safely in-memory
   const retryMessage = async (failedMessageId: string) => {
     const failedMsg = messages.find((m) => m.id === failedMessageId);
     if (!failedMsg || !conversationId) return;

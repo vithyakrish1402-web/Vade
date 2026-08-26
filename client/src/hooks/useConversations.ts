@@ -1,6 +1,7 @@
 import { useState, useEffect, useCallback } from 'react';
 import type { SingleConversationItem, CreateConversationInput } from '@enctxt/shared';
 import { conversationService } from '../services/conversationService';
+import { wsClient } from '../services/websocket';
 import { ApiClientError } from '../services/api';
 
 export function useConversations() {
@@ -13,7 +14,11 @@ export function useConversations() {
     setError(null);
     try {
       const data = await conversationService.listConversations();
-      setConversations(data.conversations);
+      // Sort by latest activity (updatedAt descending)
+      const sorted = [...data.conversations].sort(
+        (a, b) => new Date(b.updatedAt).getTime() - new Date(a.updatedAt).getTime()
+      );
+      setConversations(sorted);
     } catch (err) {
       if (err instanceof ApiClientError) {
         setError(err.message);
@@ -30,7 +35,9 @@ export function useConversations() {
       const res = await conversationService.createOrGetConversation(input);
       setConversations((prev) => {
         const exists = prev.some((c) => c.id === res.conversation.id);
-        if (exists) return prev;
+        if (exists) {
+          return prev.map((c) => (c.id === res.conversation.id ? res.conversation : c));
+        }
         return [res.conversation, ...prev];
       });
       return res.conversation;
@@ -41,6 +48,35 @@ export function useConversations() {
       throw new Error('Failed to create conversation.');
     }
   };
+
+  // Listen for real-time incoming messages to update conversation order
+  useEffect(() => {
+    const unsub = wsClient.addEventListener((event) => {
+      if (event.type === 'message.created') {
+        const incoming = event.message;
+        setConversations((prev) => {
+          const convIndex = prev.findIndex((c) => c.id === incoming.conversationId);
+          if (convIndex === -1) {
+            // Conversation not in list, fetch fresh list
+            fetchConversations();
+            return prev;
+          }
+
+          const target = {
+            ...prev[convIndex],
+            updatedAt: incoming.createdAt,
+          };
+
+          const remaining = prev.filter((_, idx) => idx !== convIndex);
+          return [target, ...remaining];
+        });
+      }
+    });
+
+    return () => {
+      unsub();
+    };
+  }, [fetchConversations]);
 
   useEffect(() => {
     fetchConversations();

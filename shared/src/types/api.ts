@@ -26,3 +26,9 @@ export interface HealthResponse {
   database?: DatabaseStatus;
   version?: string;
 }
+
+export interface ReadinessResponse {
+  ready: boolean;
+  database: DatabaseStatus;
+  timestamp: string;
+}

@@ -153,6 +153,8 @@ export const GestureCanvas: React.FC<GestureCanvasProps> = ({
 
         <canvas
           ref={canvasRef}
+          role="img"
+          aria-label="Interactive gesture drawing canvas. Draw your custom gesture shape."
           onPointerDown={handlePointerDown}
           onPointerMove={handlePointerMove}
           onPointerUp={handlePointerUp}
@@ -168,12 +170,16 @@ export const GestureCanvas: React.FC<GestureCanvasProps> = ({
           type="button"
           onClick={clearCanvas}
           disabled={disabled}
-          className="absolute bottom-2.5 right-2.5 p-1.5 rounded-lg bg-slate-800/80 hover:bg-slate-800 text-slate-400 hover:text-slate-200 text-xs transition-colors border border-slate-700 cursor-pointer"
+          aria-label="Clear gesture canvas"
+          className="absolute bottom-2.5 right-2.5 p-1.5 rounded-lg bg-slate-800/80 hover:bg-slate-800 text-slate-400 hover:text-slate-200 text-xs transition-colors border border-slate-700 cursor-pointer focus:outline-none focus-visible:ring-2 focus-visible:ring-emerald-400"
           title="Clear canvas"
         >
-          <RotateCcw className="w-3.5 h-3.5" />
+          <RotateCcw className="w-3.5 h-3.5" aria-hidden="true" />
         </button>
       </div>
+      <span className="sr-only">
+        Gesture drawing requires pointer or touch input. Drawn gestures remain local to this device.
+      </span>
     </div>
   );
 };

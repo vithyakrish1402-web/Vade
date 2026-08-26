@@ -235,8 +235,10 @@ describe('Cryptographic Engine & E2EE Primitives (Phase 7)', () => {
       });
 
       // Tamper with ciphertext
-      const tamperedCiphertext =
-        envelope.ciphertext.substring(0, 10) + 'X' + envelope.ciphertext.substring(11);
+      const origCt = envelope.ciphertext;
+      const tamperedCiphertext = origCt.startsWith('A')
+        ? 'B' + origCt.slice(1)
+        : 'A' + origCt.slice(1);
 
       await expect(
         decryptMessage({ ...envelope, ciphertext: tamperedCiphertext }, key, {
@@ -259,8 +261,10 @@ describe('Cryptographic Engine & E2EE Primitives (Phase 7)', () => {
       });
 
       // Tamper with nonce
-      const tamperedNonce =
-        envelope.nonce.substring(0, 4) + 'Z' + envelope.nonce.substring(5);
+      const origNonce = envelope.nonce;
+      const tamperedNonce = origNonce.startsWith('A')
+        ? 'B' + origNonce.slice(1)
+        : 'A' + origNonce.slice(1);
 
       await expect(
         decryptMessage({ ...envelope, nonce: tamperedNonce }, key, {
