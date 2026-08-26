@@ -1,0 +1,23 @@
+// Prisma Schema for enctxt / private-chat
+// Phase 1: Foundation setup with PostgreSQL provider
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+// Minimal system metadata model for connection verification & migration infrastructure
+// Phase 2+ models (User, Conversation, Message, Device, etc.) will be added in subsequent phases.
+model SystemInfo {
+  id        String   @id @default(uuid())
+  key       String   @unique
+  value     String
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@map("system_info")
+}
