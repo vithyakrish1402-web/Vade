@@ -6,6 +6,7 @@ const mockPrisma = {
   user: mockDb.userDelegate,
   session: mockDb.sessionDelegate,
   conversation: mockDb.conversationDelegate,
+  conversationMember: mockDb.conversationMemberDelegate,
   $queryRaw: async () => [{ 1: 1 }],
   $disconnect: async () => {},
 };

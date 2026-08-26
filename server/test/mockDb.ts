@@ -20,13 +20,12 @@ export interface MockSession {
 
 export interface MockConversation {
   id: string;
-  type: string;
-  directKey?: string | null;
+  directKey: string;
   createdAt: Date;
   updatedAt: Date;
 }
 
-export interface MockConversationParticipant {
+export interface MockConversationMember {
   id: string;
   conversationId: string;
   userId: string;
@@ -37,13 +36,13 @@ export class MockDatabase {
   public users: Map<string, MockUser> = new Map();
   public sessions: Map<string, MockSession> = new Map();
   public conversations: Map<string, MockConversation> = new Map();
-  public participants: Map<string, MockConversationParticipant> = new Map();
+  public members: Map<string, MockConversationMember> = new Map();
 
   reset(): void {
     this.users.clear();
     this.sessions.clear();
     this.conversations.clear();
-    this.participants.clear();
+    this.members.clear();
   }
 
   get userDelegate() {
@@ -219,14 +218,14 @@ export class MockDatabase {
         return this.hydrateConversation(found, include);
       },
 
-      findMany: async ({ where, include, orderBy }: { where?: any; include?: any; orderBy?: any }) => {
+      findMany: async ({ where, include, orderBy, skip = 0, take = 20 }: { where?: any; include?: any; orderBy?: any; skip?: number; take?: number }) => {
         let list = Array.from(this.conversations.values());
 
-        if (where?.participants?.some?.userId) {
-          const targetUserId = where.participants.some.userId;
+        if (where?.members?.some?.userId) {
+          const targetUserId = where.members.some.userId;
           list = list.filter((conv) => {
-            const parts = Array.from(this.participants.values()).filter((p) => p.conversationId === conv.id);
-            return parts.some((p) => p.userId === targetUserId);
+            const m = Array.from(this.members.values()).filter((mem) => mem.conversationId === conv.id);
+            return m.some((mem) => mem.userId === targetUserId);
           });
         }
 
@@ -234,28 +233,39 @@ export class MockDatabase {
           list.sort((a, b) => b.updatedAt.getTime() - a.updatedAt.getTime());
         }
 
-        return list.map((c) => this.hydrateConversation(c, include));
+        return list.slice(skip, skip + take).map((c) => this.hydrateConversation(c, include));
       },
 
-      create: async ({ data, include }: { data: { type?: string; directKey?: string; participants?: { create: Array<{ userId: string }> } }; include?: any }) => {
+      count: async ({ where }: { where?: any }) => {
+        let list = Array.from(this.conversations.values());
+        if (where?.members?.some?.userId) {
+          const targetUserId = where.members.some.userId;
+          list = list.filter((conv) => {
+            const m = Array.from(this.members.values()).filter((mem) => mem.conversationId === conv.id);
+            return m.some((mem) => mem.userId === targetUserId);
+          });
+        }
+        return list.length;
+      },
+
+      create: async ({ data, include }: { data: { directKey: string; members?: { create: Array<{ userId: string }> } }; include?: any }) => {
         const id = crypto.randomUUID();
         const now = new Date();
         const newConv: MockConversation = {
           id,
-          type: data.type || 'DIRECT',
-          directKey: data.directKey || null,
+          directKey: data.directKey,
           createdAt: now,
           updatedAt: now,
         };
         this.conversations.set(id, newConv);
 
-        if (data.participants?.create) {
-          for (const p of data.participants.create) {
-            const partId = crypto.randomUUID();
-            this.participants.set(partId, {
-              id: partId,
+        if (data.members?.create) {
+          for (const m of data.members.create) {
+            const memberId = crypto.randomUUID();
+            this.members.set(memberId, {
+              id: memberId,
               conversationId: id,
-              userId: p.userId,
+              userId: m.userId,
               joinedAt: now,
             });
           }
@@ -266,16 +276,31 @@ export class MockDatabase {
     };
   }
 
+  get conversationMemberDelegate() {
+    return {
+      findUnique: async ({ where }: { where: { conversationId_userId?: { conversationId: string; userId: string } } }) => {
+        if (where.conversationId_userId) {
+          const { conversationId, userId } = where.conversationId_userId;
+          const found = Array.from(this.members.values()).find(
+            (m) => m.conversationId === conversationId && m.userId === userId
+          );
+          return found || null;
+        }
+        return null;
+      },
+    };
+  }
+
   private hydrateConversation(conv: MockConversation, include?: any) {
     if (!include) return { ...conv };
 
     const res: any = { ...conv };
-    if (include.participants) {
-      const parts = Array.from(this.participants.values()).filter((p) => p.conversationId === conv.id);
-      res.participants = parts.map((p) => {
-        const user = this.users.get(p.userId);
+    if (include.members) {
+      const convMembers = Array.from(this.members.values()).filter((m) => m.conversationId === conv.id);
+      res.members = convMembers.map((m) => {
+        const user = this.users.get(m.userId);
         return {
-          ...p,
+          ...m,
           user: user
             ? {
                 id: user.id,
