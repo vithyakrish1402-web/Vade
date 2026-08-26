@@ -100,14 +100,30 @@ export const conversationListQuerySchema = z.object({
     .transform((val) => (val ? Math.min(50, Math.max(1, parseInt(val, 10) || 20)) : 20)),
 });
 
+// Phase 7: Public Key Distribution Schema
+export const publishKeySchema = z.object({
+  keyId: z.string().trim().min(1, 'Key ID is required').max(100),
+  publicKey: z.string().trim().min(1, 'Public key is required').max(5000),
+  algorithm: z.string().trim().default('ECDH-P256'),
+});
+
+// Phase 7: E2EE Encrypted Message Schema
+export const encryptedEnvelopeSchema = z.object({
+  version: z.number().int().min(1, 'Unsupported protocol version'),
+  algorithm: z.string().min(1, 'Algorithm is required'),
+  keyAgreement: z.string().min(1, 'Key agreement is required'),
+  senderKeyId: z.string().min(1, 'Sender key ID is required'),
+  recipientKeyId: z.string().min(1, 'Recipient key ID is required'),
+  nonce: z.string().min(1, 'Nonce is required').max(100),
+  ciphertext: z
+    .string()
+    .min(1, 'Ciphertext is required')
+    .max(65536, 'Ciphertext exceeds maximum payload size of 64KB'),
+  aad: z.string().max(1000).optional(),
+});
+
 export const sendMessageSchema = z.object({
-  content: z
-    .string({ required_error: 'Message content is required' })
-    .min(1, 'Message content cannot be empty')
-    .max(5000, 'Message content cannot exceed 5000 characters')
-    .refine((val) => val.trim().length > 0, {
-      message: 'Message cannot be only whitespace',
-    }),
+  envelope: encryptedEnvelopeSchema,
   tempId: z.string().max(100).optional(),
 });
 

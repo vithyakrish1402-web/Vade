@@ -1,5 +1,5 @@
 // Prisma Schema for enctxt / private-chat
-// Phase 4: Real-Time Messaging
+// Phase 7: End-to-End Encryption
 
 generator client {
   provider = "prisma-client-js"
@@ -33,10 +33,27 @@ model User {
   sessions            Session[]
   conversationMembers ConversationMember[]
   sentMessages        Message[]
+  publicKey           PublicKey?
 
   @@index([username])
   @@index([email])
   @@map("users")
+}
+
+// Public Key Distribution Model (Phase 7: E2EE)
+model PublicKey {
+  id        String   @id @default(uuid())
+  userId    String   @unique
+  keyId     String   @unique
+  publicKey String   @db.Text
+  algorithm String   @default("ECDH-P256")
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@index([keyId])
+  @@map("public_keys")
 }
 
 // Authenticated Session Model
@@ -81,12 +98,19 @@ model ConversationMember {
   @@map("conversation_members")
 }
 
-// Message Model (Phase 4: Real-Time Messaging)
+// Encrypted Message Model (Phase 7: End-to-End Encryption)
+// Stores ciphertext only. Zero plaintext stored.
 model Message {
   id             String       @id @default(uuid())
   conversationId String
   senderId       String
-  content        String
+  ciphertext     String       @db.Text
+  nonce          String
+  senderKeyId    String
+  recipientKeyId String
+  algorithm      String       @default("AES-256-GCM")
+  version        Int          @default(1)
+  aad            String?      @db.Text
   createdAt      DateTime     @default(now())
   updatedAt      DateTime     @updatedAt
   conversation   Conversation @relation(fields: [conversationId], references: [id], onDelete: Cascade)
