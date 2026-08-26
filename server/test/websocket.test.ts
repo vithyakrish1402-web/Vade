@@ -8,7 +8,7 @@ import { wsService } from '../src/services/websocket.js';
 import { mockDb } from './mockDb.js';
 import type { WSServerMessage } from '@enctxt/shared';
 
-describe('Real-Time WebSocket Architecture (Phase 4)', () => {
+describe('Real-Time WebSocket Architecture (Phase 7 — E2EE)', () => {
   let server: http.Server;
   let wsUrl: string;
 
@@ -24,6 +24,17 @@ describe('Real-Time WebSocket Architecture (Phase 4)', () => {
 
   let conversationId: string;
   const activeSockets: WebSocket[] = [];
+
+  const testEnvelope = {
+    version: 1,
+    algorithm: 'AES-256-GCM',
+    keyAgreement: 'ECDH-P256',
+    senderKeyId: 'k_alice_ws',
+    recipientKeyId: 'k_bob_ws',
+    nonce: 'bm9uY2VfdGVzdF8xMjg=',
+    ciphertext: 'Y2lwaGVydGV4dF93c190ZXN0',
+    aad: 'YWFkX3Rlc3Q=',
+  };
 
   interface TestSocketClient {
     ws: WebSocket;
@@ -104,48 +115,51 @@ describe('Real-Time WebSocket Architecture (Phase 4)', () => {
 
     const app = createApp();
     server = http.createServer(app);
-    wsService.init(server);
+    wsService.initialize(server);
 
     await new Promise<void>((resolve) => {
-      server.listen(0, '127.0.0.1', () => {
+      server.listen(0, () => {
         const address = server.address() as AddressInfo;
         wsUrl = `ws://127.0.0.1:${address.port}/ws`;
         resolve();
       });
     });
 
-    // Register User A
+    // 1. Register User A (Alice)
     const resA = await request(app).post('/api/auth/register').send({
       username: 'alice',
       email: 'alice@example.com',
       password: 'Password123!',
-      displayName: 'Alice Wonderland',
+      displayName: 'Alice In Chains',
     });
-    userACookie = resA.headers['set-cookie'][0];
+    userACookie = resA.headers['set-cookie']?.[0] as string;
     userAId = resA.body.user.id;
-    userAToken = userACookie.split(';')[0].split('=')[1];
 
-    // Register User B
+    // Extract token value from cookie string
+    const matchA = userACookie.match(/enctxt_session=([^;]+)/);
+    userAToken = matchA ? matchA[1] : '';
+
+    // 2. Register User B (Bob)
     const resB = await request(app).post('/api/auth/register').send({
       username: 'bob',
       email: 'bob@example.com',
       password: 'Password123!',
-      displayName: 'Bob Builder',
+      displayName: 'Bob Dylan',
     });
-    userBCookie = resB.headers['set-cookie'][0];
+    userBCookie = resB.headers['set-cookie']?.[0] as string;
     userBId = resB.body.user.id;
 
-    // Register User C
+    // 3. Register User C (Charlie)
     const resC = await request(app).post('/api/auth/register').send({
       username: 'charlie',
       email: 'charlie@example.com',
       password: 'Password123!',
-      displayName: 'Charlie Chaplin',
+      displayName: 'Charlie Brown',
     });
-    userCCookie = resC.headers['set-cookie'][0];
+    userCCookie = resC.headers['set-cookie']?.[0] as string;
     userCId = resC.body.user.id;
 
-    // Establish conversation between Alice and Bob
+    // 4. Create conversation between Alice and Bob
     const convRes = await request(app)
       .post('/api/conversations')
       .set('Cookie', [userACookie])
@@ -246,25 +260,26 @@ describe('Real-Time WebSocket Architecture (Phase 4)', () => {
   // ==========================================
   // REAL-TIME MESSAGE DELIVERY & MULTI-SESSION
   // ==========================================
-  it('delivers real-time message.created event to recipient when message is sent via REST', async () => {
+  it('delivers real-time encrypted message.created event to recipient when message is sent via REST', async () => {
     // Bob connects and subscribes
     const bobClient = await createTestClient(userBCookie);
     await bobClient.waitForMessage((m) => m.type === 'authenticated');
     bobClient.ws.send(JSON.stringify({ type: 'subscribe', conversationId }));
     await bobClient.waitForMessage((m) => m.type === 'subscribed');
 
-    // Alice sends message via REST endpoint
+    // Alice sends encrypted message via REST endpoint
     const app = createApp();
     await request(app)
       .post(`/api/conversations/${conversationId}/messages`)
       .set('Cookie', [userACookie])
-      .send({ content: 'Real-time greetings from Alice!' });
+      .send({ envelope: testEnvelope });
 
-    // Bob receives real-time event
+    // Bob receives real-time event containing ciphertext envelope
     const msgEvent = await bobClient.waitForMessage((m) => m.type === 'message.created');
     expect(msgEvent.type).toBe('message.created');
     if (msgEvent.type === 'message.created') {
-      expect(msgEvent.message.content).toBe('Real-time greetings from Alice!');
+      expect(msgEvent.message.ciphertext).toBe(testEnvelope.ciphertext);
+      expect(msgEvent.message.nonce).toBe(testEnvelope.nonce);
       expect(msgEvent.message.senderId).toBe(userAId);
       expect(msgEvent.message.conversationId).toBe(conversationId);
     }
@@ -282,19 +297,19 @@ describe('Real-Time WebSocket Architecture (Phase 4)', () => {
     bobTab2.ws.send(JSON.stringify({ type: 'subscribe', conversationId }));
     await bobTab2.waitForMessage((m) => m.type === 'subscribed');
 
-    // Alice sends message
+    // Alice sends encrypted message
     const app = createApp();
     await request(app)
       .post(`/api/conversations/${conversationId}/messages`)
       .set('Cookie', [userACookie])
-      .send({ content: 'Multi-tab broadcast test' });
+      .send({ envelope: testEnvelope });
 
-    // Both tabs should receive the event
+    // Both tabs should receive the encrypted event
     const event1Promise = bobTab1.waitForMessage((m) => m.type === 'message.created');
     const event2Promise = bobTab2.waitForMessage((m) => m.type === 'message.created');
 
     const [ev1, ev2] = await Promise.all([event1Promise, event2Promise]);
-    expect((ev1 as any).message.content).toBe('Multi-tab broadcast test');
-    expect((ev2 as any).message.content).toBe('Multi-tab broadcast test');
+    expect((ev1 as any).message.ciphertext).toBe(testEnvelope.ciphertext);
+    expect((ev2 as any).message.ciphertext).toBe(testEnvelope.ciphertext);
   });
 });

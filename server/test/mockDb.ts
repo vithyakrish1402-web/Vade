@@ -10,6 +10,16 @@ export interface MockUser {
   updatedAt: Date;
 }
 
+export interface MockPublicKey {
+  id: string;
+  userId: string;
+  keyId: string;
+  publicKey: string;
+  algorithm: string;
+  createdAt: Date;
+  updatedAt: Date;
+}
+
 export interface MockSession {
   id: string;
   userId: string;
@@ -36,13 +46,20 @@ export interface MockMessage {
   id: string;
   conversationId: string;
   senderId: string;
-  content: string;
+  ciphertext: string;
+  nonce: string;
+  senderKeyId: string;
+  recipientKeyId: string;
+  algorithm: string;
+  version: number;
+  aad: string | null;
   createdAt: Date;
   updatedAt: Date;
 }
 
 export class MockDatabase {
   public users: Map<string, MockUser> = new Map();
+  public publicKeys: Map<string, MockPublicKey> = new Map();
   public sessions: Map<string, MockSession> = new Map();
   public conversations: Map<string, MockConversation> = new Map();
   public members: Map<string, MockConversationMember> = new Map();
@@ -50,6 +67,7 @@ export class MockDatabase {
 
   reset(): void {
     this.users.clear();
+    this.publicKeys.clear();
     this.sessions.clear();
     this.conversations.clear();
     this.members.clear();
@@ -165,6 +183,65 @@ export class MockDatabase {
         };
         this.users.set(where.id, updated);
         return this.project(updated, select);
+      },
+    };
+  }
+
+  get publicKeyDelegate() {
+    return {
+      findUnique: async ({ where, select }: { where: { userId?: string; keyId?: string }; select?: Record<string, boolean> }) => {
+        let found: MockPublicKey | undefined;
+        if (where.userId) {
+          found = Array.from(this.publicKeys.values()).find((k) => k.userId === where.userId);
+        } else if (where.keyId) {
+          found = Array.from(this.publicKeys.values()).find((k) => k.keyId === where.keyId);
+        }
+
+        if (!found) return null;
+        return this.project(found, select);
+      },
+
+      create: async ({ data, select }: { data: { userId: string; keyId: string; publicKey: string; algorithm?: string }; select?: Record<string, boolean> }) => {
+        const id = crypto.randomUUID();
+        const now = new Date();
+        const newKey: MockPublicKey = {
+          id,
+          userId: data.userId,
+          keyId: data.keyId,
+          publicKey: data.publicKey,
+          algorithm: data.algorithm || 'ECDH-P256',
+          createdAt: now,
+          updatedAt: now,
+        };
+        this.publicKeys.set(id, newKey);
+        return this.project(newKey, select);
+      },
+
+      upsert: async ({ where, create, update, select }: { where: { userId: string }; create: any; update: any; select?: Record<string, boolean> }) => {
+        const existing = Array.from(this.publicKeys.values()).find((k) => k.userId === where.userId);
+        const now = new Date();
+        if (existing) {
+          const updated: MockPublicKey = {
+            ...existing,
+            ...update,
+            updatedAt: now,
+          };
+          this.publicKeys.set(existing.id, updated);
+          return this.project(updated, select);
+        } else {
+          const id = crypto.randomUUID();
+          const newKey: MockPublicKey = {
+            id,
+            userId: create.userId,
+            keyId: create.keyId,
+            publicKey: create.publicKey,
+            algorithm: create.algorithm || 'ECDH-P256',
+            createdAt: now,
+            updatedAt: now,
+          };
+          this.publicKeys.set(id, newKey);
+          return this.project(newKey, select);
+        }
       },
     };
   }
@@ -350,14 +427,36 @@ export class MockDatabase {
         return list;
       },
 
-      create: async ({ data }: { data: { conversationId: string; senderId: string; content: string; createdAt?: Date; updatedAt?: Date } }) => {
+      create: async ({
+        data,
+      }: {
+        data: {
+          conversationId: string;
+          senderId: string;
+          ciphertext: string;
+          nonce: string;
+          senderKeyId: string;
+          recipientKeyId: string;
+          algorithm?: string;
+          version?: number;
+          aad?: string | null;
+          createdAt?: Date;
+          updatedAt?: Date;
+        };
+      }) => {
         const id = crypto.randomUUID();
         const now = data.createdAt || new Date();
         const newMsg: MockMessage = {
           id,
           conversationId: data.conversationId,
           senderId: data.senderId,
-          content: data.content,
+          ciphertext: data.ciphertext,
+          nonce: data.nonce,
+          senderKeyId: data.senderKeyId,
+          recipientKeyId: data.recipientKeyId,
+          algorithm: data.algorithm || 'AES-256-GCM',
+          version: data.version ?? 1,
+          aad: data.aad ?? null,
           createdAt: now,
           updatedAt: data.updatedAt || now,
         };

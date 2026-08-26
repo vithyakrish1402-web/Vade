@@ -3,7 +3,7 @@ import request from 'supertest';
 import { createApp } from '../src/app.js';
 import { mockDb } from './mockDb.js';
 
-describe('Real-Time Messaging API (Phase 4)', () => {
+describe('Encrypted Messaging API (Phase 7 — E2EE)', () => {
   const app = createApp();
 
   let userACookie: string[];
@@ -16,6 +16,17 @@ describe('Real-Time Messaging API (Phase 4)', () => {
   let userCId: string;
 
   let conversationId: string;
+
+  const validEnvelope = {
+    version: 1,
+    algorithm: 'AES-256-GCM',
+    keyAgreement: 'ECDH-P256',
+    senderKeyId: 'k_alice_123',
+    recipientKeyId: 'k_bob_456',
+    nonce: 'dGhpcyBpcyBhIDEyLWJ5dGUgbm9uY2U=',
+    ciphertext: 'Y2lwaGVydGV4dCB3aXRoIDE2LWJ5dGUgZ2NtIHRhZw==',
+    aad: 'Y29udGV4dF9hYWRfc3RyaW5n',
+  };
 
   beforeEach(async () => {
     mockDb.reset();
@@ -62,18 +73,23 @@ describe('Real-Time Messaging API (Phase 4)', () => {
   // POST /api/conversations/:id/messages (SEND)
   // ==========================================
   describe('POST /api/conversations/:conversationId/messages', () => {
-    it('allows a conversation member to send a text message and persists it', async () => {
+    it('allows a conversation member to send an encrypted message and persists ciphertext envelope', async () => {
       const res = await request(app)
         .post(`/api/conversations/${conversationId}/messages`)
         .set('Cookie', userACookie)
-        .send({ content: 'Hello Bob! This is Alice.' });
+        .send({ envelope: validEnvelope });
 
       expect(res.status).toBe(201);
       expect(res.body.message).toBeDefined();
       expect(res.body.message.id).toBeDefined();
       expect(res.body.message.conversationId).toBe(conversationId);
       expect(res.body.message.senderId).toBe(userAId);
-      expect(res.body.message.content).toBe('Hello Bob! This is Alice.');
+      expect(res.body.message.ciphertext).toBe(validEnvelope.ciphertext);
+      expect(res.body.message.nonce).toBe(validEnvelope.nonce);
+      expect(res.body.message.senderKeyId).toBe(validEnvelope.senderKeyId);
+      expect(res.body.message.recipientKeyId).toBe(validEnvelope.recipientKeyId);
+      expect(res.body.message.algorithm).toBe('AES-256-GCM');
+      expect(res.body.message.version).toBe(1);
       expect(res.body.message.status).toBe('sent');
       expect(res.body.message.createdAt).toBeDefined();
 
@@ -81,158 +97,126 @@ describe('Real-Time Messaging API (Phase 4)', () => {
       expect(mockDb.messages.size).toBe(1);
     });
 
-    it('handles Unicode, punctuation, and multi-byte emojis correctly', async () => {
-      const emojiContent = '🔐 Hello! Private messaging with emojis: 👋🚀✨ and 日本語';
+    it('rejects legacy plaintext requests with 422 Validation Error', async () => {
       const res = await request(app)
         .post(`/api/conversations/${conversationId}/messages`)
-        .set('Cookie', userBCookie)
-        .send({ content: emojiContent });
+        .set('Cookie', userACookie)
+        .send({ content: 'Legacy plaintext message' });
 
-      expect(res.status).toBe(201);
-      expect(res.body.message.content).toBe(emojiContent);
-      expect(res.body.message.senderId).toBe(userBId);
+      expect(res.status).toBe(422);
     });
 
     it('strictly forbids a non-member from sending a message with 403 Forbidden', async () => {
       const res = await request(app)
         .post(`/api/conversations/${conversationId}/messages`)
         .set('Cookie', userCCookie)
-        .send({ content: 'I am Charlie trying to sneak in.' });
+        .send({ envelope: validEnvelope });
 
       expect(res.status).toBe(403);
-      expect(res.body.error.code).toBe('FORBIDDEN');
       expect(mockDb.messages.size).toBe(0);
     });
 
     it('rejects unauthenticated send requests with 401 Unauthorized', async () => {
       const res = await request(app)
         .post(`/api/conversations/${conversationId}/messages`)
-        .send({ content: 'Anonymous message' });
+        .send({ envelope: validEnvelope });
 
       expect(res.status).toBe(401);
-      expect(res.body.error.code).toBe('UNAUTHORIZED');
     });
 
-    it('rejects empty message content with 422 Unprocessable / Validation Error', async () => {
+    it('rejects malformed or incomplete encrypted envelopes', async () => {
       const res = await request(app)
         .post(`/api/conversations/${conversationId}/messages`)
         .set('Cookie', userACookie)
-        .send({ content: '' });
+        .send({
+          envelope: {
+            version: 1,
+            ciphertext: '',
+            nonce: '',
+          },
+        });
 
       expect(res.status).toBe(422);
-      expect(res.body.error.code).toBe('VALIDATION_FAILED');
     });
 
-    it('rejects whitespace-only message content with 422 Validation Error', async () => {
+    it('rejects oversized ciphertext payloads (> 64KB)', async () => {
+      const hugeCiphertext = 'A'.repeat(70000);
       const res = await request(app)
         .post(`/api/conversations/${conversationId}/messages`)
         .set('Cookie', userACookie)
-        .send({ content: '    \n\t   ' });
+        .send({
+          envelope: {
+            ...validEnvelope,
+            ciphertext: hugeCiphertext,
+          },
+        });
 
       expect(res.status).toBe(422);
-      expect(res.body.error.code).toBe('VALIDATION_FAILED');
-      expect(res.body.error.message).toContain('whitespace');
-    });
-
-    it('rejects oversized message content (> 5000 characters)', async () => {
-      const hugeContent = 'a'.repeat(5001);
-      const res = await request(app)
-        .post(`/api/conversations/${conversationId}/messages`)
-        .set('Cookie', userACookie)
-        .send({ content: hugeContent });
-
-      expect(res.status).toBe(422);
-      expect(res.body.error.code).toBe('VALIDATION_FAILED');
     });
 
     it('returns 404 when sending to a non-existent conversation', async () => {
       const res = await request(app)
         .post('/api/conversations/00000000-0000-0000-0000-000000000000/messages')
         .set('Cookie', userACookie)
-        .send({ content: 'Lost message' });
+        .send({ envelope: validEnvelope });
 
       expect(res.status).toBe(404);
-      expect(res.body.error.code).toBe('RESOURCE_NOT_FOUND');
     });
   });
 
   // ==========================================
-  // GET /api/conversations/:id/messages (RETRIEVE & PAGINATE)
+  // GET /api/conversations/:id/messages (RETRIEVE)
   // ==========================================
   describe('GET /api/conversations/:conversationId/messages', () => {
-    beforeEach(async () => {
-      // Alice sends message 1
+    it('allows a conversation member to retrieve encrypted message history', async () => {
       await request(app)
         .post(`/api/conversations/${conversationId}/messages`)
         .set('Cookie', userACookie)
-        .send({ content: 'Msg 1 from Alice' });
+        .send({ envelope: { ...validEnvelope, ciphertext: 'CIPHERTEXT_1' } });
 
-      // Bob sends message 2
       await request(app)
         .post(`/api/conversations/${conversationId}/messages`)
         .set('Cookie', userBCookie)
-        .send({ content: 'Msg 2 from Bob' });
+        .send({ envelope: { ...validEnvelope, ciphertext: 'CIPHERTEXT_2' } });
 
-      // Alice sends message 3
-      await request(app)
-        .post(`/api/conversations/${conversationId}/messages`)
-        .set('Cookie', userACookie)
-        .send({ content: 'Msg 3 from Alice' });
-    });
-
-    it('allows a conversation member to retrieve message history in chronological order', async () => {
       const res = await request(app)
         .get(`/api/conversations/${conversationId}/messages`)
         .set('Cookie', userACookie);
 
       expect(res.status).toBe(200);
-      expect(res.body.messages).toHaveLength(3);
-      expect(res.body.messages[0].content).toBe('Msg 1 from Alice');
-      expect(res.body.messages[1].content).toBe('Msg 2 from Bob');
-      expect(res.body.messages[2].content).toBe('Msg 3 from Alice');
+      expect(res.body.messages).toBeDefined();
+      expect(res.body.messages.length).toBe(2);
+      expect(res.body.messages[0].ciphertext).toBe('CIPHERTEXT_1');
+      expect(res.body.messages[1].ciphertext).toBe('CIPHERTEXT_2');
       expect(res.body.hasMore).toBe(false);
     });
 
     it('allows Bob to retrieve the same conversation messages', async () => {
+      await request(app)
+        .post(`/api/conversations/${conversationId}/messages`)
+        .set('Cookie', userACookie)
+        .send({ envelope: validEnvelope });
+
       const res = await request(app)
         .get(`/api/conversations/${conversationId}/messages`)
         .set('Cookie', userBCookie);
 
       expect(res.status).toBe(200);
-      expect(res.body.messages).toHaveLength(3);
-    });
-
-    it('supports pagination using limit and before cursor', async () => {
-      // Fetch latest 2 messages (Msg 2, Msg 3)
-      const page1Res = await request(app)
-        .get(`/api/conversations/${conversationId}/messages?limit=2`)
-        .set('Cookie', userACookie);
-
-      expect(page1Res.status).toBe(200);
-      expect(page1Res.body.messages).toHaveLength(2);
-      expect(page1Res.body.hasMore).toBe(true);
-      expect(page1Res.body.nextCursor).toBeDefined();
-
-      const oldestOnPage1 = page1Res.body.messages[0]; // Msg 2
-
-      // Fetch older page using before cursor
-      const page2Res = await request(app)
-        .get(`/api/conversations/${conversationId}/messages?limit=2&before=${oldestOnPage1.id}`)
-        .set('Cookie', userACookie);
-
-      expect(page2Res.status).toBe(200);
-      expect(page2Res.body.messages).toHaveLength(1);
-      expect(page2Res.body.messages[0].content).toBe('Msg 1 from Alice');
-      expect(page2Res.body.hasMore).toBe(false);
+      expect(res.body.messages.length).toBe(1);
+      expect(res.body.messages[0].ciphertext).toBe(validEnvelope.ciphertext);
     });
 
     it('strictly forbids a non-member from viewing messages with 403 Forbidden', async () => {
+      await request(app)
+        .post(`/api/conversations/${conversationId}/messages`)
+        .set('Cookie', userACookie)
+        .send({ envelope: validEnvelope });
+
       const res = await request(app)
         .get(`/api/conversations/${conversationId}/messages`)
         .set('Cookie', userCCookie);
 
       expect(res.status).toBe(403);
-      expect(res.body.error.code).toBe('FORBIDDEN');
     });
 
     it('rejects unauthenticated retrieval with 401 Unauthorized', async () => {

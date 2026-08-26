@@ -4,16 +4,15 @@ A privacy-focused text communication platform designed with visual privacy, cust
 
 ---
 
-## Current Status: Phase 6 — Custom Gesture Reveal System (Complete)
+## Current Status: Phase 7 — End-to-End Encryption (Complete)
 
-Phase 6 establishes the client-side gesture-based reveal authorization system (Layer 2 Visual Privacy). Users can define private, multi-step unistroke gesture sequences stored strictly on their local device to temporarily reveal individual protected messages in the chat interface.
+Phase 7 introduces genuine client-side End-to-End Encryption (Layer 1 Security) using native Web Crypto API standards (`ECDH P-256` identity key agreement + `HKDF-SHA-256` key derivation + `AES-256-GCM` authenticated encryption). The server functions as an untrusted ciphertext storage and routing intermediary with **zero access to message plaintext**.
 
 > [!NOTE]
-> **Security & Privacy Architecture**:
-> - **Local Reveal Authorization (Layer 2)**: The gesture sequence is a local display authorization mechanism. It is **NOT** a password, **NOT** an encryption key, and **NOT** End-to-End Encryption.
-> - **Strictly Local Storage**: Raw gesture points, normalized templates, and similarity scores are kept in browser local storage (`localStorage`) and are **never** transmitted to the server or over WebSockets.
-> - **Automatic Re-Protection**: Revealed messages automatically return to protected mode after an 8-second countdown timer, or immediately upon tab hide (`document.visibilityState`), window blur, navigation, or logout.
-> - **End-to-End Encryption (Layer 1)**: Cryptographic transport and database confidentiality are scheduled for Phase 7.
+> **Multi-Layered Privacy Architecture**:
+> - **Layer 1 — Cryptographic Security (E2EE)**: Messages are encrypted locally on the sender's device before network dispatch. PostgreSQL and WebSocket frames transport and persist ciphertext envelopes only.
+> - **Layer 2 — Visual Privacy Engine**: Decrypted plaintexts exist exclusively in transient client memory and are rendered with visual homoglyphs by default (`protectMessage`), revealed only temporarily via custom gesture sequences (Phase 6).
+> - **Zero Plaintext on Server**: The server has no private keys, never decrypts messages, and redacts all cryptographic identifiers and ciphertext from logs.
 
 ### Core Architecture
 
@@ -21,37 +20,36 @@ Phase 6 establishes the client-side gesture-based reveal authorization system (L
 ┌───────────────────────────────────────────────────────────────────────────┐
 │                                Web Client                                 │
 │                                                                           │
-│  [GestureCanvas] ──> [normalizeGesture] ──> [isGestureMatch]              │
-│                              │                      │                     │
-│                              ▼                      ▼                     │
-│                    [localStorage (v1)]     [useMessageReveal]             │
-│                                                     │                     │
-│                                                     ▼                     │
-│  (useMessages) ──> <ProtectedMessage displayMode={isRevealed ? 'revealed' │
-│                                                              : 'protected'}>
+│  Plaintext ──> [encryptMessage] ──> [EncryptedMessageEnvelope]            │
+│                       ▲                                                   │
+│                       │                                                   │
+│            [ECDH P-256 + HKDF] (from local IndexedDB keys)                │
+│                                                                           │
+│  [decryptMessage] ──> Plaintext in memory ──> <ProtectedMessage />        │
 └─────────────────────┬───────────────────────────────┬─────────────────────┘
                       │ HTTP REST (Cookie)            │ WebSocket (/ws)
                       ▼                               ▼
 ┌───────────────────────────────────────────────────────────────────────────┐
 │                           Node.js + Express API                           │
-│           (Auth Middleware / Upgrade Auth → WebSocketService)             │
+│     (Ciphertext Routing, PKI Public Key API, Auth & Rate Limiting)        │
 └─────────────────────┬───────────────────────────────┬─────────────────────┘
                       │                               │
                       ▼                               ▼
 ┌───────────────────────────────────────────────────────────────────────────┐
-│            Services (AuthService, UserService, MessageService)            │
-│                       (bcryptjs + JWT + ws)                               │
+│            Services (AuthService, UserService, MessageService, Crypto)    │
+│                       (Ciphertext Envelopes Only)                         │
 └─────────────────────────────────┬─────────────────────────────────────────┘
                                   │
                                   ▼
 ┌───────────────────────────────────────────────────────────────────────────┐
 │                              Prisma ORM                                   │
-│              (User, Session, Conversation, Member, Message)               │
+│       (User, PublicKey, Session, Conversation, Member, Message)           │
 └─────────────────────────────────┬─────────────────────────────────────────┘
                                   │
                                   ▼
 ┌───────────────────────────────────────────────────────────────────────────┐
 │                              PostgreSQL                                   │
+│                       (Stores Ciphertext Only)                            │
 └───────────────────────────────────────────────────────────────────────────┘
 ```
 
@@ -60,18 +58,15 @@ Phase 6 establishes the client-side gesture-based reveal authorization system (L
 ## Architectural Principles
 
 1. **Multi-Layered Privacy Architecture**:
-   - **Layer 1 — Cryptographic Security**: End-to-end encryption across the wire (Phase 7).
-   - **Layer 2 — Visual Privacy**: Protected homoglyph display on screen (Phase 5) + custom gesture-based temporary reveals (Phase 6).
+   - **Layer 1 — Cryptographic Security**: End-to-end encryption with Web Crypto `ECDH P-256`, `HKDF-SHA-256`, and `AES-256-GCM` with 128-bit authentication tags and AAD context binding.
+   - **Layer 2 — Visual Privacy**: Protected homoglyph display on screen (`protectMessage`) + custom gesture-based temporary reveals (Phase 6).
 2. **Deterministic Geometric Normalization**:
-   - Equidistant arc-length resampling ($N = 64$ points).
-   - Centroid translation to origin $(0, 0)$ (translation invariance).
-   - Bounding box proportional scaling ($100 \times 100$) (scale invariance).
-   - Preserves stroke direction and rejects tiny tap noise ($< 30\text{px}$).
+   - Equidistant arc-length resampling ($N = 64$ points), centroid translation to $(0, 0)$, $100 \times 100$ bounding box scaling, stroke direction preservation.
 3. **Resilient Local Security**:
    - 5-strike failed attempt lockout (30-second cooldown timer).
    - Auto re-protection on timer expiry (8s), tab switch, focus loss, conversation navigation, or user logout.
    - Zero gesture transmission: gesture data is strictly local to the client device.
-   - Authoritative server security for authentication, conversations, and messaging.
+   - Zero private key leakage: private keys stored in client `IndexedDB` and never sent over the network.
 
 ---
 
@@ -86,6 +81,7 @@ enctxt/
 │   │   ├── components/         # Navbar, ConnectionStatus, Layout
 │   │   │   ├── gesture/        # GestureCanvas, GestureSequenceSetup, GestureRevealModal, GestureSettings
 │   │   │   └── messages/       # ProtectedMessage
+│   │   ├── crypto/             # Web Crypto keyManager, keyExchange, encryption, decryption, cryptoStorage
 │   │   ├── pages/              # LandingPage, LoginPage, RegisterPage, DashboardPage, ConversationPage
 │   │   ├── hooks/              # useHealthCheck, useConversations, useMessages, useGesture, useMessageReveal
 │   │   ├── services/           # api, authService, userService, conversationService, messageService, websocket
@@ -94,7 +90,7 @@ enctxt/
 │   │   ├── App.tsx             # Root routing with protected routes
 │   │   ├── main.tsx            # DOM entrypoint
 │   │   └── index.css           # Tailwind directives and theme
-│   ├── test/                   # Client unit test suites (protectMessage, gesture, gestureSequence)
+│   ├── test/                   # Client unit test suites (protectMessage, gesture, gestureSequence, crypto)
 │   ├── package.json
 │   ├── tsconfig.json
 │   └── vite.config.ts
@@ -102,26 +98,28 @@ enctxt/
 ├── server/                     # Node.js + Express + Prisma + WebSocket backend
 │   ├── src/
 │   │   ├── config/             # Validated env configuration with Zod
-│   │   ├── controllers/        # authController, userController, conversationController, messageController, healthController
+│   │   ├── controllers/        # authController, userController, conversationController, messageController, cryptoController, healthController
 │   │   ├── middleware/         # authMiddleware, rateLimiter, errorHandler, requestLogger
-│   │   ├── routes/             # authRoutes, userRoutes, conversationRoutes, healthRoutes
-│   │   ├── services/           # authService, userService, conversationService, messageService, websocket, db
+│   │   ├── routes/             # authRoutes, userRoutes, conversationRoutes, cryptoRoutes, healthRoutes
+│   │   ├── services/           # authService, userService, conversationService, messageService, cryptoService, websocket, db
 │   │   ├── utils/              # crypto, jwt, validation, errors, logger
 │   │   ├── app.ts              # Express application setup
 │   │   └── server.ts           # Server bootstrap & WebSocket binding
 │   ├── prisma/
-│   │   └── schema.prisma       # User, Session, Conversation, Member, Message models
-│   ├── test/                   # Server test suite (auth, conversation, message, websocket)
+│   │   └── schema.prisma       # User, PublicKey, Session, Conversation, Member, Message models
+│   ├── test/                   # Server test suite (auth, conversation, message, websocket, crypto)
 │   ├── package.json
 │   └── tsconfig.json
 │
 ├── shared/                     # Shared TypeScript types
 │   ├── src/
-│   │   ├── types/              # Health, User, Auth, Conversation, Message, WebSocket types
+│   │   ├── types/              # Health, User, Auth, Conversation, Message, WebSocket, Crypto types
 │   │   └── index.ts
 │   ├── package.json
 │   └── tsconfig.json
 │
+├── ARCHITECTURE.md             # System architecture & technical specification
+├── CRYPTO_DESIGN.md            # Cryptographic design & threat model specification
 ├── .env.example                # Template environment variables
 ├── .gitignore                  # Git ignore rules
 ├── package.json                # Root monorepo workspace configuration
@@ -155,6 +153,13 @@ enctxt/
 | `PATCH` | `/api/users/me` | Update display name and/or username | Yes |
 | `GET` | `/api/users/search?q=<query>` | Search registered users by username/name | Yes |
 
+### Public Key Infrastructure (PKI)
+
+| Method | Endpoint | Description | Auth Required |
+|---|---|---|---|
+| `POST` | `/api/crypto/identity` | Publish or rotate user's ECDH public identity key | Yes |
+| `GET` | `/api/crypto/users/:userId/key` | Retrieve public key for target user | Yes |
+
 ### 1-to-1 Conversations
 
 | Method | Endpoint | Description | Auth Required |
@@ -163,12 +168,12 @@ enctxt/
 | `GET` | `/api/conversations` | List all active conversations for current user | Yes |
 | `GET` | `/api/conversations/:id` | Get conversation details (participant-only) | Yes |
 
-### Real-Time Messaging
+### Encrypted Messaging (E2EE)
 
 | Method | Endpoint | Description | Auth Required |
 |---|---|---|---|
-| `POST` | `/api/conversations/:id/messages` | Send message (persists in PostgreSQL, emits WS event) | Yes |
-| `GET` | `/api/conversations/:id/messages` | Retrieve conversation history with cursor pagination | Yes |
+| `POST` | `/api/conversations/:id/messages` | Send encrypted envelope (persists ciphertext in PostgreSQL, emits WS event) | Yes |
+| `GET` | `/api/conversations/:id/messages` | Retrieve encrypted message history with cursor pagination | Yes |
 | `POST` | `/api/conversations/:id/read` | Mark conversation read & emit read receipt | Yes |
 
 ---
@@ -176,7 +181,7 @@ enctxt/
 ## Testing & Quality Assurance
 
 ```bash
-# Run automated test suites across all workspaces (94 tests: 55 backend + 39 frontend)
+# Run automated test suites across all workspaces (113 tests: 60 backend + 53 frontend)
 npm test
 
 # Run TypeScript typechecks across all workspaces
@@ -196,5 +201,5 @@ npm run build
 - [x] **Phase 4 — Real-Time Messaging** (Complete)
 - [x] **Phase 5 — Visual Privacy Engine & Protected Rendering (Layer 2)** (Complete)
 - [x] **Phase 6 — Custom Gesture Sequence & Reveal Authorization (Layer 2)** (Complete)
-- [ ] **Phase 7 — End-to-End Encryption Architecture (Layer 1)**
+- [x] **Phase 7 — End-to-End Encryption Architecture (Layer 1)** (Complete)
 - [ ] **Phase 8 — Multi-Client & Mobile Support (Web & Android)**
