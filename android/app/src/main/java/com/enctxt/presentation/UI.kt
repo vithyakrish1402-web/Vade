@@ -783,9 +783,20 @@ fun ConversationScreen(
     // drawn. Only Revealed puts plaintext on screen, which is what focus-loss
     // re-protection exists to hide; genuine backgrounding is still covered by
     // the ON_STOP observer above, which applies in every state.
-    val hasWindowFocus by WindowFocusMonitor.hasFocus.collectAsState()
-    LaunchedEffect(hasWindowFocus, revealState, revealManager) {
-        if (!hasWindowFocus && revealState is RevealState.Revealed) revealManager.revokeReveal()
+    //
+    // Keyed on the Revealed flag rather than revealState itself: the countdown
+    // republishes Revealed once a second, which would otherwise restart this
+    // effect every tick. Focus is deliberately awaited before arming — the
+    // reveal is granted while the auth dialog's window still holds focus, and
+    // focus only returns to the Activity after that window is torn down, so
+    // reacting to the current value would revoke the reveal in the very frame
+    // it was granted.
+    val isRevealed = revealState is RevealState.Revealed
+    LaunchedEffect(isRevealed, revealManager) {
+        if (!isRevealed) return@LaunchedEffect
+        WindowFocusMonitor.hasFocus.first { it }
+        WindowFocusMonitor.hasFocus.first { !it }
+        revealManager.revokeReveal()
     }
 
     // Layer 3 / Phase 18: Screenshot & screen-capture protection (FLAG_SECURE) during sensitive reveal & gesture auth
