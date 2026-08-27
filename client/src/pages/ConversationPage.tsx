@@ -4,6 +4,7 @@ import { useAuth } from '../auth/AuthContext';
 import { conversationService } from '../services/conversationService';
 import { useMessages } from '../hooks/useMessages';
 import { useMessageReveal } from '../hooks/useMessageReveal';
+import { useProtectionStyle } from '../hooks/useProtectionStyle';
 import { useContactSecurity } from '../hooks/useContactSecurity';
 import { useGesture } from '../hooks/useGesture';
 import type { ConversationDetails } from '@enctxt/shared';
@@ -40,6 +41,8 @@ export const ConversationPage: React.FC = () => {
     revealMessage,
     hideMessage,
   } = useMessageReveal();
+
+  const { mode: protectionMode } = useProtectionStyle();
 
   const otherParticipant = conversation?.participants.find((p) => p.id !== user?.id);
 
@@ -152,6 +155,7 @@ export const ConversationPage: React.FC = () => {
             messages={messages}
             currentUserId={user?.id}
             peerUsername={otherParticipant?.username}
+            protectionMode={protectionMode}
             getDecryptedText={getDecryptedText}
             isRevealed={isRevealed}
             getRemainingRevealSeconds={getRemainingRevealSeconds}

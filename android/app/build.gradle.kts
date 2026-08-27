@@ -106,6 +106,15 @@ android {
             excludes += "/META-INF/{AL2.0,LGPL2.1}"
         }
     }
+
+    sourceSets {
+        // Expose the repo-wide cross-platform test vectors (single source of truth, shared with
+        // the Web client's Vitest suite) on the JVM unit test classpath, rather than hand-copying
+        // them into the module.
+        getByName("test") {
+            resources.srcDir("../../docs/test-vectors")
+        }
+    }
 }
 
 dependencies {

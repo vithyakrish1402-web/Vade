@@ -9,6 +9,7 @@ import { ApiClientError } from '../services/api';
 import { ConversationList } from '../components/chat/ConversationList';
 import { UserSearch } from '../components/chat/UserSearch';
 import { GestureSettings } from '../components/gesture/GestureSettings';
+import { ProtectionStyleSettings } from '../components/messages/ProtectionStyleSettings';
 import { DeviceManagement } from '../components/security/DeviceManagement';
 import { ErrorBoundary } from '../components/ui/ErrorBoundary';
 import { Button } from '../components/ui/Button';
@@ -359,6 +360,9 @@ export const DashboardPage: React.FC = () => {
                 </div>
               )}
             </div>
+
+            {/* Protection Style Settings */}
+            <ProtectionStyleSettings />
 
             {/* Gesture Reveal Settings */}
             <GestureSettings />

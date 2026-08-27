@@ -1,0 +1,511 @@
+{
+  "version": 2,
+  "description": "Cross-platform deterministic Protected Text v2 rendering test vectors. Generated from the canonical Web ProtectedTextEngine (client/src/utils/protectedText/protectedTextEngine.ts). Both Web and Android engines must produce identical `expected` output for each vector, and identical `expectedIntent` where present.",
+  "vectors": [
+    {
+      "description": "empty string",
+      "input": "",
+      "mode": "HOMOGLYPH",
+      "rendererVersion": 2,
+      "expected": ""
+    },
+    {
+      "description": "empty string",
+      "input": "",
+      "mode": "ILLUSION",
+      "rendererVersion": 2,
+      "expected": ""
+    },
+    {
+      "description": "empty string",
+      "input": "",
+      "mode": "PATTERN",
+      "rendererVersion": 2,
+      "expected": ""
+    },
+    {
+      "description": "single word",
+      "input": "Hello",
+      "mode": "HOMOGLYPH",
+      "rendererVersion": 2,
+      "expected": "Нєllσ"
+    },
+    {
+      "description": "single word",
+      "input": "Hello",
+      "mode": "ILLUSION",
+      "rendererVersion": 2,
+      "expected": "ħellο"
+    },
+    {
+      "description": "single word",
+      "input": "Hello",
+      "mode": "PATTERN",
+      "rendererVersion": 2,
+      "expected": "◈ τΜP · ~ · 7я4",
+      "expectedIntent": "GREETING"
+    },
+    {
+      "description": "normal sentence",
+      "input": "Meet me at the station tonight",
+      "mode": "HOMOGLYPH",
+      "rendererVersion": 2,
+      "expected": "Μєєт мє αт тhє ѕтαтιση тσηιghт"
+    },
+    {
+      "description": "normal sentence",
+      "input": "Meet me at the station tonight",
+      "mode": "ILLUSION",
+      "rendererVersion": 2,
+      "expected": "Meєτ m3 @t 7ħe $ta7!οη tonι9ħτ"
+    },
+    {
+      "description": "normal sentence",
+      "input": "Meet me at the station tonight",
+      "mode": "PATTERN",
+      "rendererVersion": 2,
+      "expected": "◈ PbX · ○ · bΖτ",
+      "expectedIntent": "TIME"
+    },
+    {
+      "description": "question",
+      "input": "Are you coming tonight?",
+      "mode": "HOMOGLYPH",
+      "rendererVersion": 2,
+      "expected": "Λrє уσυ сσмιηg тσηιghт?"
+    },
+    {
+      "description": "question",
+      "input": "Are you coming tonight?",
+      "mode": "ILLUSION",
+      "rendererVersion": 2,
+      "expected": "Ar3 γ0u c0m!ηg toηi9ħτ?"
+    },
+    {
+      "description": "question",
+      "input": "Are you coming tonight?",
+      "mode": "PATTERN",
+      "rendererVersion": 2,
+      "expected": "✦ PPP · ? · 7Xk",
+      "expectedIntent": "QUESTION"
+    },
+    {
+      "description": "greeting",
+      "input": "Good morning! Hope you have a wonderful day",
+      "mode": "HOMOGLYPH",
+      "rendererVersion": 2,
+      "expected": "Gσσd мσrηιηg! Нσρє уσυ hανє α wσηdєrfυl dαу"
+    },
+    {
+      "description": "greeting",
+      "input": "Good morning! Hope you have a wonderful day",
+      "mode": "ILLUSION",
+      "rendererVersion": 2,
+      "expected": "9ood m0rnιη9! ħοpe γου h@v3 a w0ηd3rfυl d@γ"
+    },
+    {
+      "description": "greeting",
+      "input": "Good morning! Hope you have a wonderful day",
+      "mode": "PATTERN",
+      "rendererVersion": 2,
+      "expected": "❖ ηPє · ~ · σΜΖ",
+      "expectedIntent": "GREETING"
+    },
+    {
+      "description": "request",
+      "input": "Please send the file when you get a chance",
+      "mode": "HOMOGLYPH",
+      "rendererVersion": 2,
+      "expected": "Ρlєαѕє ѕєηd тhє fιlє whєη уσυ gєт α сhαηсє"
+    },
+    {
+      "description": "request",
+      "input": "Please send the file when you get a chance",
+      "mode": "ILLUSION",
+      "rendererVersion": 2,
+      "expected": "Plє45є $єnd 7h3 fil3 wħ3n yσυ 93τ α ¢ħan¢3"
+    },
+    {
+      "description": "request",
+      "input": "Please send the file when you get a chance",
+      "mode": "PATTERN",
+      "rendererVersion": 2,
+      "expected": "❖ єηΖ · → · 9wℓ",
+      "expectedIntent": "REQUEST"
+    },
+    {
+      "description": "location",
+      "input": "Meet me at the station near the airport",
+      "mode": "HOMOGLYPH",
+      "rendererVersion": 2,
+      "expected": "Μєєт мє αт тhє ѕтαтιση ηєαr тhє αιrρσrт"
+    },
+    {
+      "description": "location",
+      "input": "Meet me at the station near the airport",
+      "mode": "ILLUSION",
+      "rendererVersion": 2,
+      "expected": "M3et m€ 47 tħ3 sτa7ι0η η3αя 7h€ a1яpσя7"
+    },
+    {
+      "description": "location",
+      "input": "Meet me at the station near the airport",
+      "mode": "PATTERN",
+      "rendererVersion": 2,
+      "expected": "✦ ℓ7b · ⟐ · vяΜ",
+      "expectedIntent": "LOCATION"
+    },
+    {
+      "description": "time",
+      "input": "Let's meet tomorrow at 8pm",
+      "mode": "HOMOGLYPH",
+      "rendererVersion": 2,
+      "expected": "Lєт'ѕ мєєт тσмσrrσw αт 8ρм"
+    },
+    {
+      "description": "time",
+      "input": "Let's meet tomorrow at 8pm",
+      "mode": "ILLUSION",
+      "rendererVersion": 2,
+      "expected": "L€7'5 mєe7 tom0яrοw 47 8pm"
+    },
+    {
+      "description": "time",
+      "input": "Let's meet tomorrow at 8pm",
+      "mode": "PATTERN",
+      "rendererVersion": 2,
+      "expected": "⟐ P4b · ○ · яb4",
+      "expectedIntent": "TIME"
+    },
+    {
+      "description": "urgent",
+      "input": "This is urgent, call me right now!!",
+      "mode": "HOMOGLYPH",
+      "rendererVersion": 2,
+      "expected": "Τhιѕ ιѕ υrgєηт, сαll мє rιghт ησw!!"
+    },
+    {
+      "description": "urgent",
+      "input": "This is urgent, call me right now!!",
+      "mode": "ILLUSION",
+      "rendererVersion": 2,
+      "expected": "τh1ѕ 15 υя9€nt, ¢4ll me яι9ħt nοw!!"
+    },
+    {
+      "description": "urgent",
+      "input": "This is urgent, call me right now!!",
+      "mode": "PATTERN",
+      "rendererVersion": 2,
+      "expected": "◈ 4σw · ‼ · Μσb",
+      "expectedIntent": "URGENT"
+    },
+    {
+      "description": "affirmation",
+      "input": "Yes, that works for me",
+      "mode": "HOMOGLYPH",
+      "rendererVersion": 2,
+      "expected": "Υєѕ, тhαт wσrкѕ fσr мє"
+    },
+    {
+      "description": "affirmation",
+      "input": "Yes, that works for me",
+      "mode": "ILLUSION",
+      "rendererVersion": 2,
+      "expected": "γ35, tħat wσяk5 f0я m3"
+    },
+    {
+      "description": "affirmation",
+      "input": "Yes, that works for me",
+      "mode": "PATTERN",
+      "rendererVersion": 2,
+      "expected": "✦ P47 · + · τkя",
+      "expectedIntent": "AFFIRMATION"
+    },
+    {
+      "description": "negation",
+      "input": "No, I don't think that's a good idea",
+      "mode": "HOMOGLYPH",
+      "rendererVersion": 2,
+      "expected": "Νσ, Ι dση'т тhιηк тhαт'ѕ α gσσd ιdєα"
+    },
+    {
+      "description": "negation",
+      "input": "No, I don't think that's a good idea",
+      "mode": "ILLUSION",
+      "rendererVersion": 2,
+      "expected": "ηo, 1 dσn'τ 7ħink τħa7'ѕ a 9o0d 1deα"
+    },
+    {
+      "description": "negation",
+      "input": "No, I don't think that's a good idea",
+      "mode": "PATTERN",
+      "rendererVersion": 2,
+      "expected": "✦ X49 · - · 4ΖΖ",
+      "expectedIntent": "NEGATION"
+    },
+    {
+      "description": "multiline",
+      "input": "Line one\n\nLine two\nLine three",
+      "mode": "HOMOGLYPH",
+      "rendererVersion": 2,
+      "expected": "Lιηє σηє\n\nLιηє тwσ\nLιηє тhrєє"
+    },
+    {
+      "description": "multiline",
+      "input": "Line one\n\nLine two\nLine three",
+      "mode": "ILLUSION",
+      "rendererVersion": 2,
+      "expected": "Lιηe oη3\n\nL1n€ 7wo\nLιηє tħree"
+    },
+    {
+      "description": "multiline",
+      "input": "Line one\n\nLine two\nLine three",
+      "mode": "PATTERN",
+      "rendererVersion": 2,
+      "expected": "✦ σ4P · • · wση",
+      "expectedIntent": "GENERAL"
+    },
+    {
+      "description": "tabs",
+      "input": "Column1\tColumn2\tColumn3",
+      "mode": "HOMOGLYPH",
+      "rendererVersion": 2,
+      "expected": "Сσlυмη1\tСσlυмη2\tСσlυмη3"
+    },
+    {
+      "description": "tabs",
+      "input": "Column1\tColumn2\tColumn3",
+      "mode": "ILLUSION",
+      "rendererVersion": 2,
+      "expected": "Cσlumη1\t¢0lυmη2\t¢olυmn3"
+    },
+    {
+      "description": "tabs",
+      "input": "Column1\tColumn2\tColumn3",
+      "mode": "PATTERN",
+      "rendererVersion": 2,
+      "expected": "⟐ PPP · • · wΜ7",
+      "expectedIntent": "GENERAL"
+    },
+    {
+      "description": "punctuation",
+      "input": "Wait... really?! (Yes!) #amazing @you 100%",
+      "mode": "HOMOGLYPH",
+      "rendererVersion": 2,
+      "expected": "Wαιт... rєαllу?! (Υєѕ!) #αмαzιηg @уσυ 100%"
+    },
+    {
+      "description": "punctuation",
+      "input": "Wait... really?! (Yes!) #amazing @you 100%",
+      "mode": "ILLUSION",
+      "rendererVersion": 2,
+      "expected": "Wa1t... я€@lly?! (γєs!) #am@z1η9 @γσu 100%"
+    },
+    {
+      "description": "punctuation",
+      "input": "Wait... really?! (Yes!) #amazing @you 100%",
+      "mode": "PATTERN",
+      "rendererVersion": 2,
+      "expected": "⟐ Μwq · ‼ · Ζwk",
+      "expectedIntent": "URGENT"
+    },
+    {
+      "description": "numbers",
+      "input": "Call me at 1234567890, room 42",
+      "mode": "HOMOGLYPH",
+      "rendererVersion": 2,
+      "expected": "Сαll мє αт 1234567890, rσσм 42"
+    },
+    {
+      "description": "numbers",
+      "input": "Call me at 1234567890, room 42",
+      "mode": "ILLUSION",
+      "rendererVersion": 2,
+      "expected": "¢all m3 ατ 1234567890, яοσm 42"
+    },
+    {
+      "description": "numbers",
+      "input": "Call me at 1234567890, room 42",
+      "mode": "PATTERN",
+      "rendererVersion": 2,
+      "expected": "❖ τqΜ · • · єkℓ",
+      "expectedIntent": "GENERAL"
+    },
+    {
+      "description": "emojis",
+      "input": "See you soon 😊🚀👋🔒🛡️",
+      "mode": "HOMOGLYPH",
+      "rendererVersion": 2,
+      "expected": "Ѕєє уσυ ѕσση 😊🚀👋🔒🛡️"
+    },
+    {
+      "description": "emojis",
+      "input": "See you soon 😊🚀👋🔒🛡️",
+      "mode": "ILLUSION",
+      "rendererVersion": 2,
+      "expected": "ѕє€ γσυ sοοn 😊🚀👋🔒🛡️"
+    },
+    {
+      "description": "emojis",
+      "input": "See you soon 😊🚀👋🔒🛡️",
+      "mode": "PATTERN",
+      "rendererVersion": 2,
+      "expected": "⟐ v4я · » · k4P",
+      "expectedIntent": "FAREWELL"
+    },
+    {
+      "description": "hindi",
+      "input": "नमस्ते आप कैसे हैं?",
+      "mode": "HOMOGLYPH",
+      "rendererVersion": 2,
+      "expected": "नमस्ते आप कैसे हैं?"
+    },
+    {
+      "description": "hindi",
+      "input": "नमस्ते आप कैसे हैं?",
+      "mode": "ILLUSION",
+      "rendererVersion": 2,
+      "expected": "नमस्ते आप कैसे हैं?"
+    },
+    {
+      "description": "hindi",
+      "input": "नमस्ते आप कैसे हैं?",
+      "mode": "PATTERN",
+      "rendererVersion": 2,
+      "expected": "✦ vk9 · ? · kXΜ",
+      "expectedIntent": "QUESTION"
+    },
+    {
+      "description": "chinese",
+      "input": "你好，世界！",
+      "mode": "HOMOGLYPH",
+      "rendererVersion": 2,
+      "expected": "你好，世界！"
+    },
+    {
+      "description": "chinese",
+      "input": "你好，世界！",
+      "mode": "ILLUSION",
+      "rendererVersion": 2,
+      "expected": "你好，世界！"
+    },
+    {
+      "description": "chinese",
+      "input": "你好，世界！",
+      "mode": "PATTERN",
+      "rendererVersion": 2,
+      "expected": "⟐ bτ4 · • · ℓv9",
+      "expectedIntent": "GENERAL"
+    },
+    {
+      "description": "japanese",
+      "input": "こんにちは！元気ですか？",
+      "mode": "HOMOGLYPH",
+      "rendererVersion": 2,
+      "expected": "こんにちは！元気ですか？"
+    },
+    {
+      "description": "japanese",
+      "input": "こんにちは！元気ですか？",
+      "mode": "ILLUSION",
+      "rendererVersion": 2,
+      "expected": "こんにちは！元気ですか？"
+    },
+    {
+      "description": "japanese",
+      "input": "こんにちは！元気ですか？",
+      "mode": "PATTERN",
+      "rendererVersion": 2,
+      "expected": "⟐ єkτ · • · яPk",
+      "expectedIntent": "GENERAL"
+    },
+    {
+      "description": "korean",
+      "input": "안녕하세요! 오늘 어때요?",
+      "mode": "HOMOGLYPH",
+      "rendererVersion": 2,
+      "expected": "안녕하세요! 오늘 어때요?"
+    },
+    {
+      "description": "korean",
+      "input": "안녕하세요! 오늘 어때요?",
+      "mode": "ILLUSION",
+      "rendererVersion": 2,
+      "expected": "안녕하세요! 오늘 어때요?"
+    },
+    {
+      "description": "korean",
+      "input": "안녕하세요! 오늘 어때요?",
+      "mode": "PATTERN",
+      "rendererVersion": 2,
+      "expected": "✦ η9b · ? · ηєℓ",
+      "expectedIntent": "QUESTION"
+    },
+    {
+      "description": "arabic",
+      "input": "مرحبا كيف حالك؟",
+      "mode": "HOMOGLYPH",
+      "rendererVersion": 2,
+      "expected": "مرحبا كيف حالك؟"
+    },
+    {
+      "description": "arabic",
+      "input": "مرحبا كيف حالك؟",
+      "mode": "ILLUSION",
+      "rendererVersion": 2,
+      "expected": "مرحبا كيف حالك؟"
+    },
+    {
+      "description": "arabic",
+      "input": "مرحبا كيف حالك؟",
+      "mode": "PATTERN",
+      "rendererVersion": 2,
+      "expected": "✦ Xvv · • · Pwv",
+      "expectedIntent": "GENERAL"
+    },
+    {
+      "description": "accented latin",
+      "input": "Café, résumé, naïve, façade",
+      "mode": "HOMOGLYPH",
+      "rendererVersion": 2,
+      "expected": "Сαfé, réѕυмé, ηαïνє, fαçαdє"
+    },
+    {
+      "description": "accented latin",
+      "input": "Café, résumé, naïve, façade",
+      "mode": "ILLUSION",
+      "rendererVersion": 2,
+      "expected": "¢afé, réѕumé, ηαïv3, f@çαd€"
+    },
+    {
+      "description": "accented latin",
+      "input": "Café, résumé, naïve, façade",
+      "mode": "PATTERN",
+      "rendererVersion": 2,
+      "expected": "❖ q99 · • · qXw",
+      "expectedIntent": "GENERAL"
+    },
+    {
+      "description": "5000-character message",
+      "input": "Confidential privacy message test line! Confidential privacy message test line! Confidential privacy message test line! Confidential privacy message test line! Confidential privacy message test line! Confidential privacy message test line! Confidential privacy message test line! Confidential privacy message test line! Confidential privacy message test line! Confidential privacy message test line! Confidential privacy message test line! Confidential privacy message test line! Confidential privacy message test line! Confidential privacy message test line! Confidential privacy message test line! Confidential privacy message test line! Confidential privacy message test line! Confidential privacy message test line! Confidential privacy message test line! Confidential privacy message test line! Confidential privacy message test line! Confidential privacy message test line! Confidential privacy message test line! Confidential privacy message test line! Confidential privacy message test line! Confidential privacy message test line! Confidential privacy message test line! Confidential privacy message test line! Confidential privacy message test line! Confidential privacy message test line! Confidential privacy message test line! Confidential privacy message test line! Confidential privacy message test line! Confidential privacy message test line! Confidential privacy message test line! Confidential privacy message test line! Confidential privacy message test line! Confidential privacy message test line! Confidential privacy message test line! Confidential privacy message test line! Confidential privacy message test line! Confidential privacy message test line! Confidential privacy message test line! Confidential privacy message test line! Confidential privacy message test line! Confidential privacy message test line! Confidential privacy message test line! Confidential privacy message test line! Confidential privacy message test line! Confidential privacy message test line! Confidential privacy message test line! Confidential privacy message test line! Confidential privacy message test line! Confidential privacy message test line! Confidential privacy message test line! Confidential privacy message test line! Confidential privacy message test line! Confidential privacy message test line! Confidential privacy message test line! Confidential privacy message test line! Confidential privacy message test line! Confidential privacy message test line! Confidential privacy message test line! Confidential privacy message test line! Confidential privacy message test line! Confidential privacy message test line! Confidential privacy message test line! Confidential privacy message test line! Confidential privacy message test line! Confidential privacy message test line! Confidential privacy message test line! Confidential privacy message test line! Confidential privacy message test line! Confidential privacy message test line! Confidential privacy message test line! Confidential privacy message test line! Confidential privacy message test line! Confidential privacy message test line! Confidential privacy message test line! Confidential privacy message test line! Confidential privacy message test line! Confidential privacy message test line! Confidential privacy message test line! Confidential privacy message test line! Confidential privacy message test line! Confidential privacy message test line! Confidential privacy message test line! Confidential privacy message test line! Confidential privacy message test line! Confidential privacy message test line! Confidential privacy message test line! Confidential privacy message test line! Confidential privacy message test line! Confidential privacy message test line! Confidential privacy message test line! Confidential privacy message test line! Confidential privacy message test line! Confidential privacy message test line! Confidential privacy message test line! Confidential privacy message test line! Confidential privacy message test line! Confidential privacy message test line! Confidential privacy message test line! Confidential privacy message test line! Confidential privacy message test line! Confidential privacy message test line! Confidential privacy message test line! Confidential privacy message test line! Confidential privacy message test line! Confidential privacy message test line! Confidential privacy message test line! Confidential privacy message test line! Confidential privacy message test line! Confidential privacy message test line! Confidential privacy message test line! Confidential privacy message test line! Confidential privacy message test line! Confidential privacy message test line! Confidential privacy message test line! Confidential privacy message test line! Confidential privacy message test line! Confidential privacy message test line! Confidential privacy message test line! Confidential privacy message test line! Confidential privacy message test line! ",
+      "mode": "HOMOGLYPH",
+      "rendererVersion": 2,
+      "expected": "Сσηfιdєηтιαl ρrιναсу мєѕѕαgє тєѕт lιηє! Сσηfιdєηтιαl ρrιναсу мєѕѕαgє тєѕт lιηє! Сσηfιdєηтιαl ρrιναсу мєѕѕαgє тєѕт lιηє! Сσηfιdєηтιαl ρrιναсу мєѕѕαgє тєѕт lιηє! Сσηfιdєηтιαl ρrιναсу мєѕѕαgє тєѕт lιηє! Сσηfιdєηтιαl ρrιναсу мєѕѕαgє тєѕт lιηє! Сσηfιdєηтιαl ρrιναсу мєѕѕαgє тєѕт lιηє! Сσηfιdєηтιαl ρrιναсу мєѕѕαgє тєѕт lιηє! Сσηfιdєηтιαl ρrιναсу мєѕѕαgє тєѕт lιηє! Сσηfιdєηтιαl ρrιναсу мєѕѕαgє тєѕт lιηє! Сσηfιdєηтιαl ρrιναсу мєѕѕαgє тєѕт lιηє! Сσηfιdєηтιαl ρrιναсу мєѕѕαgє тєѕт lιηє! Сσηfιdєηтιαl ρrιναсу мєѕѕαgє тєѕт lιηє! Сσηfιdєηтιαl ρrιναсу мєѕѕαgє тєѕт lιηє! Сσηfιdєηтιαl ρrιναсу мєѕѕαgє тєѕт lιηє! Сσηfιdєηтιαl ρrιναсу мєѕѕαgє тєѕт lιηє! Сσηfιdєηтιαl ρrιναсу мєѕѕαgє тєѕт lιηє! Сσηfιdєηтιαl ρrιναсу мєѕѕαgє тєѕт lιηє! Сσηfιdєηтιαl ρrιναсу мєѕѕαgє тєѕт lιηє! Сσηfιdєηтιαl ρrιναсу мєѕѕαgє тєѕт lιηє! Сσηfιdєηтιαl ρrιναсу мєѕѕαgє тєѕт lιηє! Сσηfιdєηтιαl ρrιναсу мєѕѕαgє тєѕт lιηє! Сσηfιdєηтιαl ρrιναсу мєѕѕαgє тєѕт lιηє! Сσηfιdєηтιαl ρrιναсу мєѕѕαgє тєѕт lιηє! Сσηfιdєηтιαl ρrιναсу мєѕѕαgє тєѕт lιηє! Сσηfιdєηтιαl ρrιναсу мєѕѕαgє тєѕт lιηє! Сσηfιdєηтιαl ρrιναсу мєѕѕαgє тєѕт lιηє! Сσηfιdєηтιαl ρrιναсу мєѕѕαgє тєѕт lιηє! Сσηfιdєηтιαl ρrιναсу мєѕѕαgє тєѕт lιηє! Сσηfιdєηтιαl ρrιναсу мєѕѕαgє тєѕт lιηє! Сσηfιdєηтιαl ρrιναсу мєѕѕαgє тєѕт lιηє! Сσηfιdєηтιαl ρrιναсу мєѕѕαgє тєѕт lιηє! Сσηfιdєηтιαl ρrιναсу мєѕѕαgє тєѕт lιηє! Сσηfιdєηтιαl ρrιναсу мєѕѕαgє тєѕт lιηє! Сσηfιdєηтιαl ρrιναсу мєѕѕαgє тєѕт lιηє! Сσηfιdєηтιαl ρrιναсу мєѕѕαgє тєѕт lιηє! Сσηfιdєηтιαl ρrιναсу мєѕѕαgє тєѕт lιηє! Сσηfιdєηтιαl ρrιναсу мєѕѕαgє тєѕт lιηє! Сσηfιdєηтιαl ρrιναсу мєѕѕαgє тєѕт lιηє! Сσηfιdєηтιαl ρrιναсу мєѕѕαgє тєѕт lιηє! Сσηfιdєηтιαl ρrιναсу мєѕѕαgє тєѕт lιηє! Сσηfιdєηтιαl ρrιναсу мєѕѕαgє тєѕт lιηє! Сσηfιdєηтιαl ρrιναсу мєѕѕαgє тєѕт lιηє! Сσηfιdєηтιαl ρrιναсу мєѕѕαgє тєѕт lιηє! Сσηfιdєηтιαl ρrιναсу мєѕѕαgє тєѕт lιηє! Сσηfιdєηтιαl ρrιναсу мєѕѕαgє тєѕт lιηє! Сσηfιdєηтιαl ρrιναсу мєѕѕαgє тєѕт lιηє! Сσηfιdєηтιαl ρrιναсу мєѕѕαgє тєѕт lιηє! Сσηfιdєηтιαl ρrιναсу мєѕѕαgє тєѕт lιηє! Сσηfιdєηтιαl ρrιναсу мєѕѕαgє тєѕт lιηє! Сσηfιdєηтιαl ρrιναсу мєѕѕαgє тєѕт lιηє! Сσηfιdєηтιαl ρrιναсу мєѕѕαgє тєѕт lιηє! Сσηfιdєηтιαl ρrιναсу мєѕѕαgє тєѕт lιηє! Сσηfιdєηтιαl ρrιναсу мєѕѕαgє тєѕт lιηє! Сσηfιdєηтιαl ρrιναсу мєѕѕαgє тєѕт lιηє! Сσηfιdєηтιαl ρrιναсу мєѕѕαgє тєѕт lιηє! Сσηfιdєηтιαl ρrιναсу мєѕѕαgє тєѕт lιηє! Сσηfιdєηтιαl ρrιναсу мєѕѕαgє тєѕт lιηє! Сσηfιdєηтιαl ρrιναсу мєѕѕαgє тєѕт lιηє! Сσηfιdєηтιαl ρrιναсу мєѕѕαgє тєѕт lιηє! Сσηfιdєηтιαl ρrιναсу мєѕѕαgє тєѕт lιηє! Сσηfιdєηтιαl ρrιναсу мєѕѕαgє тєѕт lιηє! Сσηfιdєηтιαl ρrιναсу мєѕѕαgє тєѕт lιηє! Сσηfιdєηтιαl ρrιναсу мєѕѕαgє тєѕт lιηє! Сσηfιdєηтιαl ρrιναсу мєѕѕαgє тєѕт lιηє! Сσηfιdєηтιαl ρrιναсу мєѕѕαgє тєѕт lιηє! Сσηfιdєηтιαl ρrιναсу мєѕѕαgє тєѕт lιηє! Сσηfιdєηтιαl ρrιναсу мєѕѕαgє тєѕт lιηє! Сσηfιdєηтιαl ρrιναсу мєѕѕαgє тєѕт lιηє! Сσηfιdєηтιαl ρrιναсу мєѕѕαgє тєѕт lιηє! Сσηfιdєηтιαl ρrιναсу мєѕѕαgє тєѕт lιηє! Сσηfιdєηтιαl ρrιναсу мєѕѕαgє тєѕт lιηє! Сσηfιdєηтιαl ρrιναсу мєѕѕαgє тєѕт lιηє! Сσηfιdєηтιαl ρrιναсу мєѕѕαgє тєѕт lιηє! Сσηfιdєηтιαl ρrιναсу мєѕѕαgє тєѕт lιηє! Сσηfιdєηтιαl ρrιναсу мєѕѕαgє тєѕт lιηє! Сσηfιdєηтιαl ρrιναсу мєѕѕαgє тєѕт lιηє! Сσηfιdєηтιαl ρrιναсу мєѕѕαgє тєѕт lιηє! Сσηfιdєηтιαl ρrιναсу мєѕѕαgє тєѕт lιηє! Сσηfιdєηтιαl ρrιναсу мєѕѕαgє тєѕт lιηє! Сσηfιdєηтιαl ρrιναсу мєѕѕαgє тєѕт lιηє! Сσηfιdєηтιαl ρrιναсу мєѕѕαgє тєѕт lιηє! Сσηfιdєηтιαl ρrιναсу мєѕѕαgє тєѕт lιηє! Сσηfιdєηтιαl ρrιναсу мєѕѕαgє тєѕт lιηє! Сσηfιdєηтιαl ρrιναсу мєѕѕαgє тєѕт lιηє! Сσηfιdєηтιαl ρrιναсу мєѕѕαgє тєѕт lιηє! Сσηfιdєηтιαl ρrιναсу мєѕѕαgє тєѕт lιηє! Сσηfιdєηтιαl ρrιναсу мєѕѕαgє тєѕт lιηє! Сσηfιdєηтιαl ρrιναсу мєѕѕαgє тєѕт lιηє! Сσηfιdєηтιαl ρrιναсу мєѕѕαgє тєѕт lιηє! Сσηfιdєηтιαl ρrιναсу мєѕѕαgє тєѕт lιηє! Сσηfιdєηтιαl ρrιναсу мєѕѕαgє тєѕт lιηє! Сσηfιdєηтιαl ρrιναсу мєѕѕαgє тєѕт lιηє! Сσηfιdєηтιαl ρrιναсу мєѕѕαgє тєѕт lιηє! Сσηfιdєηтιαl ρrιναсу мєѕѕαgє тєѕт lιηє! Сσηfιdєηтιαl ρrιναсу мєѕѕαgє тєѕт lιηє! Сσηfιdєηтιαl ρrιναсу мєѕѕαgє тєѕт lιηє! Сσηfιdєηтιαl ρrιναсу мєѕѕαgє тєѕт lιηє! Сσηfιdєηтιαl ρrιναсу мєѕѕαgє тєѕт lιηє! Сσηfιdєηтιαl ρrιναсу мєѕѕαgє тєѕт lιηє! Сσηfιdєηтιαl ρrιναсу мєѕѕαgє тєѕт lιηє! Сσηfιdєηтιαl ρrιναсу мєѕѕαgє тєѕт lιηє! Сσηfιdєηтιαl ρrιναсу мєѕѕαgє тєѕт lιηє! Сσηfιdєηтιαl ρrιναсу мєѕѕαgє тєѕт lιηє! Сσηfιdєηтιαl ρrιναсу мєѕѕαgє тєѕт lιηє! Сσηfιdєηтιαl ρrιναсу мєѕѕαgє тєѕт lιηє! Сσηfιdєηтιαl ρrιναсу мєѕѕαgє тєѕт lιηє! Сσηfιdєηтιαl ρrιναсу мєѕѕαgє тєѕт lιηє! Сσηfιdєηтιαl ρrιναсу мєѕѕαgє тєѕт lιηє! Сσηfιdєηтιαl ρrιναсу мєѕѕαgє тєѕт lιηє! Сσηfιdєηтιαl ρrιναсу мєѕѕαgє тєѕт lιηє! Сσηfιdєηтιαl ρrιναсу мєѕѕαgє тєѕт lιηє! Сσηfιdєηтιαl ρrιναсу мєѕѕαgє тєѕт lιηє! Сσηfιdєηтιαl ρrιναсу мєѕѕαgє тєѕт lιηє! Сσηfιdєηтιαl ρrιναсу мєѕѕαgє тєѕт lιηє! Сσηfιdєηтιαl ρrιναсу мєѕѕαgє тєѕт lιηє! Сσηfιdєηтιαl ρrιναсу мєѕѕαgє тєѕт lιηє! Сσηfιdєηтιαl ρrιναсу мєѕѕαgє тєѕт lιηє! Сσηfιdєηтιαl ρrιναсу мєѕѕαgє тєѕт lιηє! Сσηfιdєηтιαl ρrιναсу мєѕѕαgє тєѕт lιηє! Сσηfιdєηтιαl ρrιναсу мєѕѕαgє тєѕт lιηє! Сσηfιdєηтιαl ρrιναсу мєѕѕαgє тєѕт lιηє! Сσηfιdєηтιαl ρrιναсу мєѕѕαgє тєѕт lιηє! Сσηfιdєηтιαl ρrιναсу мєѕѕαgє тєѕт lιηє! Сσηfιdєηтιαl ρrιναсу мєѕѕαgє тєѕт lιηє! "
+    },
+    {
+      "description": "5000-character message",
+      "input": "Confidential privacy message test line! Confidential privacy message test line! Confidential privacy message test line! Confidential privacy message test line! Confidential privacy message test line! Confidential privacy message test line! Confidential privacy message test line! Confidential privacy message test line! Confidential privacy message test line! Confidential privacy message test line! Confidential privacy message test line! Confidential privacy message test line! Confidential privacy message test line! Confidential privacy message test line! Confidential privacy message test line! Confidential privacy message test line! Confidential privacy message test line! Confidential privacy message test line! Confidential privacy message test line! Confidential privacy message test line! Confidential privacy message test line! Confidential privacy message test line! Confidential privacy message test line! Confidential privacy message test line! Confidential privacy message test line! Confidential privacy message test line! Confidential privacy message test line! Confidential privacy message test line! Confidential privacy message test line! Confidential privacy message test line! Confidential privacy message test line! Confidential privacy message test line! Confidential privacy message test line! Confidential privacy message test line! Confidential privacy message test line! Confidential privacy message test line! Confidential privacy message test line! Confidential privacy message test line! Confidential privacy message test line! Confidential privacy message test line! Confidential privacy message test line! Confidential privacy message test line! Confidential privacy message test line! Confidential privacy message test line! Confidential privacy message test line! Confidential privacy message test line! Confidential privacy message test line! Confidential privacy message test line! Confidential privacy message test line! Confidential privacy message test line! Confidential privacy message test line! Confidential privacy message test line! Confidential privacy message test line! Confidential privacy message test line! Confidential privacy message test line! Confidential privacy message test line! Confidential privacy message test line! Confidential privacy message test line! Confidential privacy message test line! Confidential privacy message test line! Confidential privacy message test line! Confidential privacy message test line! Confidential privacy message test line! Confidential privacy message test line! Confidential privacy message test line! Confidential privacy message test line! Confidential privacy message test line! Confidential privacy message test line! Confidential privacy message test line! Confidential privacy message test line! Confidential privacy message test line! Confidential privacy message test line! Confidential privacy message test line! Confidential privacy message test line! Confidential privacy message test line! Confidential privacy message test line! Confidential privacy message test line! Confidential privacy message test line! Confidential privacy message test line! Confidential privacy message test line! Confidential privacy message test line! Confidential privacy message test line! Confidential privacy message test line! Confidential privacy message test line! Confidential privacy message test line! Confidential privacy message test line! Confidential privacy message test line! Confidential privacy message test line! Confidential privacy message test line! Confidential privacy message test line! Confidential privacy message test line! Confidential privacy message test line! Confidential privacy message test line! Confidential privacy message test line! Confidential privacy message test line! Confidential privacy message test line! Confidential privacy message test line! Confidential privacy message test line! Confidential privacy message test line! Confidential privacy message test line! Confidential privacy message test line! Confidential privacy message test line! Confidential privacy message test line! Confidential privacy message test line! Confidential privacy message test line! Confidential privacy message test line! Confidential privacy message test line! Confidential privacy message test line! Confidential privacy message test line! Confidential privacy message test line! Confidential privacy message test line! Confidential privacy message test line! Confidential privacy message test line! Confidential privacy message test line! Confidential privacy message test line! Confidential privacy message test line! Confidential privacy message test line! Confidential privacy message test line! Confidential privacy message test line! Confidential privacy message test line! Confidential privacy message test line! Confidential privacy message test line! Confidential privacy message test line! Confidential privacy message test line! Confidential privacy message test line! ",
+      "mode": "ILLUSION",
+      "rendererVersion": 2,
+      "expected": "¢οηfident1al pяiva¢γ m€5sagє 7єѕ7 lιn€! Coηf1dєη7!al priva¢y m3ss@9€ 7est lιηє! ¢οηfid€nt14l pя!v@¢y mess4g3 te$7 l!ηe! Coηf!dєη7ιal pяiva¢γ mє$$@ge te5t l1ne! ¢οηf1dentι@l pяιv@¢y m€ss49є 7€$t line! ¢oηfideη7!4l priva¢γ mєѕ$αg€ te57 lιη€! ¢onfideηt1al pr!v@¢γ messα9є τ€ѕt l!ne! ¢0ηf!d€ηtial pr1va¢y me$$@9e teѕ7 lιη€! ¢oηfideη7ι@l pя!vacy me5s4ge 7€$7 line! ¢οηfιd€ηt!al pr1v4¢γ m€$sage 7e5t liη€! ¢0nfideη7ιαl pяιva¢y me55α9€ 7est liηe! ¢onf!d€η7ial prιv@¢γ m€ѕs@ge 73ѕ7 l!ηe! Conf1deηti@l pя!v4cy meѕ$α9€ τe$t liη3! ¢οηf!denti4l pr1vacγ m€$5age τ€ѕτ l!ηe! ¢onf1d3η7!@l privacγ me5sa9€ 73st liη€! ¢σηfιdeηti4l pяιv@¢γ messa9e 7es7 l!η3! Confιd€ητ!αl pr!vacγ m3ѕ$@9e tes7 liηe! Cοηf!d3ntiαl pяιvα¢γ me$sa93 τ€$7 line! C0nf1den7!@l pяivacγ m€ѕѕ@9e 7es7 l1η€! ¢οnfiden7i4l priv@¢γ m3ssa9€ τє$τ liηe! C0ηfιd€η7ial priv4cγ mes$@93 tesτ l!ηє! ¢σnf!den71αl pя!v@cy mes5a9e t€$7 l1ne! Cσηfιdєητi@l priv4¢γ m€$$age t3s7 lin€! ¢οηfidenτ!αl pя!vαcγ mes549€ 7€st lin3! C0nfid€η71al privα¢γ mє$ѕa9e t35τ l!η€! Confid3n7ial pя!v@¢y mesѕ@9є 7єs7 lin3! ¢σηf!d€ntial pяiv4cy m€$$4ge tє$τ lιηє! Cοnfid3ητ!@l pяivacy m3s5ag€ 7€5t linє! ¢σηf!dєn7ial pя1vα¢γ m€ssag3 t3st l!η€! ¢onfidєητι@l pяiv@cy m35ѕ@9€ test l1n3! Coηf!d€ηtial pя!vα¢γ mєs$ag3 7є$7 l!ne! Coηfid3nt!@l pя1vacy mє$ѕα9є t€st l1ηє! ¢οηfident1al pяiva¢γ m€5sagє 7єѕ7 lιn€! Coηf1dєη7!al priva¢y m3ss@9€ 7est lιηє! ¢οηfid€nt14l pя!v@¢y mess4g3 te$7 l!ηe! Coηf!dєη7ιal pяiva¢γ mє$$@ge te5t l1ne! ¢οηf1dentι@l pяιv@¢y m€ss49є 7€$t line! ¢oηfideη7!4l priva¢γ mєѕ$αg€ te57 lιη€! ¢onfideηt1al pr!v@¢γ messα9є τ€ѕt l!ne! ¢0ηf!d€ηtial pr1va¢y me$$@9e teѕ7 lιη€! ¢oηfideη7ι@l pя!vacy me5s4ge 7€$7 line! ¢οηfιd€ηt!al pr1v4¢γ m€$sage 7e5t liη€! ¢0nfideη7ιαl pяιva¢y me55α9€ 7est liηe! ¢onf!d€η7ial prιv@¢γ m€ѕs@ge 73ѕ7 l!ηe! Conf1deηti@l pя!v4cy meѕ$α9€ τe$t liη3! ¢οηf!denti4l pr1vacγ m€$5age τ€ѕτ l!ηe! ¢onf1d3η7!@l privacγ me5sa9€ 73st liη€! ¢σηfιdeηti4l pяιv@¢γ messa9e 7es7 l!η3! Confιd€ητ!αl pr!vacγ m3ѕ$@9e tes7 liηe! Cοηf!d3ntiαl pяιvα¢γ me$sa93 τ€$7 line! C0nf1den7!@l pяivacγ m€ѕѕ@9e 7es7 l1η€! ¢οnfiden7i4l priv@¢γ m3ssa9€ τє$τ liηe! C0ηfιd€η7ial priv4cγ mes$@93 tesτ l!ηє! ¢σnf!den71αl pя!v@cy mes5a9e t€$7 l1ne! Cσηfιdєητi@l priv4¢γ m€$$age t3s7 lin€! ¢οηfidenτ!αl pя!vαcγ mes549€ 7€st lin3! C0nfid€η71al privα¢γ mє$ѕa9e t35τ l!η€! Confid3n7ial pя!v@¢y mesѕ@9є 7єs7 lin3! ¢σηf!d€ntial pяiv4cy m€$$4ge tє$τ lιηє! Cοnfid3ητ!@l pяivacy m3s5ag€ 7€5t linє! ¢σηf!dєn7ial pя1vα¢γ m€ssag3 t3st l!η€! ¢onfidєητι@l pяiv@cy m35ѕ@9€ test l1n3! Coηf!d€ηtial pя!vα¢γ mєs$ag3 7є$7 l!ne! Coηfid3nt!@l pя1vacy mє$ѕα9є t€st l1ηє! ¢οηfident1al pяiva¢γ m€5sagє 7єѕ7 lιn€! Coηf1dєη7!al priva¢y m3ss@9€ 7est lιηє! ¢οηfid€nt14l pя!v@¢y mess4g3 te$7 l!ηe! Coηf!dєη7ιal pяiva¢γ mє$$@ge te5t l1ne! ¢οηf1dentι@l pяιv@¢y m€ss49є 7€$t line! ¢oηfideη7!4l priva¢γ mєѕ$αg€ te57 lιη€! ¢onfideηt1al pr!v@¢γ messα9є τ€ѕt l!ne! ¢0ηf!d€ηtial pr1va¢y me$$@9e teѕ7 lιη€! ¢oηfideη7ι@l pя!vacy me5s4ge 7€$7 line! ¢οηfιd€ηt!al pr1v4¢γ m€$sage 7e5t liη€! ¢0nfideη7ιαl pяιva¢y me55α9€ 7est liηe! ¢onf!d€η7ial prιv@¢γ m€ѕs@ge 73ѕ7 l!ηe! Conf1deηti@l pя!v4cy meѕ$α9€ τe$t liη3! ¢οηf!denti4l pr1vacγ m€$5age τ€ѕτ l!ηe! ¢onf1d3η7!@l privacγ me5sa9€ 73st liη€! ¢σηfιdeηti4l pяιv@¢γ messa9e 7es7 l!η3! Confιd€ητ!αl pr!vacγ m3ѕ$@9e tes7 liηe! Cοηf!d3ntiαl pяιvα¢γ me$sa93 τ€$7 line! C0nf1den7!@l pяivacγ m€ѕѕ@9e 7es7 l1η€! ¢οnfiden7i4l priv@¢γ m3ssa9€ τє$τ liηe! C0ηfιd€η7ial priv4cγ mes$@93 tesτ l!ηє! ¢σnf!den71αl pя!v@cy mes5a9e t€$7 l1ne! Cσηfιdєητi@l priv4¢γ m€$$age t3s7 lin€! ¢οηfidenτ!αl pя!vαcγ mes549€ 7€st lin3! C0nfid€η71al privα¢γ mє$ѕa9e t35τ l!η€! Confid3n7ial pя!v@¢y mesѕ@9є 7єs7 lin3! ¢σηf!d€ntial pяiv4cy m€$$4ge tє$τ lιηє! Cοnfid3ητ!@l pяivacy m3s5ag€ 7€5t linє! ¢σηf!dєn7ial pя1vα¢γ m€ssag3 t3st l!η€! ¢onfidєητι@l pяiv@cy m35ѕ@9€ test l1n3! Coηf!d€ηtial pя!vα¢γ mєs$ag3 7є$7 l!ne! Coηfid3nt!@l pя1vacy mє$ѕα9є t€st l1ηє! ¢οηfident1al pяiva¢γ m€5sagє 7єѕ7 lιn€! Coηf1dєη7!al priva¢y m3ss@9€ 7est lιηє! ¢οηfid€nt14l pя!v@¢y mess4g3 te$7 l!ηe! Coηf!dєη7ιal pяiva¢γ mє$$@ge te5t l1ne! ¢οηf1dentι@l pяιv@¢y m€ss49є 7€$t line! ¢oηfideη7!4l priva¢γ mєѕ$αg€ te57 lιη€! ¢onfideηt1al pr!v@¢γ messα9є τ€ѕt l!ne! ¢0ηf!d€ηtial pr1va¢y me$$@9e teѕ7 lιη€! ¢oηfideη7ι@l pя!vacy me5s4ge 7€$7 line! ¢οηfιd€ηt!al pr1v4¢γ m€$sage 7e5t liη€! ¢0nfideη7ιαl pяιva¢y me55α9€ 7est liηe! ¢onf!d€η7ial prιv@¢γ m€ѕs@ge 73ѕ7 l!ηe! Conf1deηti@l pя!v4cy meѕ$α9€ τe$t liη3! ¢οηf!denti4l pr1vacγ m€$5age τ€ѕτ l!ηe! ¢onf1d3η7!@l privacγ me5sa9€ 73st liη€! ¢σηfιdeηti4l pяιv@¢γ messa9e 7es7 l!η3! Confιd€ητ!αl pr!vacγ m3ѕ$@9e tes7 liηe! Cοηf!d3ntiαl pяιvα¢γ me$sa93 τ€$7 line! C0nf1den7!@l pяivacγ m€ѕѕ@9e 7es7 l1η€! ¢οnfiden7i4l priv@¢γ m3ssa9€ τє$τ liηe! C0ηfιd€η7ial priv4cγ mes$@93 tesτ l!ηє! ¢σnf!den71αl pя!v@cy mes5a9e t€$7 l1ne! Cσηfιdєητi@l priv4¢γ m€$$age t3s7 lin€! ¢οηfidenτ!αl pя!vαcγ mes549€ 7€st lin3! C0nfid€η71al privα¢γ mє$ѕa9e t35τ l!η€! Confid3n7ial pя!v@¢y mesѕ@9є 7єs7 lin3! ¢σηf!d€ntial pяiv4cy m€$$4ge tє$τ lιηє! Cοnfid3ητ!@l pяivacy m3s5ag€ 7€5t linє! ¢σηf!dєn7ial pя1vα¢γ m€ssag3 t3st l!η€! "
+    },
+    {
+      "description": "5000-character message",
+      "input": "Confidential privacy message test line! Confidential privacy message test line! Confidential privacy message test line! Confidential privacy message test line! Confidential privacy message test line! Confidential privacy message test line! Confidential privacy message test line! Confidential privacy message test line! Confidential privacy message test line! Confidential privacy message test line! Confidential privacy message test line! Confidential privacy message test line! Confidential privacy message test line! Confidential privacy message test line! Confidential privacy message test line! Confidential privacy message test line! Confidential privacy message test line! Confidential privacy message test line! Confidential privacy message test line! Confidential privacy message test line! Confidential privacy message test line! Confidential privacy message test line! Confidential privacy message test line! Confidential privacy message test line! Confidential privacy message test line! Confidential privacy message test line! Confidential privacy message test line! Confidential privacy message test line! Confidential privacy message test line! Confidential privacy message test line! Confidential privacy message test line! Confidential privacy message test line! Confidential privacy message test line! Confidential privacy message test line! Confidential privacy message test line! Confidential privacy message test line! Confidential privacy message test line! Confidential privacy message test line! Confidential privacy message test line! Confidential privacy message test line! Confidential privacy message test line! Confidential privacy message test line! Confidential privacy message test line! Confidential privacy message test line! Confidential privacy message test line! Confidential privacy message test line! Confidential privacy message test line! Confidential privacy message test line! Confidential privacy message test line! Confidential privacy message test line! Confidential privacy message test line! Confidential privacy message test line! Confidential privacy message test line! Confidential privacy message test line! Confidential privacy message test line! Confidential privacy message test line! Confidential privacy message test line! Confidential privacy message test line! Confidential privacy message test line! Confidential privacy message test line! Confidential privacy message test line! Confidential privacy message test line! Confidential privacy message test line! Confidential privacy message test line! Confidential privacy message test line! Confidential privacy message test line! Confidential privacy message test line! Confidential privacy message test line! Confidential privacy message test line! Confidential privacy message test line! Confidential privacy message test line! Confidential privacy message test line! Confidential privacy message test line! Confidential privacy message test line! Confidential privacy message test line! Confidential privacy message test line! Confidential privacy message test line! Confidential privacy message test line! Confidential privacy message test line! Confidential privacy message test line! Confidential privacy message test line! Confidential privacy message test line! Confidential privacy message test line! Confidential privacy message test line! Confidential privacy message test line! Confidential privacy message test line! Confidential privacy message test line! Confidential privacy message test line! Confidential privacy message test line! Confidential privacy message test line! Confidential privacy message test line! Confidential privacy message test line! Confidential privacy message test line! Confidential privacy message test line! Confidential privacy message test line! Confidential privacy message test line! Confidential privacy message test line! Confidential privacy message test line! Confidential privacy message test line! Confidential privacy message test line! Confidential privacy message test line! Confidential privacy message test line! Confidential privacy message test line! Confidential privacy message test line! Confidential privacy message test line! Confidential privacy message test line! Confidential privacy message test line! Confidential privacy message test line! Confidential privacy message test line! Confidential privacy message test line! Confidential privacy message test line! Confidential privacy message test line! Confidential privacy message test line! Confidential privacy message test line! Confidential privacy message test line! Confidential privacy message test line! Confidential privacy message test line! Confidential privacy message test line! Confidential privacy message test line! Confidential privacy message test line! Confidential privacy message test line! Confidential privacy message test line! Confidential privacy message test line! Confidential privacy message test line! Confidential privacy message test line! ",
+      "mode": "PATTERN",
+      "rendererVersion": 2,
+      "expected": "⟐ ηXя · ‼ · vσσ",
+      "expectedIntent": "URGENT"
+    }
+  ]
+}
