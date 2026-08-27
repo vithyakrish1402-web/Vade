@@ -4,7 +4,6 @@
  */
 
 const DB_NAME = 'enctxt_crypto_db';
-const DB_VERSION = 1;
 const STORE_NAME = 'identity_keys';
 
 interface StoredKeyRecord {
@@ -43,17 +42,21 @@ function openAt(version?: number): Promise<IDBDatabase> {
 }
 
 async function openDB(): Promise<IDBDatabase> {
-  const db = await openAt(DB_VERSION);
+  // Deliberately opened without a version. Requesting a hardcoded version
+  // fails with VersionError whenever the stored database is already newer
+  // than that constant, and every caller here treats an open failure as
+  // "IndexedDB unavailable" and silently falls back to the in-memory store —
+  // which regenerates the identity key on every page load and makes messages
+  // undecryptable to peers and to this client's own history. Opening
+  // unversioned adopts whatever version exists (creating it at 1 if absent).
+  const db = await openAt();
   if (db.objectStoreNames.contains(STORE_NAME)) {
     return db;
   }
 
-  // The database exists at this version but without our object store, so
-  // onupgradeneeded will never fire again to create it and every transaction
-  // would throw NotFoundError. Reopen one version higher to force an upgrade
-  // that creates the missing store, rather than leaving key storage
-  // permanently broken (which silently degrades to the in-memory fallback and
-  // regenerates the identity on every page load).
+  // The database exists but without our object store, so onupgradeneeded will
+  // not fire again on its own and every transaction would throw NotFoundError.
+  // Reopen one version higher to force an upgrade that creates it.
   const nextVersion = db.version + 1;
   db.close();
   return openAt(nextVersion);
@@ -81,7 +84,9 @@ export async function saveIdentityKeys(
 
   try {
     const db = await openDB();
-    return new Promise((resolve, reject) => {
+    // `return await` (not a bare `return`) so a rejected write is caught by
+    // the fallback below instead of escaping this function.
+    return await new Promise<void>((resolve, reject) => {
       const tx = db.transaction(STORE_NAME, 'readwrite');
       const store = tx.objectStore(STORE_NAME);
       const req = store.put(record);
@@ -112,7 +117,7 @@ export async function loadIdentityKeys(
 
   try {
     const db = await openDB();
-    return new Promise((resolve, reject) => {
+    return await new Promise((resolve, reject) => {
       const tx = db.transaction(STORE_NAME, 'readonly');
       const store = tx.objectStore(STORE_NAME);
       const req = store.get(userId);
@@ -167,7 +172,7 @@ export async function deleteIdentityKeys(userId: string): Promise<void> {
 
   try {
     const db = await openDB();
-    return new Promise((resolve, reject) => {
+    return await new Promise<void>((resolve, reject) => {
       const tx = db.transaction(STORE_NAME, 'readwrite');
       const store = tx.objectStore(STORE_NAME);
       const req = store.delete(userId);
