@@ -179,13 +179,12 @@ class CryptoRepository(
 
     suspend fun initializeIdentityKey(): NetworkResult<String> {
         return try {
-            val keyId = if (!keyStoreManager.hasIdentityKey()) {
+            if (!keyStoreManager.hasIdentityKey()) {
                 keyStoreManager.generateIdentityKeyPair()
-            } else {
-                KeyStoreManager.generateKeyId()
             }
 
             val publicKeyBase64 = keyStoreManager.getPublicKeyBase64()
+            val keyId = KeyStoreManager.deriveKeyId(publicKeyBase64)
 
             val publishResult = apiClient.publishIdentityKey(
                 PublishKeyRequest(

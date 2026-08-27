@@ -51,6 +51,7 @@ import com.enctxt.presentation.components.GestureRevealDialog
 import com.enctxt.presentation.components.GestureSettingsScreen
 import com.enctxt.presentation.components.ProtectedMessage
 import kotlinx.coroutines.FlowPreview
+import kotlinx.coroutines.Job
 import kotlinx.coroutines.flow.*
 import kotlinx.coroutines.launch
 
@@ -267,13 +268,27 @@ class MessageViewModel(
     private var activePeerId: String? = null
     private var currentUserId: String? = null
 
+    // Re-entering the same conversation screen (e.g. navigating back to it, or
+    // any recomposition that re-triggers LaunchedEffect) previously stacked a
+    // brand new set of these forever-running collectors on every call, with
+    // nothing ever cancelling the old ones. Each leaked observer independently
+    // re-decrypts the entire message list on every Room/WebSocket event,
+    // which multiplies with every re-entry — this is what caused the flood of
+    // duplicate GET /crypto/users/{id}/key calls (dozens of concurrent copies
+    // racing to populate the same cache) and the resulting UI/send stalls.
+    private var messageObserverJob: Job? = null
+    private var wsListenerJob: Job? = null
+
     fun initializeConversation(conversationId: String, peerId: String, userId: String) {
         activeConversationId = conversationId
         activePeerId = peerId
         currentUserId = userId
 
+        messageObserverJob?.cancel()
+        wsListenerJob?.cancel()
+
         // 1. Observe Room local encrypted cache
-        viewModelScope.launch {
+        messageObserverJob = viewModelScope.launch {
             messageRepository.observeRoomMessages(conversationId, peerId, userId).collect { roomList ->
                 _messages.value = roomList
             }
@@ -291,7 +306,7 @@ class MessageViewModel(
         }
 
         // 4. Listen to real-time WebSocket frames
-        viewModelScope.launch {
+        wsListenerJob = viewModelScope.launch {
             wsClient.serverEvents.collect { event ->
                 if (event.conversationId == conversationId) {
                     messageRepository.syncConversation(conversationId)

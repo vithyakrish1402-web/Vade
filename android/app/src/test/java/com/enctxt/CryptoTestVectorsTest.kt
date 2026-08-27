@@ -4,8 +4,10 @@ import com.enctxt.core.security.AeadCipherEngine
 import com.enctxt.core.security.DecryptionException
 import com.enctxt.core.security.HkdfKeyDerivation
 import com.enctxt.core.security.KeyAgreementEngine
+import com.enctxt.core.security.KeyStoreManager
 import com.enctxt.data.model.EncryptedEnvelopeDto
 import org.junit.Assert.assertEquals
+import org.junit.Assert.assertNotEquals
 import org.junit.Assert.assertThrows
 import org.junit.Test
 import java.security.KeyFactory
@@ -118,5 +120,25 @@ class CryptoTestVectorsTest {
         assertThrows(DecryptionException::class.java) {
             AeadCipherEngine.decrypt(envelope, bobAesKey, conversationId, senderId)
         }
+    }
+
+    // Regression test: keyId used to be a random UUID minted on every app
+    // launch even when reusing the same KeyStore key, which republished a
+    // moving-target keyId on every session init and made key-change
+    // detection (which compares stored keyId against current) unreliable.
+    // Deriving it from the public key bytes makes it stable across launches
+    // and naturally distinct when the key material actually changes.
+    @Test
+    fun testDeriveKeyIdIsDeterministicForSameKey() {
+        val first = KeyStoreManager.deriveKeyId(alicePublicKeySpkiBase64)
+        val second = KeyStoreManager.deriveKeyId(alicePublicKeySpkiBase64)
+        assertEquals(first, second)
+    }
+
+    @Test
+    fun testDeriveKeyIdDiffersForDifferentKeys() {
+        val aliceKeyId = KeyStoreManager.deriveKeyId(alicePublicKeySpkiBase64)
+        val bobKeyId = KeyStoreManager.deriveKeyId(bobPublicKeySpkiBase64)
+        assertNotEquals(aliceKeyId, bobKeyId)
     }
 }

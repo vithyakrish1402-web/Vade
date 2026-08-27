@@ -91,6 +91,23 @@ class KeyStoreManager(
 
     companion object {
         fun generateKeyId(): String = "k_${UUID.randomUUID()}"
+
+        /**
+         * Derives a stable keyId from the public key bytes themselves, so
+         * re-publishing on every app launch reuses the same id for as long as
+         * the underlying KeyStore key is unchanged. A random id here (the
+         * previous behavior) republished a new keyId on every launch despite
+         * the key material never changing, which both spammed the server
+         * with pointless identity updates and made key-change detection
+         * compare against a moving target (ContactSecurityRepository checks
+         * keyId equality), risking false "key changed" warnings whenever a
+         * peer simply relaunched their app.
+         */
+        fun deriveKeyId(publicKeyBase64: String): String {
+            val digest = MessageDigest.getInstance("SHA-256")
+                .digest(Base64.getDecoder().decode(publicKeyBase64))
+            return "k_" + digest.joinToString("") { "%02x".format(it) }.take(32)
+        }
     }
 }
 
