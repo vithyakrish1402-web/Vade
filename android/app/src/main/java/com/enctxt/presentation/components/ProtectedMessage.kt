@@ -23,6 +23,7 @@ import androidx.compose.ui.unit.TextUnit
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.enctxt.core.gesture.RevealState
+import com.enctxt.core.privacy.ProtectedRenderMode
 import com.enctxt.core.privacy.ProtectedTextEngine
 
 /**
@@ -55,6 +56,7 @@ fun ProtectedMessage(
     modifier: Modifier = Modifier,
     messageId: String? = null,
     revealState: RevealState = RevealState.Protected,
+    protectionMode: ProtectedRenderMode = ProtectedRenderMode.HOMOGLYPH,
     color: Color = Color.White,
     fontSize: TextUnit = 14.sp
 ) {
@@ -62,10 +64,10 @@ fun ProtectedMessage(
         revealState is RevealState.Revealed &&
         revealState.messageId == messageId
 
-    // Memoize: recompute protection only when content changes, not on every recomposition
-    val protectedText = remember(content) {
+    // Memoize: recompute protection only when content or mode changes, not on every recomposition
+    val protectedText = remember(content, protectionMode) {
         try {
-            ProtectedTextEngine.protect(content)
+            ProtectedTextEngine.protect(content, protectionMode)
         } catch (_: Exception) {
             null // Fail closed — never fall back to plaintext
         }

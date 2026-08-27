@@ -2,12 +2,14 @@ import React, { useRef, useEffect, useState, useCallback } from 'react';
 import type { MessageItem } from '@enctxt/shared';
 import { MessageBubble } from './MessageBubble';
 import { MessageSkeletonList } from '../ui/Skeleton';
+import type { ProtectionMode } from '../../utils/protectedText/protectedTextEngine';
 import { ShieldCheck, ChevronDown, Loader2 } from 'lucide-react';
 
 export interface MessageListProps {
   messages: MessageItem[];
   currentUserId?: string;
   peerUsername?: string;
+  protectionMode?: ProtectionMode;
   getDecryptedText: (message: MessageItem) => string;
   isRevealed: (messageId: string) => boolean;
   getRemainingRevealSeconds: (messageId: string) => number;
@@ -24,6 +26,7 @@ export const MessageList: React.FC<MessageListProps> = ({
   messages,
   currentUserId,
   peerUsername,
+  protectionMode = 'HOMOGLYPH',
   getDecryptedText,
   isRevealed,
   getRemainingRevealSeconds,
@@ -130,6 +133,7 @@ export const MessageList: React.FC<MessageListProps> = ({
             decryptedContent={getDecryptedText(msg)}
             isRevealed={isRevealed(msg.id)}
             remainingRevealSeconds={getRemainingRevealSeconds(msg.id)}
+            protectionMode={protectionMode}
             isFirstInGroup={isFirstInGroup}
             isLastInGroup={isLastInGroup}
             onRevealClick={() => onRevealRequest(msg.id)}

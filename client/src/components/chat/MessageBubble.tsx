@@ -1,6 +1,7 @@
 import React from 'react';
 import type { MessageItem } from '@enctxt/shared';
 import { ProtectedMessage } from '../messages/ProtectedMessage';
+import type { ProtectionMode } from '../../utils/protectedText/protectedTextEngine';
 import { formatMessageTime } from '../../utils/dateUtils';
 import { Eye, EyeOff, Clock, Check, CheckCheck, AlertCircle, RotateCcw } from 'lucide-react';
 
@@ -10,6 +11,7 @@ export interface MessageBubbleProps {
   decryptedContent: string;
   isRevealed: boolean;
   remainingRevealSeconds?: number;
+  protectionMode?: ProtectionMode;
   isFirstInGroup?: boolean;
   isLastInGroup?: boolean;
   onRevealClick: () => void;
@@ -24,6 +26,7 @@ export const MessageBubble: React.FC<MessageBubbleProps> = React.memo(
     decryptedContent,
     isRevealed,
     remainingRevealSeconds,
+    protectionMode = 'HOMOGLYPH',
     isFirstInGroup = true,
     isLastInGroup = true,
     onRevealClick,
@@ -67,6 +70,7 @@ export const MessageBubble: React.FC<MessageBubbleProps> = React.memo(
             <ProtectedMessage
               content={decryptedContent}
               displayMode={isRevealed ? 'revealed' : 'protected'}
+              mode={protectionMode}
             />
           </div>
 

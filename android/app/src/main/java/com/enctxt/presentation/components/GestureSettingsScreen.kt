@@ -14,6 +14,7 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.foundation.selection.selectable
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.ArrowBack
 import androidx.compose.material.icons.filled.Delete
@@ -28,6 +29,7 @@ import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedButton
+import androidx.compose.material3.RadioButton
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
@@ -43,13 +45,17 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalLifecycleOwner
+import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.LifecycleEventObserver
 import com.enctxt.core.gesture.GestureRepository
+import com.enctxt.core.privacy.ProtectedRenderMode
+import com.enctxt.core.privacy.SharedPrefsProtectionStylePreference
 
 /**
  * Local device settings for the Layer 3 reveal gesture. Never displays the gesture itself —
@@ -79,6 +85,11 @@ fun GestureSettingsScreen(
 
     var isConfigured by remember(refreshGeneration) { mutableStateOf(repository.isConfigured(userId)) }
     val sequenceLength = remember(refreshGeneration, isConfigured) { if (isConfigured) repository.sequenceLength(userId) else 0 }
+
+    // Protected Text v2 — local display preference, not part of gesture authorization.
+    val context = LocalContext.current
+    val protectionStylePreference = remember { SharedPrefsProtectionStylePreference(context) }
+    var protectionMode by remember(refreshGeneration) { mutableStateOf(protectionStylePreference.getMode(userId)) }
 
     Scaffold(
         topBar = {
@@ -161,6 +172,45 @@ fun GestureSettingsScreen(
                     }
                 }
             }
+
+            Spacer(modifier = Modifier.height(28.dp))
+            Text("Protection Style", color = Color.White, fontWeight = FontWeight.Bold, fontSize = 14.sp)
+            Text(
+                "Choose how protected messages look before you reveal them.",
+                color = Color(0xFF94A3B8),
+                fontSize = 12.sp
+            )
+            Spacer(modifier = Modifier.height(12.dp))
+
+            ProtectionStyleOption(
+                label = "Classic",
+                description = "Look-alike characters replace letters — the original style.",
+                selected = protectionMode == ProtectedRenderMode.HOMOGLYPH,
+                onSelect = {
+                    protectionStylePreference.setMode(userId, ProtectedRenderMode.HOMOGLYPH)
+                    protectionMode = ProtectedRenderMode.HOMOGLYPH
+                }
+            )
+            Spacer(modifier = Modifier.height(8.dp))
+            ProtectionStyleOption(
+                label = "Illusion",
+                description = "A partially distorted look that stays roughly readable up close.",
+                selected = protectionMode == ProtectedRenderMode.ILLUSION,
+                onSelect = {
+                    protectionStylePreference.setMode(userId, ProtectedRenderMode.ILLUSION)
+                    protectionMode = ProtectedRenderMode.ILLUSION
+                }
+            )
+            Spacer(modifier = Modifier.height(8.dp))
+            ProtectionStyleOption(
+                label = "Pattern",
+                description = "Shows only an abstract hint about the message, not its content.",
+                selected = protectionMode == ProtectedRenderMode.PATTERN,
+                onSelect = {
+                    protectionStylePreference.setMode(userId, ProtectedRenderMode.PATTERN)
+                    protectionMode = ProtectedRenderMode.PATTERN
+                }
+            )
         }
     }
 
@@ -182,5 +232,34 @@ fun GestureSettingsScreen(
                 TextButton(onClick = { showDeleteConfirm = false }) { Text("Cancel") }
             }
         )
+    }
+}
+
+@Composable
+private fun ProtectionStyleOption(
+    label: String,
+    description: String,
+    selected: Boolean,
+    onSelect: () -> Unit
+) {
+    Row(
+        modifier = Modifier
+            .fillMaxWidth()
+            .background(
+                if (selected) Color(0xFF10B981).copy(alpha = 0.12f) else Color(0xFF0F172A),
+                RoundedCornerShape(14.dp)
+            )
+            .selectable(selected = selected, onClick = onSelect, role = Role.RadioButton)
+            .padding(horizontal = 12.dp, vertical = 10.dp),
+        verticalAlignment = Alignment.CenterVertically
+    ) {
+        // onClick is null here because the parent Row's `.selectable` modifier already owns
+        // click handling and semantics for this row (standard Compose selectable-list pattern).
+        RadioButton(selected = selected, onClick = null)
+        Spacer(modifier = Modifier.width(8.dp))
+        Column {
+            Text(label, color = Color.White, fontWeight = FontWeight.SemiBold, fontSize = 13.sp)
+            Text(description, color = Color(0xFF94A3B8), fontSize = 11.sp)
+        }
     }
 }

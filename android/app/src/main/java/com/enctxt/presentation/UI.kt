@@ -32,6 +32,8 @@ import com.enctxt.core.gesture.GesturePoint
 import com.enctxt.core.gesture.GestureRepository
 import com.enctxt.core.gesture.GestureRevealManager
 import com.enctxt.core.gesture.RevealState
+import com.enctxt.core.privacy.ProtectedRenderMode
+import com.enctxt.core.privacy.SharedPrefsProtectionStylePreference
 import com.enctxt.core.network.ConnectivityMonitor
 import com.enctxt.core.network.NetworkResult
 import com.enctxt.core.network.WebSocketClient
@@ -820,6 +822,21 @@ fun ConversationScreen(
         }
     }
 
+    // Protection Style (Protected Text v2) — a local display preference, re-read on ON_RESUME
+    // so a change made in Settings takes effect immediately upon returning to this screen.
+    var protectionStyleGeneration by remember { mutableIntStateOf(0) }
+    DisposableEffect(lifecycleOwner) {
+        val observer = androidx.lifecycle.LifecycleEventObserver { _, event ->
+            if (event == androidx.lifecycle.Lifecycle.Event.ON_RESUME) protectionStyleGeneration++
+        }
+        lifecycleOwner.lifecycle.addObserver(observer)
+        onDispose { lifecycleOwner.lifecycle.removeObserver(observer) }
+    }
+    val protectionStylePreference = remember { SharedPrefsProtectionStylePreference(context) }
+    val protectionMode = remember(protectionStyleGeneration, currentUserId) {
+        protectionStylePreference.getMode(currentUserId)
+    }
+
     LaunchedEffect(conversationId) {
         viewModel.initializeConversation(conversationId, peerId, currentUserId)
     }
@@ -958,6 +975,7 @@ fun ConversationScreen(
                         msg = msg,
                         onRetry = { viewModel.retrySend(msg) },
                         revealState = revealState,
+                        protectionMode = protectionMode,
                         onRevealClick = {
                             val current = revealState
                             when {
@@ -1047,6 +1065,7 @@ fun MessageBubble(
     msg: MessageUiModel,
     onRetry: () -> Unit = {},
     revealState: RevealState = RevealState.Protected,
+    protectionMode: ProtectedRenderMode = ProtectedRenderMode.HOMOGLYPH,
     onRevealClick: () -> Unit = {}
 ) {
     val isOutgoing = msg.isOutgoing
@@ -1083,6 +1102,7 @@ fun MessageBubble(
                             content = msg.transientPlaintext ?: "",
                             revealState = revealState,
                             messageId = msg.localId,
+                            protectionMode = protectionMode,
                             color = Color.White,
                             fontSize = 14.sp,
                             modifier = Modifier.weight(1f, fill = false)
