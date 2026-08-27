@@ -141,13 +141,11 @@ class ConversationRepository(
         }
     }
 
-    suspend fun createConversation(userId: String): NetworkResult<ConversationDetails> = withContext(Dispatchers.IO) {
+    suspend fun createConversation(userId: String): NetworkResult<SingleConversationItem> = withContext(Dispatchers.IO) {
         when (val res = apiClient.createConversation(userId)) {
             is NetworkResult.Success -> {
                 val conv = res.data.conversation
-                val currentSession = database.sessionDao().getActiveSession()
-                val peer = conv.participants.firstOrNull { it.id != currentSession?.userId }
-                    ?: conv.participants.first()
+                val peer = conv.participant
 
                 database.conversationDao().insertConversation(
                     ConversationEntity(

@@ -113,7 +113,7 @@ open class ApiClient(
     open suspend fun getConversationDetails(id: String): NetworkResult<ConversationResponse> =
         executeGet("/conversations/$id")
 
-    open suspend fun createConversation(userId: String): NetworkResult<ConversationResponse> =
+    open suspend fun createConversation(userId: String): NetworkResult<CreateConversationResponse> =
         executePost("/conversations", CreateConversationRequest(userId))
 
     open suspend fun getMessages(

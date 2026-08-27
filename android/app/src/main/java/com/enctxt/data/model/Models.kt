@@ -82,6 +82,24 @@ data class ConversationResponse(
     val conversation: ConversationDetails
 )
 
+// POST /api/conversations returns a single `participant` object, not a
+// `participants` list — a distinct shape from GET /api/conversations/{id}.
+// Reusing ConversationResponse here throws on decode (participants is a
+// required field, never present in this response), which was silently
+// swallowed as a network error and made "start conversation" a no-op tap.
+@Serializable
+data class SingleConversationItem(
+    val id: String,
+    val createdAt: String,
+    val updatedAt: String,
+    val participant: UserSummary
+)
+
+@Serializable
+data class CreateConversationResponse(
+    val conversation: SingleConversationItem
+)
+
 @Serializable
 data class ConversationListItem(
     val id: String,

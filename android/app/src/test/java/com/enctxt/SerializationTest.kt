@@ -1,5 +1,7 @@
 package com.enctxt
 
+import com.enctxt.data.model.ConversationResponse
+import com.enctxt.data.model.CreateConversationResponse
 import com.enctxt.data.model.EncryptedEnvelopeDto
 import com.enctxt.data.model.RegisterRequest
 import com.enctxt.data.model.WSClientMessage
@@ -60,5 +62,32 @@ class SerializationTest {
         )
         val serialized = json.encodeToString(req)
         assertTrue(serialized.contains("\"username\":\"alice\""))
+    }
+
+    // Regression test: POST /api/conversations returns a single `participant`
+    // object, while GET /api/conversations/{id} returns a `participants` list.
+    // Decoding the create-endpoint's actual response against the wrong
+    // (list-shaped) model throws a MissingFieldException that was silently
+    // swallowed as a generic network error, making "start conversation" a
+    // no-op tap with no visible error.
+    @Test
+    fun testCreateConversationResponseMatchesServerShape() {
+        val createResponseJson = """
+            {"conversation":{"id":"conv-1","createdAt":"2026-01-01T00:00:00Z","updatedAt":"2026-01-01T00:00:00Z","participant":{"id":"user-2","username":"bob","displayName":"Bob"}}}
+        """.trimIndent()
+
+        val parsed = json.decodeFromString<CreateConversationResponse>(createResponseJson)
+        assertEquals("conv-1", parsed.conversation.id)
+        assertEquals("bob", parsed.conversation.participant.username)
+    }
+
+    @Test
+    fun testConversationDetailResponseMatchesServerShape() {
+        val detailResponseJson = """
+            {"conversation":{"id":"conv-1","createdAt":"2026-01-01T00:00:00Z","updatedAt":"2026-01-01T00:00:00Z","participants":[{"id":"user-1","username":"alice","displayName":"Alice"},{"id":"user-2","username":"bob","displayName":"Bob"}]}}
+        """.trimIndent()
+
+        val parsed = json.decodeFromString<ConversationResponse>(detailResponseJson)
+        assertEquals(2, parsed.conversation.participants.size)
     }
 }
