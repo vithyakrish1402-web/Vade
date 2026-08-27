@@ -175,13 +175,27 @@ data class PublishKeyRequest(
 )
 
 @Serializable
-data class PublicKeyResponse(
-    val userId: String,
+data class PublicKeyRecordDto(
     val keyId: String,
+    val userId: String,
     val publicKey: String,
+    val id: String? = null,
     val algorithm: String = "ECDH-P256",
-    val status: String = "active",
-    val createdAt: String? = null
+    val status: String? = null,
+    val createdAt: String? = null,
+    val updatedAt: String? = null
+)
+
+// GET /api/crypto/users/{id}/key returns the record nested under "key"
+// (`{ key: PublicKeyRecord | null }`), not flattened at the top level.
+// Modelling it flat made every peer-key fetch fail to decode, so no
+// conversation key could ever be derived: all messages showed as
+// undecryptable, every send failed, and because the peer-key cache is only
+// populated on success, each attempt re-fetched — the duplicate key-request
+// storm visible in the server logs.
+@Serializable
+data class PublicKeyResponse(
+    val key: PublicKeyRecordDto? = null
 )
 
 @Serializable

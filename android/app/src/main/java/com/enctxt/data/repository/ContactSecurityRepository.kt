@@ -31,8 +31,8 @@ class ContactSecurityRepository(
 
         when (val res = apiClient.getUserPublicKey(userId)) {
             is NetworkResult.Success -> {
-                val currentKey = res.data
-                if (currentKey.publicKey.isBlank()) {
+                val currentKey = res.data.key
+                if (currentKey == null || currentKey.publicKey.isBlank()) {
                     return@withContext NetworkResult.Success(ContactSecurityState.NoKey)
                 }
 

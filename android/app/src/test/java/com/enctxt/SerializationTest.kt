@@ -2,6 +2,7 @@ package com.enctxt
 
 import com.enctxt.data.model.ConversationResponse
 import com.enctxt.data.model.CreateConversationResponse
+import com.enctxt.data.model.PublicKeyResponse
 import com.enctxt.data.model.EncryptedEnvelopeDto
 import com.enctxt.data.model.RegisterRequest
 import com.enctxt.data.model.WSClientMessage
@@ -18,6 +19,9 @@ class SerializationTest {
         ignoreUnknownKeys = true
         encodeDefaults = true
     }
+
+    private val alicePublicKeySpkiBase64 =
+        "MFkwEwYHKoZIzj0CAQYIKoZIzj0DAQcDQgAEawMQ2rcQ7O3eTx0A3MmKjcMKOcqAuojgM68JwnxzDSpi40mxKcY2A/dWMdWvp0C3sGX/aXjlwmzMLOV+EAVJdg=="
 
     @Test
     fun testEnvelopeSerialization() {
@@ -79,6 +83,30 @@ class SerializationTest {
         val parsed = json.decodeFromString<CreateConversationResponse>(createResponseJson)
         assertEquals("conv-1", parsed.conversation.id)
         assertEquals("bob", parsed.conversation.participant.username)
+    }
+
+    // Regression test: GET /api/crypto/users/{id}/key nests the record under
+    // "key". Modelling those fields flat made every peer-key fetch fail to
+    // decode, so no conversation key could be derived and every message was
+    // undecryptable. The pre-existing unit tests constructed the model
+    // directly instead of decoding a real server payload, so they agreed with
+    // the wrong shape and the mismatch reached production.
+    @Test
+    fun testPublicKeyResponseMatchesServerShape() {
+        val serverJson = """
+            {"key":{"id":"row-1","keyId":"k_abc123","userId":"user-2","publicKey":"$alicePublicKeySpkiBase64","algorithm":"ECDH-P256","createdAt":"2026-01-01T00:00:00Z","updatedAt":"2026-01-01T00:00:00Z"}}
+        """.trimIndent()
+
+        val parsed = json.decodeFromString<PublicKeyResponse>(serverJson)
+        assertEquals("k_abc123", parsed.key?.keyId)
+        assertEquals("user-2", parsed.key?.userId)
+        assertEquals(alicePublicKeySpkiBase64, parsed.key?.publicKey)
+    }
+
+    @Test
+    fun testPublicKeyResponseToleratesMissingKey() {
+        val parsed = json.decodeFromString<PublicKeyResponse>("""{"key":null}""")
+        assertEquals(null, parsed.key)
     }
 
     @Test

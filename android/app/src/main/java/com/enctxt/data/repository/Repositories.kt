@@ -218,10 +218,15 @@ class CryptoRepository(
 
             when (val res = apiClient.getUserPublicKey(userId)) {
                 is NetworkResult.Success -> {
-                    val pubKey = KeyAgreementEngine.parsePublicKeyFromSpkiBase64(res.data.publicKey)
-                    val entry = Pair(res.data.keyId, pubKey)
-                    peerPublicKeyCache[userId] = entry
-                    NetworkResult.Success(entry)
+                    val record = res.data.key
+                    if (record == null) {
+                        NetworkResult.Error("KEY_NOT_FOUND", "Peer has not published an identity key")
+                    } else {
+                        val pubKey = KeyAgreementEngine.parsePublicKeyFromSpkiBase64(record.publicKey)
+                        val entry = Pair(record.keyId, pubKey)
+                        peerPublicKeyCache[userId] = entry
+                        NetworkResult.Success(entry)
+                    }
                 }
                 is NetworkResult.Error -> NetworkResult.Error(res.code, res.message, res.statusCode)
                 is NetworkResult.Loading -> NetworkResult.Loading

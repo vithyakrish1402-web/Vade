@@ -6,6 +6,7 @@ import com.enctxt.core.security.ContactSecurityState
 import com.enctxt.core.security.FingerprintEngine
 import com.enctxt.core.security.VerificationStorage
 import com.enctxt.core.security.VerifiedContact
+import com.enctxt.data.model.PublicKeyRecordDto
 import com.enctxt.data.model.PublicKeyResponse
 import com.enctxt.data.repository.ContactSecurityRepository
 import kotlinx.coroutines.test.runTest
@@ -61,7 +62,7 @@ class ContactSecurityStateTest {
     @Test
     fun `evaluates Unverified state when no local verification exists`() = runTest {
         apiClient.publicKeyHandler = {
-            NetworkResult.Success(PublicKeyResponse(userId = peerId, keyId = keyIdV1, publicKey = pubKeyV1))
+            NetworkResult.Success(PublicKeyResponse(PublicKeyRecordDto(userId = peerId, keyId = keyIdV1, publicKey = pubKeyV1)))
         }
 
         val result = repository.getContactSecurityState(peerId)
@@ -79,7 +80,7 @@ class ContactSecurityStateTest {
 
         // 2. Query state
         apiClient.publicKeyHandler = {
-            NetworkResult.Success(PublicKeyResponse(userId = peerId, keyId = keyIdV1, publicKey = pubKeyV1))
+            NetworkResult.Success(PublicKeyResponse(PublicKeyRecordDto(userId = peerId, keyId = keyIdV1, publicKey = pubKeyV1)))
         }
 
         val result = repository.getContactSecurityState(peerId)
@@ -99,7 +100,7 @@ class ContactSecurityStateTest {
 
         // Server now returns Bob's key v2 (e.g. rotated/new device)
         apiClient.publicKeyHandler = {
-            NetworkResult.Success(PublicKeyResponse(userId = peerId, keyId = keyIdV2, publicKey = pubKeyV2))
+            NetworkResult.Success(PublicKeyResponse(PublicKeyRecordDto(userId = peerId, keyId = keyIdV2, publicKey = pubKeyV2)))
         }
 
         val result = repository.getContactSecurityState(peerId)
@@ -122,7 +123,7 @@ class ContactSecurityStateTest {
         repository.markAsVerified(peerId, keyIdV1, fp1)
 
         apiClient.publicKeyHandler = {
-            NetworkResult.Success(PublicKeyResponse(userId = peerId, keyId = keyIdV2, publicKey = pubKeyV2))
+            NetworkResult.Success(PublicKeyResponse(PublicKeyRecordDto(userId = peerId, keyId = keyIdV2, publicKey = pubKeyV2)))
         }
 
         // 1. Initial detection of key change
@@ -144,7 +145,7 @@ class ContactSecurityStateTest {
         repository.markAsVerified(peerId, keyIdV1, fp1)
 
         apiClient.publicKeyHandler = {
-            NetworkResult.Success(PublicKeyResponse(userId = peerId, keyId = keyIdV1, publicKey = pubKeyV1))
+            NetworkResult.Success(PublicKeyResponse(PublicKeyRecordDto(userId = peerId, keyId = keyIdV1, publicKey = pubKeyV1)))
         }
 
         repository.removeVerification(peerId)
