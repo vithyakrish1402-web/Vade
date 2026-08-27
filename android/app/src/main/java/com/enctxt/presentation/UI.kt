@@ -776,18 +776,30 @@ fun ConversationScreen(
         onDispose { lifecycleOwner.lifecycle.removeObserver(observer) }
     }
 
-    // Window-focus-loss re-protection (§40) — e.g. recents overlay, system dialog.
+    // Window-focus-loss re-protection (§40) — e.g. recents overlay, notification
+    // shade. Scoped to Revealed: the gesture prompt is a Dialog, which owns its
+    // own window and necessarily takes focus from the Activity, so revoking on
+    // any focus loss dismissed our own prompt before a single stroke could be
+    // drawn. Only Revealed puts plaintext on screen, which is what focus-loss
+    // re-protection exists to hide; genuine backgrounding is still covered by
+    // the ON_STOP observer above, which applies in every state.
     val hasWindowFocus by WindowFocusMonitor.hasFocus.collectAsState()
-    LaunchedEffect(hasWindowFocus, revealManager) {
-        if (!hasWindowFocus) revealManager.revokeReveal()
+    LaunchedEffect(hasWindowFocus, revealState, revealManager) {
+        if (!hasWindowFocus && revealState is RevealState.Revealed) revealManager.revokeReveal()
     }
 
     // Layer 3 / Phase 18: Screenshot & screen-capture protection (FLAG_SECURE) during sensitive reveal & gesture auth
     val context = androidx.compose.ui.platform.LocalContext.current
-    DisposableEffect(revealState) {
+    val isSensitiveWindow = revealState is RevealState.Revealed || revealState is RevealState.Authenticating
+    // Keyed on the sensitivity flag rather than on revealState: keying on the
+    // state re-ran this on every transition, so Authenticating -> Revealed
+    // cleared and immediately re-added FLAG_SECURE. Toggling that flag forces
+    // the window surface to be recreated (observable as focus leaving and
+    // re-entering the window), which would trip the focus-loss revocation above
+    // and collapse the reveal the instant it was granted.
+    DisposableEffect(isSensitiveWindow) {
         val activity = context as? android.app.Activity
-        val isSensitive = revealState is RevealState.Revealed || revealState is RevealState.Authenticating
-        if (isSensitive) {
+        if (isSensitiveWindow) {
             activity?.window?.addFlags(android.view.WindowManager.LayoutParams.FLAG_SECURE)
         } else {
             activity?.window?.clearFlags(android.view.WindowManager.LayoutParams.FLAG_SECURE)
