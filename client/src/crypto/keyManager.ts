@@ -72,6 +72,26 @@ export async function generateIdentityKeyPair(): Promise<{
 }
 
 /**
+ * Publishes the local public identity key to the server.
+ *
+ * The server upserts on userId, so this is idempotent and safe to call on
+ * every session init. That repetition is deliberate: publishing only at
+ * key-creation time meant a single transient failure (an expired session, a
+ * network blip, a 401) left the private key saved locally while the server
+ * kept a stale public key forever, with no code path that would ever retry.
+ * Peers then encrypted to the stale key and every message failed to decrypt
+ * in both directions — while this client could still read its own messages,
+ * because self-decryption never consults its own published key.
+ */
+async function publishIdentityKey(keyId: string, publicKeyBase64: string): Promise<void> {
+  await api.post<PublicKeyResponse>('/crypto/identity', {
+    keyId,
+    publicKey: publicKeyBase64,
+    algorithm: KEY_AGREEMENT_ALGORITHM,
+  });
+}
+
+/**
  * Loads or initializes the user's local cryptographic identity and registers public key with server.
  */
 export async function getOrInitializeIdentity(userId: string): Promise<{
@@ -81,6 +101,13 @@ export async function getOrInitializeIdentity(userId: string): Promise<{
 }> {
   const existing = await loadIdentityKeys(userId);
   if (existing) {
+    // Re-assert the published key rather than assuming the original publish
+    // succeeded; a no-op when the server already agrees.
+    try {
+      await publishIdentityKey(existing.keyId, existing.publicKeyBase64);
+    } catch (error) {
+      console.warn('Failed to re-publish existing public key to server:', error);
+    }
     return existing;
   }
 
@@ -97,11 +124,7 @@ export async function getOrInitializeIdentity(userId: string): Promise<{
 
   // Publish public key to server
   try {
-    await api.post<PublicKeyResponse>('/crypto/identity', {
-      keyId: newIdentity.keyId,
-      publicKey: newIdentity.publicKeyBase64,
-      algorithm: KEY_AGREEMENT_ALGORITHM,
-    });
+    await publishIdentityKey(newIdentity.keyId, newIdentity.publicKeyBase64);
   } catch (error) {
     console.warn('Failed to publish public key to server:', error);
   }

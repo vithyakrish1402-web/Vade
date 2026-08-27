@@ -173,7 +173,11 @@ class CryptoRepository(
     private val apiClient: ApiClient,
     private val keyStoreManager: KeyStoreManager
 ) {
-    private val peerPublicKeyCache = ConcurrentHashMap<String, PublicKey>()
+    // Caches the peer's keyId alongside the key: returning a placeholder id for
+    // cache hits stamped a bogus recipientKeyId onto every message sent after
+    // the first fetch, corrupting the envelope metadata that key-change
+    // detection and device attribution rely on.
+    private val peerPublicKeyCache = ConcurrentHashMap<String, Pair<String, PublicKey>>()
 
     fun isIdentityInitialized(): Boolean = keyStoreManager.hasIdentityKey()
 
@@ -208,15 +212,16 @@ class CryptoRepository(
 
     suspend fun getPeerPublicKey(userId: String): NetworkResult<Pair<String, PublicKey>> {
         return try {
-            peerPublicKeyCache[userId]?.let { cachedKey ->
-                return NetworkResult.Success(Pair("k_cached", cachedKey))
+            peerPublicKeyCache[userId]?.let { cached ->
+                return NetworkResult.Success(cached)
             }
 
             when (val res = apiClient.getUserPublicKey(userId)) {
                 is NetworkResult.Success -> {
                     val pubKey = KeyAgreementEngine.parsePublicKeyFromSpkiBase64(res.data.publicKey)
-                    peerPublicKeyCache[userId] = pubKey
-                    NetworkResult.Success(Pair(res.data.keyId, pubKey))
+                    val entry = Pair(res.data.keyId, pubKey)
+                    peerPublicKeyCache[userId] = entry
+                    NetworkResult.Success(entry)
                 }
                 is NetworkResult.Error -> NetworkResult.Error(res.code, res.message, res.statusCode)
                 is NetworkResult.Loading -> NetworkResult.Loading

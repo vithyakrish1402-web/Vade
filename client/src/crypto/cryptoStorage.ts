@@ -23,9 +23,12 @@ function isIndexedDBAvailable(): boolean {
   return typeof window !== 'undefined' && typeof window.indexedDB !== 'undefined';
 }
 
-function openDB(): Promise<IDBDatabase> {
+function openAt(version?: number): Promise<IDBDatabase> {
   return new Promise((resolve, reject) => {
-    const request = window.indexedDB.open(DB_NAME, DB_VERSION);
+    const request =
+      version === undefined
+        ? window.indexedDB.open(DB_NAME)
+        : window.indexedDB.open(DB_NAME, version);
 
     request.onupgradeneeded = () => {
       const db = request.result;
@@ -37,6 +40,23 @@ function openDB(): Promise<IDBDatabase> {
     request.onsuccess = () => resolve(request.result);
     request.onerror = () => reject(request.error);
   });
+}
+
+async function openDB(): Promise<IDBDatabase> {
+  const db = await openAt(DB_VERSION);
+  if (db.objectStoreNames.contains(STORE_NAME)) {
+    return db;
+  }
+
+  // The database exists at this version but without our object store, so
+  // onupgradeneeded will never fire again to create it and every transaction
+  // would throw NotFoundError. Reopen one version higher to force an upgrade
+  // that creates the missing store, rather than leaving key storage
+  // permanently broken (which silently degrades to the in-memory fallback and
+  // regenerates the identity on every page load).
+  const nextVersion = db.version + 1;
+  db.close();
+  return openAt(nextVersion);
 }
 
 export async function saveIdentityKeys(
