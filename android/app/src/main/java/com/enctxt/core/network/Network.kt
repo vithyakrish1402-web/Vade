@@ -1,5 +1,6 @@
 package com.enctxt.core.network
 
+import com.enctxt.BuildConfig
 import com.enctxt.data.model.*
 import kotlinx.coroutines.*
 import kotlinx.coroutines.flow.*
@@ -17,8 +18,8 @@ import java.util.concurrent.TimeUnit
 // ==============================================================================
 
 data class NetworkConfig(
-    val baseUrl: String = "http://10.0.2.2:5000/api",
-    val wsUrl: String = "ws://10.0.2.2:5000/ws",
+    val baseUrl: String = BuildConfig.API_BASE_URL,
+    val wsUrl: String = BuildConfig.WS_URL,
     val connectTimeoutSeconds: Long = 10,
     val readTimeoutSeconds: Long = 30
 )

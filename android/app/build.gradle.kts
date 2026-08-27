@@ -58,10 +58,28 @@ android {
                 // Fallback for CI/development release testing when external keystore is unprovided
                 signingConfig = signingConfigs.getByName("debug")
             }
+
+            // Production backend (Render). Always HTTPS/WSS — cleartext is
+            // disabled network-wide in network_security_config.xml regardless.
+            buildConfigField("String", "API_BASE_URL", "\"https://vade-api.onrender.com/api\"")
+            buildConfigField("String", "WS_URL", "\"wss://vade-api.onrender.com/ws\"")
         }
         debug {
             isMinifyEnabled = false
             applicationIdSuffix = ".debug"
+
+            // Local dev server via the emulator's host-loopback alias by default.
+            // Override with -PVADE_DEV_API_BASE_URL / -PVADE_DEV_WS_URL (or the
+            // matching env vars) to point a debug build at a remote/staging backend
+            // without touching source.
+            val devApiBaseUrl = System.getenv("VADE_DEV_API_BASE_URL")
+                ?: (project.findProperty("VADE_DEV_API_BASE_URL") as? String)
+                ?: "http://10.0.2.2:5000/api"
+            val devWsUrl = System.getenv("VADE_DEV_WS_URL")
+                ?: (project.findProperty("VADE_DEV_WS_URL") as? String)
+                ?: "ws://10.0.2.2:5000/ws"
+            buildConfigField("String", "API_BASE_URL", "\"$devApiBaseUrl\"")
+            buildConfigField("String", "WS_URL", "\"$devWsUrl\"")
         }
     }
 
@@ -76,6 +94,7 @@ android {
 
     buildFeatures {
         compose = true
+        buildConfig = true
     }
 
     composeOptions {
