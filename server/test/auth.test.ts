@@ -3,6 +3,27 @@ import request from 'supertest';
 import { createApp } from '../src/app.js';
 import { mockDb } from './mockDb.js';
 import { verifyPassword } from '../src/utils/crypto.js';
+import { getSessionCookieOptions } from '../src/controllers/authController.js';
+
+describe('Session cookie cross-origin configuration', () => {
+  it('uses SameSite=None (with Secure) in production so the cookie survives a cross-site fetch', () => {
+    // Regression test: the client (Vercel) and API (Render) are different
+    // origins in production. SameSite=Lax is dropped by browsers on
+    // cross-site fetch/XHR, which let login succeed while every subsequent
+    // authenticated call 401'd.
+    const options = getSessionCookieOptions(true);
+    expect(options.sameSite).toBe('none');
+    expect(options.secure).toBe(true);
+  });
+
+  it('uses SameSite=Lax without Secure outside production (plain HTTP dev server)', () => {
+    // SameSite=None requires Secure=true; over plain HTTP the browser would
+    // reject the cookie outright, so local dev must stay on Lax.
+    const options = getSessionCookieOptions(false);
+    expect(options.sameSite).toBe('lax');
+    expect(options.secure).toBe(false);
+  });
+});
 
 describe('Authentication & User Identity API', () => {
   const app = createApp();

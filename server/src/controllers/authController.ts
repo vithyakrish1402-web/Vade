@@ -1,27 +1,34 @@
-import type { Request, Response, NextFunction } from 'express';
+import type { CookieOptions, Request, Response, NextFunction } from 'express';
 import type { AuthResponse, CurrentUserResponse, LogoutResponse } from '@enctxt/shared';
 import { registerSchema, loginSchema } from '../utils/validation.js';
 import { AuthService } from '../services/authService.js';
 import { AppError } from '../utils/errors.js';
 import { config } from '../config/env.js';
 
+// Exported for direct unit testing: the client (Vercel) and API (Render) are
+// served from different origins in production, so the session cookie must be
+// sent cross-site. SameSite=Lax blocks that on any non-navigation request
+// (every fetch/XHR), which silently 401s every authenticated call after a
+// successful login. SameSite=None requires Secure=true, which is already the
+// case in production.
+export function getSessionCookieOptions(isProduction: boolean): CookieOptions {
+  return {
+    httpOnly: true,
+    secure: isProduction,
+    sameSite: isProduction ? 'none' : 'lax',
+    path: '/',
+  };
+}
+
 function setSessionCookie(res: Response, token: string, expiresAt: Date): void {
   res.cookie(config.SESSION_COOKIE_NAME, token, {
-    httpOnly: true,
-    secure: config.NODE_ENV === 'production',
-    sameSite: 'lax',
+    ...getSessionCookieOptions(config.NODE_ENV === 'production'),
     expires: expiresAt,
-    path: '/',
   });
 }
 
 function clearSessionCookie(res: Response): void {
-  res.clearCookie(config.SESSION_COOKIE_NAME, {
-    httpOnly: true,
-    secure: config.NODE_ENV === 'production',
-    sameSite: 'lax',
-    path: '/',
-  });
+  res.clearCookie(config.SESSION_COOKIE_NAME, getSessionCookieOptions(config.NODE_ENV === 'production'));
 }
 
 export class AuthController {
