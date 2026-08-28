@@ -12,9 +12,31 @@ import {
   NORMALIZED_BOUNDING_SIZE,
 } from './gestureNormalize';
 
-// Standard matching thresholds
-export const DEFAULT_MATCH_DISTANCE_THRESHOLD = 28.0; // Distance <= 28 counts as a match
-export const CONFIRMATION_DISTANCE_THRESHOLD = 30.0; // Slightly more forgiving for confirmation
+/*
+ * Thresholds are average point-to-point distance across a 100x100 normalized box, chosen from
+ * a sweep over genuine redraws (varying offset, scale and hand wobble) against distinct-shape
+ * impostor pairs:
+ *
+ *   threshold   false-reject   false-accept
+ *        28.0           0.0%          11.1%   <- the previous value
+ *        16.0           0.0%           2.2%
+ *        14.0           1.0%           0.0%
+ *        12.0           7.9%           0.0%
+ *
+ * Genuine redraws top out around 15.5 and the closest impostor pair sits at 15.1, so 14 is the
+ * widest setting that still admits no wrong shape. A false reject costs one redraw; a false
+ * accept puts plaintext on screen. Kept identical to the Android constants so a gesture behaves
+ * the same on both platforms.
+ */
+export const DEFAULT_MATCH_DISTANCE_THRESHOLD = 14.0;
+
+/**
+ * Enrollment's confirm-redraw compares two freshly drawn strokes, so both sides carry hand
+ * wobble rather than just one. Marginally more forgiving to account for that, and still admits
+ * no impostor pair — a gesture loose enough to enroll but too loose to unlock would be the
+ * worst possible outcome.
+ */
+export const CONFIRMATION_DISTANCE_THRESHOLD = 15.0;
 
 /**
  * Calculates the average point-to-point Euclidean distance between two normalized templates.

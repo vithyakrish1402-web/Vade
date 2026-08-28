@@ -14,8 +14,8 @@ describe('Message Reveal & Temporary Plaintext Lifecycle (Phase 9)', () => {
     vi.restoreAllMocks();
   });
 
-  it('enforces 8-second default reveal expiration duration', () => {
-    expect(DEFAULT_REVEAL_DURATION_MS).toBe(8000);
+  it('enforces the fixed 6-second reveal window from the design spec', () => {
+    expect(DEFAULT_REVEAL_DURATION_MS).toBe(6000);
   });
 
   it('enforces 5-attempt threshold for temporary gesture lockout', () => {

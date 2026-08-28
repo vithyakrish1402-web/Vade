@@ -1,7 +1,11 @@
 import { useState, useEffect, useCallback, useRef } from 'react';
 import { useAuth } from '../auth/AuthContext';
 
-export const DEFAULT_REVEAL_DURATION_MS = 8000; // 8 seconds
+/**
+ * The reveal window. Fixed rather than user-configurable: a window the user can lengthen is a
+ * window an attacker can lengthen, and six seconds is enough to read a message once.
+ */
+export const DEFAULT_REVEAL_DURATION_MS = 6000;
 export const MAX_FAILED_ATTEMPTS = 5;
 export const LOCKOUT_DURATION_MS = 30000; // 30 seconds
 
@@ -73,6 +77,15 @@ export function useMessageReveal() {
       if (!expiresAt) return false;
       return Date.now() < expiresAt;
     },
+    [revealedMap]
+  );
+
+  /**
+   * Epoch ms at which the window closes, or null when the message is not revealed.
+   * `RevealCountdown` renders from this; re-protection is still owned by the timer above.
+   */
+  const getRevealExpiry = useCallback(
+    (messageId: string): number | null => revealedMap.get(messageId) ?? null,
     [revealedMap]
   );
 
@@ -164,6 +177,7 @@ export function useMessageReveal() {
 
   return {
     isRevealed,
+    getRevealExpiry,
     getRemainingRevealSeconds,
     revealMessage,
     hideMessage,

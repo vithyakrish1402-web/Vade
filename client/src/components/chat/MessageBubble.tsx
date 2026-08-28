@@ -1,149 +1,150 @@
 import React from 'react';
 import type { MessageItem } from '@enctxt/shared';
-import { ProtectedMessage } from '../messages/ProtectedMessage';
+import { Check, CheckCheck, Clock } from 'lucide-react';
 import type { ProtectionMode } from '../../utils/protectedText/protectedTextEngine';
 import { formatMessageTime } from '../../utils/dateUtils';
-import { Eye, EyeOff, Clock, Check, CheckCheck, AlertCircle, RotateCcw } from 'lucide-react';
+import { ProtectedBubble, RevealedBubble } from '../vade/Bubbles';
+import { RevealCountdown } from '../vade/RevealCountdown';
 
 export interface MessageBubbleProps {
   message: MessageItem;
   isMe: boolean;
   decryptedContent: string;
   isRevealed: boolean;
-  remainingRevealSeconds?: number;
-  protectionMode?: ProtectionMode;
-  isFirstInGroup?: boolean;
-  isLastInGroup?: boolean;
+  /** Epoch ms the reveal window closes. Present only while revealed. */
+  revealExpiresAt: number | null;
+  revealDurationMs: number;
+  remainingRevealSeconds: number;
+  protectionMode: ProtectionMode;
+  isOffline: boolean;
   onRevealClick: () => void;
   onHideClick: () => void;
-  onRetryClick?: () => void;
+  onLongPress: () => void;
+  onRetryClick: () => void;
 }
 
+interface MetaProps {
+  message: MessageItem;
+  isMe: boolean;
+  isOffline: boolean;
+  onRetryClick: () => void;
+}
+
+/**
+ * The line under a protected bubble: the time, or — while the connection is down — what
+ * happened to the send. Queued and failed are words, not just icons.
+ */
+const MessageMeta: React.FC<MetaProps> = ({ message, isMe, isOffline, onRetryClick }) => {
+  const isFailed = message.status === 'failed';
+  const isQueued = isMe && !isFailed && message.status === 'sending' && isOffline;
+
+  if (isFailed) {
+    return (
+      <div className="flex items-center gap-1.5 px-[5px] text-[11px] text-warn">
+        <span>Not delivered</span>
+        <button
+          type="button"
+          onClick={onRetryClick}
+          className="cursor-pointer font-bold underline underline-offset-[3px] focus:outline-none focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-warn"
+        >
+          Retry
+        </button>
+      </div>
+    );
+  }
+
+  if (isQueued) {
+    return (
+      <div className="flex items-center gap-1.5 px-[5px] text-[11px] text-faint">
+        <span>Queued · sends when online</span>
+        <Clock width={12} height={12} strokeWidth={2.75} aria-hidden="true" />
+      </div>
+    );
+  }
+
+  return (
+    <div className="flex items-center gap-1.5 px-[5px] text-[11px] text-faint">
+      <span>{formatMessageTime(message.createdAt)}</span>
+      {isMe &&
+        (message.status === 'read' ? (
+          <CheckCheck
+            width={12}
+            height={12}
+            strokeWidth={2.75}
+            className="text-accent"
+            aria-label="Read"
+          />
+        ) : message.status === 'delivered' ? (
+          <CheckCheck width={12} height={12} strokeWidth={2.75} aria-label="Delivered" />
+        ) : message.status === 'sending' ? (
+          <Clock width={12} height={12} strokeWidth={2.75} aria-label="Sending" />
+        ) : (
+          <Check width={12} height={12} strokeWidth={2.75} aria-label="Sent" />
+        ))}
+    </div>
+  );
+};
+
+/**
+ * One message in the timeline.
+ *
+ * The protected and revealed forms are separate components rather than one bubble with a flag,
+ * so decrypted text cannot reach the protected path by accident. While a message is revealed
+ * the meta row is replaced by the countdown — the window is always visible for as long as it
+ * is open.
+ */
 export const MessageBubble: React.FC<MessageBubbleProps> = React.memo(
   ({
     message,
     isMe,
     decryptedContent,
     isRevealed,
+    revealExpiresAt,
+    revealDurationMs,
     remainingRevealSeconds,
-    protectionMode = 'HOMOGLYPH',
-    isFirstInGroup = true,
-    isLastInGroup = true,
+    protectionMode,
+    isOffline,
     onRevealClick,
     onHideClick,
+    onLongPress,
     onRetryClick,
-  }) => {
-    // Bubble border radius grouping logic
-    const getBorderRadius = () => {
-      if (isMe) {
-        if (isFirstInGroup && isLastInGroup) return 'rounded-2xl rounded-tr-xs';
-        if (isFirstInGroup) return 'rounded-2xl rounded-tr-xs rounded-br-md';
-        if (isLastInGroup) return 'rounded-2xl rounded-tr-md rounded-br-xs';
-        return 'rounded-2xl rounded-r-md';
-      } else {
-        if (isFirstInGroup && isLastInGroup) return 'rounded-2xl rounded-tl-xs';
-        if (isFirstInGroup) return 'rounded-2xl rounded-tl-xs rounded-bl-md';
-        if (isLastInGroup) return 'rounded-2xl rounded-tl-md rounded-bl-xs';
-        return 'rounded-2xl rounded-l-md';
-      }
-    };
+  }) => (
+    <div className={`flex flex-col gap-1.5 animate-rise ${isMe ? 'items-end' : 'items-start'}`}>
+      {isRevealed ? (
+        <RevealedBubble
+          plaintext={decryptedContent}
+          isMe={isMe}
+          remainingSeconds={remainingRevealSeconds}
+          onLongPress={onLongPress}
+        />
+      ) : (
+        <ProtectedBubble
+          content={decryptedContent}
+          mode={protectionMode}
+          isMe={isMe}
+          onReveal={onRevealClick}
+          onLongPress={onLongPress}
+        />
+      )}
 
-    return (
-      <div
-        className={`flex flex-col ${isMe ? 'items-end' : 'items-start'} group ${
-          isLastInGroup ? 'mb-2.5' : 'mb-1'
-        }`}
-      >
-        <div className="relative max-w-[85%] sm:max-w-[72%]">
-          {/* Message Content Bubble */}
-          <div
-            className={`px-4 py-2.5 text-xs sm:text-sm leading-relaxed shadow-sm break-words whitespace-pre-wrap transition-all ${getBorderRadius()} ${
-              isMe
-                ? isRevealed
-                  ? 'bg-emerald-700 text-white ring-2 ring-emerald-400/50'
-                  : 'bg-emerald-600 text-white'
-                : isRevealed
-                ? 'bg-slate-700 text-white border border-emerald-500/40 ring-2 ring-emerald-500/30'
-                : 'bg-slate-800 text-slate-100 border border-slate-700/60'
-            }`}
-          >
-            <ProtectedMessage
-              content={decryptedContent}
-              displayMode={isRevealed ? 'revealed' : 'protected'}
-              mode={protectionMode}
-            />
-          </div>
-
-          {/* Reveal / Hide Action Pill */}
-          <button
-            type="button"
-            onClick={isRevealed ? onHideClick : onRevealClick}
-            aria-label={isRevealed ? 'Hide revealed message' : 'Draw gesture to reveal message'}
-            className={`absolute ${
-              isMe ? '-left-9' : '-right-9'
-            } top-1/2 -translate-y-1/2 p-1.5 rounded-full transition-opacity cursor-pointer focus:opacity-100 ${
-              isRevealed
-                ? 'bg-emerald-950/90 text-emerald-400 border border-emerald-700/60 opacity-100'
-                : 'bg-slate-800/90 text-slate-400 hover:text-slate-200 border border-slate-700 opacity-0 group-hover:opacity-100'
-            }`}
-            title={isRevealed ? 'Click to hide plaintext' : 'Draw gesture to reveal message'}
-          >
-            {isRevealed ? (
-              <EyeOff className="w-3.5 h-3.5 text-emerald-400" aria-hidden="true" />
-            ) : (
-              <Eye className="w-3.5 h-3.5" aria-hidden="true" />
-            )}
-          </button>
-        </div>
-
-        {/* Message Meta: Timestamp & Delivery Status */}
-        {isLastInGroup && (
-          <div className="flex items-center gap-1.5 mt-1 px-1 text-[10px] text-slate-500 font-mono select-none">
-            {isRevealed && (
-              <span className="text-[10px] text-emerald-400 font-semibold uppercase tracking-wider">
-                Revealed {remainingRevealSeconds ? `· ${remainingRevealSeconds}s` : ''}
-              </span>
-            )}
-
-            <span>{formatMessageTime(message.createdAt)}</span>
-
-            {isMe && (
-              <span className="flex items-center gap-0.5 ml-0.5">
-                {message.status === 'sending' ? (
-                  <span title="Sending..." aria-label="Sending">
-                    <Clock className="w-3 h-3 text-slate-400 animate-pulse" aria-hidden="true" />
-                  </span>
-                ) : message.status === 'failed' ? (
-                  <button
-                    type="button"
-                    onClick={onRetryClick}
-                    className="text-rose-400 hover:text-rose-300 flex items-center gap-1 font-sans font-medium cursor-pointer"
-                    title="Failed to send. Click to retry"
-                  >
-                    <AlertCircle className="w-3 h-3" aria-hidden="true" />
-                    <span>Retry</span>
-                    <RotateCcw className="w-2.5 h-2.5" aria-hidden="true" />
-                  </button>
-                ) : message.status === 'read' ? (
-                  <span title="Read" aria-label="Read">
-                    <CheckCheck className="w-3 h-3 text-emerald-400" aria-hidden="true" />
-                  </span>
-                ) : message.status === 'delivered' ? (
-                  <span title="Delivered" aria-label="Delivered">
-                    <CheckCheck className="w-3 h-3 text-slate-400" aria-hidden="true" />
-                  </span>
-                ) : (
-                  <span title="Sent" aria-label="Sent">
-                    <Check className="w-3 h-3 text-slate-400" aria-hidden="true" />
-                  </span>
-                )}
-              </span>
-            )}
-          </div>
-        )}
-      </div>
-    );
-  }
+      {isRevealed && revealExpiresAt !== null ? (
+        <RevealCountdown
+          expiresAt={revealExpiresAt}
+          durationMs={revealDurationMs}
+          onHide={onHideClick}
+        />
+      ) : (
+        !isRevealed && (
+          <MessageMeta
+            message={message}
+            isMe={isMe}
+            isOffline={isOffline}
+            onRetryClick={onRetryClick}
+          />
+        )
+      )}
+    </div>
+  )
 );
 
 MessageBubble.displayName = 'MessageBubble';

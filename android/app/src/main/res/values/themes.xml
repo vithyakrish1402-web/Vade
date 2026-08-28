@@ -1,8 +1,13 @@
 <?xml version="1.0" encoding="utf-8"?>
+<!--
+    The launch theme only has to hold the ground until Compose takes over; the real palette
+    lives in presentation/theme/VadeTheme.kt. System bar colours are set at runtime by
+    enableEdgeToEdge(), so they are transparent here rather than a hard-coded slate.
+-->
 <resources>
     <style name="Theme.Enctxt" parent="android:Theme.Material.NoActionBar">
-        <item name="android:statusBarColor">#0F172A</item>
-        <item name="android:navigationBarColor">#0F172A</item>
-        <item name="android:windowBackground">#090D16</item>
+        <item name="android:statusBarColor">@android:color/transparent</item>
+        <item name="android:navigationBarColor">@android:color/transparent</item>
+        <item name="android:windowBackground">@color/vade_bg</item>
     </style>
 </resources>

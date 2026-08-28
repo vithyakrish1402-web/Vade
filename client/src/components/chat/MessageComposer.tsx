@@ -1,5 +1,5 @@
-import React, { useState, useRef, useEffect } from 'react';
-import { Send, Loader2, WifiOff } from 'lucide-react';
+import React, { useEffect, useRef, useState } from 'react';
+import { Loader2, Plus, Send } from 'lucide-react';
 import type { WSConnectionStatus } from '../../services/websocket';
 
 export interface MessageComposerProps {
@@ -8,6 +8,14 @@ export interface MessageComposerProps {
   disabled?: boolean;
 }
 
+const MAX_LENGTH = 5000;
+
+/**
+ * A pill field between two 44px circular actions, on a hairline top edge.
+ *
+ * The composer stays usable while offline — composing works and sending queues, so no draft is
+ * silently lost. The placeholder says which of the two is happening.
+ */
 export const MessageComposer: React.FC<MessageComposerProps> = ({
   onSendMessage,
   connectionStatus,
@@ -18,20 +26,18 @@ export const MessageComposer: React.FC<MessageComposerProps> = ({
   const textareaRef = useRef<HTMLTextAreaElement>(null);
 
   const isOffline = connectionStatus === 'disconnected';
-  const isComposerDisabled = disabled || isOffline;
 
-  // Auto-grow textarea height
   useEffect(() => {
-    if (textareaRef.current) {
-      textareaRef.current.style.height = 'auto';
-      textareaRef.current.style.height = `${Math.min(textareaRef.current.scrollHeight, 140)}px`;
-    }
+    const textarea = textareaRef.current;
+    if (!textarea) return;
+    textarea.style.height = 'auto';
+    textarea.style.height = `${Math.min(textarea.scrollHeight, 120)}px`;
   }, [content]);
 
-  const handleSend = async (e?: React.FormEvent) => {
-    if (e) e.preventDefault();
+  const handleSend = async (event?: React.FormEvent) => {
+    event?.preventDefault();
     const trimmed = content.trim();
-    if (!trimmed || isSending || isComposerDisabled) return;
+    if (!trimmed || isSending || disabled) return;
 
     setIsSending(true);
     setContent('');
@@ -39,79 +45,71 @@ export const MessageComposer: React.FC<MessageComposerProps> = ({
       await onSendMessage(trimmed);
     } finally {
       setIsSending(false);
-      if (textareaRef.current) {
-        textareaRef.current.style.height = 'auto';
-        textareaRef.current.focus();
-      }
+      textareaRef.current?.focus();
     }
   };
 
-  const handleKeyDown = (e: React.KeyboardEvent<HTMLTextAreaElement>) => {
-    if (e.key === 'Enter' && !e.shiftKey) {
-      e.preventDefault();
-      handleSend();
+  const handleKeyDown = (event: React.KeyboardEvent<HTMLTextAreaElement>) => {
+    if (event.key === 'Enter' && !event.shiftKey) {
+      event.preventDefault();
+      void handleSend();
     }
   };
+
+  const canSend = Boolean(content.trim()) && !isSending && !disabled;
 
   return (
     <form
       onSubmit={handleSend}
-      className="p-3 sm:p-4 border-t border-slate-800 bg-slate-950/80 backdrop-blur-md"
+      className="flex shrink-0 items-end gap-[9px] border-t border-line px-4 pb-2.5 pt-2"
+      style={{ paddingBottom: 'max(10px, env(safe-area-inset-bottom))' }}
     >
-      {isOffline && (
-        <div
-          role="status"
-          className="mb-2 px-3 py-1.5 bg-slate-900 border border-slate-800 rounded-xl text-xs text-slate-400 flex items-center gap-2"
-        >
-          <WifiOff className="w-3.5 h-3.5 text-slate-500 shrink-0" aria-hidden="true" />
-          <span>You are offline. Reconnecting before sending is available.</span>
-        </div>
-      )}
+      <button
+        type="button"
+        aria-label="Add attachment"
+        disabled
+        title="Attachments are not available yet"
+        className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-surface text-text disabled:opacity-45 focus:outline-none focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent"
+      >
+        <Plus width={19} height={19} strokeWidth={2.75} aria-hidden="true" />
+      </button>
 
-      <div className="flex items-end gap-2 bg-slate-900 border border-slate-800 rounded-2xl p-2 focus-within:border-emerald-500 focus-within:ring-1 focus-within:ring-emerald-500 transition-colors">
+      <div className="flex min-h-[44px] flex-1 items-center rounded-[22px] bg-surface px-4">
         <textarea
           ref={textareaRef}
           value={content}
-          onChange={(e) => setContent(e.target.value)}
+          onChange={(event) => setContent(event.target.value)}
           onKeyDown={handleKeyDown}
-          placeholder={
-            isOffline
-              ? 'Offline — waiting for connection...'
-              : 'Type an encrypted message... (Press Enter to send, Shift+Enter for newline)'
-          }
+          placeholder={isOffline ? 'Message · sends when online' : 'Message'}
           rows={1}
-          maxLength={5000}
-          disabled={isComposerDisabled}
+          maxLength={MAX_LENGTH}
+          disabled={disabled}
           aria-label="Message text"
-          className="flex-1 bg-transparent border-0 resize-none text-xs sm:text-sm text-slate-100 placeholder-slate-500 focus:outline-none max-h-32 min-h-[38px] py-2 px-2.5 disabled:opacity-50"
+          className="max-h-[120px] min-h-[24px] w-full resize-none border-0 bg-transparent py-2.5 text-[14.5px] text-text placeholder:text-muted caret-accent focus:outline-none disabled:opacity-45"
         />
-
-        <div className="flex items-center gap-2 shrink-0 pb-1 pr-1">
-          {content.length > 3500 && (
-            <span
-              className={`text-[10px] font-mono ${
-                content.length >= 4900 ? 'text-rose-400 font-bold' : 'text-slate-500'
-              }`}
-            >
-              {content.length}/5000
-            </span>
-          )}
-
-          <button
-            type="submit"
-            disabled={!content.trim() || isComposerDisabled || isSending}
-            aria-label="Send message"
-            className="p-2.5 bg-emerald-600 hover:bg-emerald-500 text-white rounded-xl disabled:opacity-30 transition-all cursor-pointer shadow-sm flex items-center justify-center focus:outline-none focus-visible:ring-2 focus-visible:ring-emerald-400"
-            title="Send Encrypted Message"
+        {content.length > MAX_LENGTH - 500 && (
+          <span
+            className={`shrink-0 pl-2 text-[11px] ${
+              content.length >= MAX_LENGTH - 100 ? 'font-bold text-warn' : 'text-faint'
+            }`}
           >
-            {isSending ? (
-              <Loader2 className="w-4 h-4 animate-spin" aria-hidden="true" />
-            ) : (
-              <Send className="w-4 h-4" aria-hidden="true" />
-            )}
-          </button>
-        </div>
+            {MAX_LENGTH - content.length}
+          </span>
+        )}
       </div>
+
+      <button
+        type="submit"
+        disabled={!canSend}
+        aria-label="Send message"
+        className="flex h-11 w-11 shrink-0 cursor-pointer items-center justify-center rounded-full bg-out-bg text-out-fg disabled:opacity-30 focus:outline-none focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent"
+      >
+        {isSending ? (
+          <Loader2 className="h-[18px] w-[18px] animate-spin" aria-hidden="true" />
+        ) : (
+          <Send width={18} height={18} strokeWidth={2.75} aria-hidden="true" />
+        )}
+      </button>
     </form>
   );
 };

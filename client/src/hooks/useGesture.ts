@@ -5,7 +5,7 @@ import {
   saveGestureSequence,
   deleteGestureSequence,
 } from '../utils/gestureStorage';
-import { normalizeGesture, type Point } from '../utils/gestureNormalize';
+import { isDistinctiveShape, normalizeGesture, type Point } from '../utils/gestureNormalize';
 import { isGestureMatch } from '../utils/gestureRecognizer';
 
 export function useGesture() {
@@ -44,6 +44,10 @@ export function useGesture() {
 
       const normalizedSteps: Point[][] = [];
       for (const raw of rawSteps) {
+        // A straight swipe normalizes to the same template as any other straight swipe, so it
+        // would unlock against unrelated gestures. Refused here as well as in the UI, so no
+        // caller can enroll one by taking a different route in.
+        if (!isDistinctiveShape(raw)) return false;
         const norm = normalizeGesture(raw);
         if (!norm) return false;
         normalizedSteps.push(norm);
