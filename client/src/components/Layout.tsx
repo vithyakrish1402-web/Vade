@@ -1,50 +1,47 @@
 import React, { useMemo } from 'react';
-import { Navbar } from './Navbar';
+import { AlertTriangle } from 'lucide-react';
 import { ToastProvider } from './ui/Toast';
 import { ErrorBoundary } from './ui/ErrorBoundary';
 import { checkBrowserCapabilities } from '../utils/browserCapabilities';
-import { AlertCircle, Shield } from 'lucide-react';
 
 interface LayoutProps {
   children: React.ReactNode;
 }
 
+/**
+ * The outermost frame.
+ *
+ * There is no persistent top chrome: navigation lives in the bottom bar on mobile and the icon
+ * rail on desktop, and every screen owns its own header. The only thing that can appear above
+ * the app is the capability warning — if the browser cannot do the crypto, nothing below it is
+ * trustworthy.
+ */
 export const Layout: React.FC<LayoutProps> = ({ children }) => {
-  const browserCaps = useMemo(() => checkBrowserCapabilities(), []);
+  const capabilities = useMemo(() => checkBrowserCapabilities(), []);
 
   return (
     <ToastProvider>
-      <div className="min-h-screen flex flex-col bg-slate-950 text-slate-100 selection:bg-emerald-500 selection:text-black">
-        {/* Browser Security Compatibility Warning */}
-        {!browserCaps.isSupported && (
+      <div className="flex min-h-[100dvh] flex-col bg-bg text-text">
+        {!capabilities.isSupported && (
           <div
             role="alert"
-            className="px-4 py-3 bg-amber-950/90 border-b border-amber-600/50 text-amber-200 text-xs flex items-center justify-center gap-2"
+            className="flex items-center justify-center gap-2 border-b border-warn bg-warn-tint px-4 py-3 text-[12.5px] text-warn"
           >
-            <AlertCircle className="w-4 h-4 text-amber-400 shrink-0" aria-hidden="true" />
+            <AlertTriangle className="h-4 w-4 shrink-0" strokeWidth={2.75} aria-hidden="true" />
             <span>
-              <strong>Unsupported Browser:</strong> {browserCaps.errorMessage}
+              <strong>Unsupported browser:</strong> {capabilities.errorMessage}
             </span>
           </div>
         )}
 
-        <Navbar />
-
-        <main className="flex-1 flex flex-col">
-          <ErrorBoundary fallbackTitle="Application Error" fallbackMessage="An error occurred while loading this view.">
+        <main className="flex min-h-0 flex-1 flex-col">
+          <ErrorBoundary
+            fallbackTitle="Something went wrong"
+            fallbackMessage="This screen could not be displayed."
+          >
             {children}
           </ErrorBoundary>
         </main>
-
-        <footer className="border-t border-slate-800/80 py-6 text-center text-xs text-slate-500 bg-slate-950/60">
-          <div className="max-w-6xl mx-auto px-4 flex flex-col sm:flex-row items-center justify-between gap-2">
-            <div className="flex items-center gap-2">
-              <Shield className="w-3.5 h-3.5 text-emerald-500" aria-hidden="true" />
-              <span>Private Chat (enctxt) — Phase 9: Production UX & Application Polish</span>
-            </div>
-            <span className="font-mono text-[11px] text-slate-600">Privacy, Integrity & Accessibility First</span>
-          </div>
-        </footer>
       </div>
     </ToastProvider>
   );

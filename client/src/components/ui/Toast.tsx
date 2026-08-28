@@ -1,5 +1,5 @@
 import React, { createContext, useContext, useState, useCallback } from 'react';
-import { CheckCircle2, AlertCircle, Info, X } from 'lucide-react';
+import { AlertTriangle, Check, Info, X } from 'lucide-react';
 
 export type ToastType = 'success' | 'error' | 'info';
 
@@ -57,32 +57,32 @@ export const ToastProvider: React.FC<{ children: React.ReactNode }> = ({ childre
           <div
             key={toast.id}
             role="status"
-            className={`pointer-events-auto flex items-center justify-between gap-3 p-3.5 rounded-2xl shadow-xl border backdrop-blur-md transition-all animate-in slide-in-from-bottom-2 duration-200 ${
-              toast.type === 'success'
-                ? 'bg-emerald-950/90 border-emerald-500/40 text-emerald-200'
-                : toast.type === 'error'
-                ? 'bg-rose-950/90 border-rose-500/40 text-rose-200'
-                : 'bg-slate-900/90 border-slate-700 text-slate-200'
+            className={`pointer-events-auto flex items-center justify-between gap-3 rounded-card border p-3.5 shadow-float animate-rise ${
+              toast.type === 'error'
+                ? 'border-warn bg-warn-tint text-warn'
+                : toast.type === 'success'
+                  ? 'border-transparent bg-accent-tint text-accent-ink'
+                  : 'border-line bg-surface text-text'
             }`}
           >
             <div className="flex items-center gap-2.5">
               {toast.type === 'success' ? (
-                <CheckCircle2 className="w-4 h-4 text-emerald-400 shrink-0" aria-hidden="true" />
+                <Check className="h-4 w-4 shrink-0" strokeWidth={2.75} aria-hidden="true" />
               ) : toast.type === 'error' ? (
-                <AlertCircle className="w-4 h-4 text-rose-400 shrink-0" aria-hidden="true" />
+                <AlertTriangle className="h-4 w-4 shrink-0" strokeWidth={2.75} aria-hidden="true" />
               ) : (
-                <Info className="w-4 h-4 text-emerald-400 shrink-0" aria-hidden="true" />
+                <Info className="h-4 w-4 shrink-0" strokeWidth={2.75} aria-hidden="true" />
               )}
-              <p className="text-xs font-medium leading-snug">{toast.message}</p>
+              <p className="text-row font-bold leading-snug">{toast.message}</p>
             </div>
 
             <button
               type="button"
               onClick={() => removeToast(toast.id)}
               aria-label="Dismiss notification"
-              className="p-1 rounded-lg hover:bg-white/10 text-slate-400 hover:text-slate-200 transition-colors cursor-pointer"
+              className="cursor-pointer rounded-full p-1 opacity-70 transition-opacity hover:opacity-100 focus:outline-none focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-current"
             >
-              <X className="w-3.5 h-3.5" aria-hidden="true" />
+              <X className="h-3.5 w-3.5" strokeWidth={2.75} aria-hidden="true" />
             </button>
           </div>
         ))}

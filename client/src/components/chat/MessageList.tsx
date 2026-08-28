@@ -1,20 +1,25 @@
-import React, { useRef, useEffect, useState, useCallback } from 'react';
+import React, { useCallback, useEffect, useRef, useState } from 'react';
 import type { MessageItem } from '@enctxt/shared';
+import { ChevronDown, Loader2, Lock } from 'lucide-react';
 import { MessageBubble } from './MessageBubble';
 import { MessageSkeletonList } from '../ui/Skeleton';
 import type { ProtectionMode } from '../../utils/protectedText/protectedTextEngine';
-import { ShieldCheck, ChevronDown, Loader2 } from 'lucide-react';
+import { formatDayLabel } from '../../utils/dateUtils';
 
 export interface MessageListProps {
   messages: MessageItem[];
   currentUserId?: string;
   peerUsername?: string;
-  protectionMode?: ProtectionMode;
+  protectionMode: ProtectionMode;
+  revealDurationMs: number;
+  isOffline: boolean;
   getDecryptedText: (message: MessageItem) => string;
   isRevealed: (messageId: string) => boolean;
+  getRevealExpiry: (messageId: string) => number | null;
   getRemainingRevealSeconds: (messageId: string) => number;
   onRevealRequest: (messageId: string) => void;
   onHideRequest: (messageId: string) => void;
+  onLongPress: (messageId: string) => void;
   onRetryMessage: (messageId: string) => void;
   isLoading: boolean;
   isLoadingOlder: boolean;
@@ -22,16 +27,24 @@ export interface MessageListProps {
   onLoadOlder: () => void;
 }
 
+const DaySeparator: React.FC<{ label: string }> = ({ label }) => (
+  <div className="self-center pb-2 pt-3 text-label uppercase text-faint">{label}</div>
+);
+
 export const MessageList: React.FC<MessageListProps> = ({
   messages,
   currentUserId,
   peerUsername,
-  protectionMode = 'HOMOGLYPH',
+  protectionMode,
+  revealDurationMs,
+  isOffline,
   getDecryptedText,
   isRevealed,
+  getRevealExpiry,
   getRemainingRevealSeconds,
   onRevealRequest,
   onHideRequest,
+  onLongPress,
   onRetryMessage,
   isLoading,
   isLoadingOlder,
@@ -44,34 +57,27 @@ export const MessageList: React.FC<MessageListProps> = ({
   const isNearBottomRef = useRef(true);
 
   const scrollToBottom = useCallback((smooth = true) => {
-    if (messagesEndRef.current) {
-      messagesEndRef.current.scrollIntoView({ behavior: smooth ? 'smooth' : 'auto' });
-    }
+    messagesEndRef.current?.scrollIntoView({ behavior: smooth ? 'smooth' : 'auto' });
   }, []);
 
   const handleScroll = useCallback(() => {
-    const el = scrollContainerRef.current;
-    if (!el) return;
+    const element = scrollContainerRef.current;
+    if (!element) return;
 
-    const nearBottom = el.scrollHeight - el.scrollTop - el.clientHeight < 100;
+    const nearBottom = element.scrollHeight - element.scrollTop - element.clientHeight < 100;
     isNearBottomRef.current = nearBottom;
     setShowScrollBottom(!nearBottom);
 
-    if (el.scrollTop === 0 && hasMore && !isLoadingOlder) {
-      onLoadOlder();
-    }
+    if (element.scrollTop === 0 && hasMore && !isLoadingOlder) onLoadOlder();
   }, [hasMore, isLoadingOlder, onLoadOlder]);
 
-  // Scroll to bottom on initial load or new messages if near bottom
   useEffect(() => {
-    if (isNearBottomRef.current) {
-      scrollToBottom(false);
-    }
+    if (isNearBottomRef.current) scrollToBottom(false);
   }, [messages, scrollToBottom]);
 
   if (isLoading) {
     return (
-      <div className="flex-1 p-4 sm:p-6 overflow-y-auto">
+      <div className="flex-1 overflow-y-auto p-4">
         <MessageSkeletonList count={4} />
       </div>
     );
@@ -79,14 +85,15 @@ export const MessageList: React.FC<MessageListProps> = ({
 
   if (messages.length === 0) {
     return (
-      <div className="flex-1 flex flex-col items-center justify-center p-6 text-center space-y-3">
-        <div className="w-12 h-12 rounded-2xl bg-slate-900 border border-slate-800 flex items-center justify-center text-slate-500 shadow-sm">
-          <ShieldCheck className="w-6 h-6 text-emerald-500" aria-hidden="true" />
+      <div className="flex flex-1 flex-col items-center justify-center gap-3 px-11 text-center">
+        <div className="flex h-14 w-14 items-center justify-center rounded-full bg-surface text-faint">
+          <Lock width={24} height={24} strokeWidth={2.75} aria-hidden="true" />
         </div>
-        <div className="space-y-1">
-          <h3 className="text-sm font-bold text-slate-200">End-to-End Encrypted Conversation</h3>
-          <p className="text-xs text-slate-400 max-w-xs leading-relaxed">
-            Messages are end-to-end encrypted with @{peerUsername}. Messages remain protected on your screen until unlocked with your reveal gesture.
+        <div>
+          <h3 className="text-[15px] font-bold tracking-[-0.012em]">Protected conversation</h3>
+          <p className="mt-1.5 max-w-[280px] text-row leading-normal text-muted">
+            Messages with @{peerUsername} are end-to-end encrypted and stay protected on screen
+            until you draw your gesture.
           </p>
         </div>
       </div>
@@ -99,62 +106,65 @@ export const MessageList: React.FC<MessageListProps> = ({
       onScroll={handleScroll}
       role="log"
       aria-label="Message timeline"
-      className="flex-1 overflow-y-auto p-4 sm:p-6 bg-slate-950/40 relative space-y-1"
+      className="relative flex flex-1 flex-col justify-end gap-[7px] overflow-y-auto px-4 pb-2.5 pt-3.5"
     >
-      {/* Older messages pagination trigger */}
       {hasMore && (
-        <div className="flex justify-center pb-3">
+        <div className="flex justify-center pb-2">
           <button
             type="button"
             onClick={onLoadOlder}
             disabled={isLoadingOlder}
-            className="px-3.5 py-1 bg-slate-800 hover:bg-slate-750 text-slate-400 hover:text-slate-200 border border-slate-700/80 rounded-full text-[11px] font-medium transition-colors flex items-center gap-1.5 cursor-pointer disabled:opacity-50"
+            className="flex cursor-pointer items-center gap-1.5 rounded-full border border-line px-3.5 py-1 text-meta text-muted hover:bg-surface disabled:opacity-45 focus:outline-none focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent"
           >
-            {isLoadingOlder && <Loader2 className="w-3 h-3 animate-spin" aria-hidden="true" />}
-            <span>{isLoadingOlder ? 'Loading older messages...' : 'Load older messages'}</span>
+            {isLoadingOlder && <Loader2 className="h-3 w-3 animate-spin" aria-hidden="true" />}
+            <span>{isLoadingOlder ? 'Loading older messages' : 'Load older messages'}</span>
           </button>
         </div>
       )}
 
-      {/* Message Timeline */}
-      {messages.map((msg, index) => {
-        const isMe = msg.senderId === currentUserId;
-        const prevMsg = index > 0 ? messages[index - 1] : null;
-        const nextMsg = index < messages.length - 1 ? messages[index + 1] : null;
-
-        const isFirstInGroup = !prevMsg || prevMsg.senderId !== msg.senderId;
-        const isLastInGroup = !nextMsg || nextMsg.senderId !== msg.senderId;
+      {messages.map((message, index) => {
+        const previous = index > 0 ? messages[index - 1] : null;
+        const dayLabel = formatDayLabel(message.createdAt);
+        const showDay = !previous || formatDayLabel(previous.createdAt) !== dayLabel;
 
         return (
-          <MessageBubble
-            key={msg.id}
-            message={msg}
-            isMe={isMe}
-            decryptedContent={getDecryptedText(msg)}
-            isRevealed={isRevealed(msg.id)}
-            remainingRevealSeconds={getRemainingRevealSeconds(msg.id)}
-            protectionMode={protectionMode}
-            isFirstInGroup={isFirstInGroup}
-            isLastInGroup={isLastInGroup}
-            onRevealClick={() => onRevealRequest(msg.id)}
-            onHideClick={() => onHideRequest(msg.id)}
-            onRetryClick={() => onRetryMessage(msg.id)}
-          />
+          <React.Fragment key={message.id}>
+            {showDay && <DaySeparator label={dayLabel} />}
+            <MessageBubble
+              message={message}
+              isMe={message.senderId === currentUserId}
+              decryptedContent={getDecryptedText(message)}
+              isRevealed={isRevealed(message.id)}
+              revealExpiresAt={getRevealExpiry(message.id)}
+              revealDurationMs={revealDurationMs}
+              remainingRevealSeconds={getRemainingRevealSeconds(message.id)}
+              protectionMode={protectionMode}
+              isOffline={isOffline}
+              onRevealClick={() => onRevealRequest(message.id)}
+              onHideClick={() => onHideRequest(message.id)}
+              onLongPress={() => onLongPress(message.id)}
+              onRetryClick={() => onRetryMessage(message.id)}
+            />
+          </React.Fragment>
         );
       })}
 
+      <div className="flex items-center gap-1.5 self-center pb-1.5 pt-3.5 text-meta text-faint">
+        <Lock width={12} height={12} strokeWidth={2.75} aria-hidden="true" />
+        <span>Tap a message to reveal it</span>
+      </div>
+
       <div ref={messagesEndRef} />
 
-      {/* Floating Jump to Bottom Button */}
       {showScrollBottom && (
         <button
           type="button"
           onClick={() => scrollToBottom(true)}
           aria-label="Scroll to newest messages"
-          className="sticky bottom-2 float-right p-2.5 bg-emerald-600 hover:bg-emerald-500 text-white rounded-full shadow-lg border border-emerald-400/30 transition-transform hover:scale-105 cursor-pointer z-10 flex items-center gap-1.5 text-xs font-medium"
+          className="sticky bottom-2 z-10 float-right flex cursor-pointer items-center gap-1.5 rounded-full bg-out-bg px-3 py-2 text-meta font-bold text-out-fg shadow-fab focus:outline-none focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent"
         >
-          <ChevronDown className="w-4 h-4" aria-hidden="true" />
-          <span className="pr-1 text-[11px]">New messages</span>
+          <ChevronDown width={16} height={16} strokeWidth={2.75} aria-hidden="true" />
+          <span>New messages</span>
         </button>
       )}
     </div>

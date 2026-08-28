@@ -1,57 +1,40 @@
 import React from 'react';
 
-export interface SkeletonProps {
-  className?: string;
-  count?: number;
-}
+export const Skeleton: React.FC<{ className?: string }> = ({ className = '' }) => (
+  <div className={`animate-pulse rounded-lg bg-surface ${className}`} aria-hidden="true" />
+);
 
-export const Skeleton: React.FC<{ className?: string }> = ({ className = '' }) => {
-  return (
-    <div
-      className={`bg-slate-800/60 rounded-lg animate-pulse ${className}`}
-      aria-hidden="true"
-    />
-  );
-};
-
-export const ConversationSkeletonList: React.FC<{ count?: number }> = ({ count = 4 }) => {
-  return (
-    <div className="divide-y divide-slate-800/60 border border-slate-800/80 rounded-2xl overflow-hidden">
-      {Array.from({ length: count }).map((_, i) => (
-        <div key={i} className="p-4 bg-slate-950/40 flex items-center justify-between gap-3">
-          <div className="flex items-center gap-3.5 flex-1">
-            <Skeleton className="w-10 h-10 rounded-full shrink-0" />
-            <div className="space-y-2 flex-1 max-w-[200px]">
-              <Skeleton className="h-4 w-3/4 rounded" />
-              <Skeleton className="h-3 w-1/2 rounded" />
-            </div>
-          </div>
-          <Skeleton className="h-3 w-16 rounded shrink-0" />
+export const ConversationSkeletonList: React.FC<{ count?: number }> = ({ count = 4 }) => (
+  <div aria-hidden="true">
+    {Array.from({ length: count }, (_, index) => (
+      <div key={index} className="flex items-center gap-row border-b border-line py-row">
+        <Skeleton className="h-11 w-11 shrink-0 rounded-full" />
+        <div className="flex-1 space-y-2">
+          <Skeleton className="h-4 w-1/2 rounded-full" />
+          <Skeleton className="h-3 w-2/3 rounded-full" />
         </div>
-      ))}
-    </div>
-  );
-};
+        <Skeleton className="h-3 w-10 shrink-0 rounded-full" />
+      </div>
+    ))}
+  </div>
+);
 
-export const MessageSkeletonList: React.FC<{ count?: number }> = ({ count = 3 }) => {
-  return (
-    <div className="space-y-4 py-4">
-      {Array.from({ length: count }).map((_, i) => {
-        const isLeft = i % 2 === 0;
-        return (
-          <div
-            key={i}
-            className={`flex flex-col ${isLeft ? 'items-start' : 'items-end'}`}
-          >
-            <Skeleton
-              className={`h-11 ${
-                isLeft ? 'w-48 sm:w-64 rounded-2xl rounded-tl-xs' : 'w-56 sm:w-72 rounded-2xl rounded-tr-xs'
-              }`}
-            />
-            <Skeleton className="h-2.5 w-14 mt-1.5 rounded" />
-          </div>
-        );
-      })}
-    </div>
-  );
-};
+export const MessageSkeletonList: React.FC<{ count?: number }> = ({ count = 3 }) => (
+  <div className="flex flex-col gap-4 py-4" aria-hidden="true">
+    {Array.from({ length: count }, (_, index) => {
+      const isIncoming = index % 2 === 0;
+      return (
+        <div key={index} className={`flex flex-col ${isIncoming ? 'items-start' : 'items-end'}`}>
+          <Skeleton
+            className={
+              isIncoming
+                ? 'h-11 w-48 rounded-[22px_22px_22px_7px] sm:w-64'
+                : 'h-11 w-56 rounded-[22px_22px_7px_22px] sm:w-72'
+            }
+          />
+          <Skeleton className="mt-1.5 h-2.5 w-14 rounded-full" />
+        </div>
+      );
+    })}
+  </div>
+);

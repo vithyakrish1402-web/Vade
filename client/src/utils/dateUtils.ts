@@ -47,10 +47,37 @@ export function formatConversationTime(isoString: string): string {
     if (diffDays === 1 || (diffDays < 2 && date.getDate() === now.getDate() - 1)) {
       return 'Yesterday';
     }
+    // Within the last week, the weekday reads faster than a date ("Tue", not "Aug 25").
+    if (diffDays < 7) {
+      return date.toLocaleDateString([], { weekday: 'short' });
+    }
     if (date.getFullYear() === now.getFullYear()) {
       return date.toLocaleDateString([], { month: 'short', day: 'numeric' });
     }
     return date.toLocaleDateString([], { year: 'numeric', month: 'short', day: 'numeric' });
+  } catch {
+    return '';
+  }
+}
+
+/**
+ * The separator above the first message of each day in the timeline: "Today", "Yesterday",
+ * a weekday within the last week, then a date.
+ */
+export function formatDayLabel(isoString: string): string {
+  try {
+    const date = new Date(isoString);
+    if (isNaN(date.getTime())) return '';
+
+    const startOfDay = (value: Date) =>
+      new Date(value.getFullYear(), value.getMonth(), value.getDate()).getTime();
+
+    const dayDiff = Math.round((startOfDay(new Date()) - startOfDay(date)) / 86_400_000);
+
+    if (dayDiff <= 0) return 'Today';
+    if (dayDiff === 1) return 'Yesterday';
+    if (dayDiff < 7) return date.toLocaleDateString([], { weekday: 'long' });
+    return date.toLocaleDateString([], { month: 'short', day: 'numeric' });
   } catch {
     return '';
   }

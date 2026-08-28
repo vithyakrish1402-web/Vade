@@ -1,10 +1,10 @@
-import React, { useState } from 'react';
-import { useNavigate, Link } from 'react-router-dom';
+import React, { useEffect, useRef, useState } from 'react';
+import { useNavigate } from 'react-router-dom';
+import { ChevronLeft } from 'lucide-react';
 import { useAuth } from '../auth/AuthContext';
 import { ApiClientError } from '../services/api';
-import { UserPlus, ArrowRight } from 'lucide-react';
-import { Input } from '../components/ui/Input';
-import { Button } from '../components/ui/Button';
+import { VadeButton } from '../components/vade/VadeButton';
+import { VadeField } from '../components/vade/VadeField';
 
 export const RegisterPage: React.FC = () => {
   const navigate = useNavigate();
@@ -14,46 +14,38 @@ export const RegisterPage: React.FC = () => {
   const [displayName, setDisplayName] = useState('');
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
-  const [confirmPassword, setConfirmPassword] = useState('');
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
-  React.useEffect(() => {
-    if (isAuthenticated) {
-      navigate('/app', { replace: true });
-    }
+  // Registering signs the user in, which would otherwise bounce them straight to the app.
+  // Enrollment is part of sign-up, so the redirect is suppressed once we own the handoff.
+  const isHandingOffRef = useRef(false);
+
+  useEffect(() => {
+    if (isAuthenticated && !isHandingOffRef.current) navigate('/app', { replace: true });
   }, [isAuthenticated, navigate]);
 
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
+  const validate = (): string | null => {
+    if (!username.trim() || !email.trim() || !password) return 'Fill in every field.';
+    if (username.trim().length < 3) return 'Usernames are at least 3 characters.';
+    if (!/^[a-zA-Z0-9_-]+$/.test(username.trim()))
+      return 'Usernames use letters, numbers, hyphens and underscores.';
+    if (password.length < 8) return 'Passwords are at least 8 characters.';
+    return null;
+  };
 
-    if (!username.trim() || !email.trim() || !password) {
-      setError('Please fill in all required fields.');
-      return;
-    }
+  const handleSubmit = async (event: React.FormEvent) => {
+    event.preventDefault();
 
-    if (username.trim().length < 3) {
-      setError('Username must be at least 3 characters long.');
-      return;
-    }
-
-    if (!/^[a-zA-Z0-9_-]+$/.test(username.trim())) {
-      setError('Username may only contain letters, numbers, underscores, and hyphens.');
-      return;
-    }
-
-    if (password.length < 8) {
-      setError('Password must be at least 8 characters long.');
-      return;
-    }
-
-    if (password !== confirmPassword) {
-      setError('Passwords do not match.');
+    const validationError = validate();
+    if (validationError) {
+      setError(validationError);
       return;
     }
 
     setIsLoading(true);
     setError(null);
+    isHandingOffRef.current = true;
 
     try {
       await register({
@@ -62,111 +54,86 @@ export const RegisterPage: React.FC = () => {
         email: email.trim(),
         password,
       });
-      navigate('/app', { replace: true });
-    } catch (err) {
-      if (err instanceof ApiClientError) {
-        setError(err.message);
-      } else {
-        setError('Registration failed. Please check your inputs or network.');
-      }
+      // Straight into gesture enrollment — an account without a reveal gesture cannot read
+      // its own messages, so this is part of sign-up rather than a setting to find later.
+      navigate('/enroll', { replace: true });
+    } catch (caught) {
+      isHandingOffRef.current = false;
+      setError(
+        caught instanceof ApiClientError ? caught.message : 'Could not create the account. Try again.'
+      );
     } finally {
       setIsLoading(false);
     }
   };
 
   return (
-    <div className="flex-1 flex items-center justify-center px-4 py-12">
-      <div className="max-w-md w-full bg-slate-900 border border-slate-800 rounded-3xl p-6 sm:p-8 shadow-2xl space-y-6">
-        <div className="text-center space-y-2">
-          <div className="w-12 h-12 rounded-2xl bg-emerald-500/10 border border-emerald-500/30 flex items-center justify-center mx-auto text-emerald-400 shadow-sm">
-            <UserPlus className="w-6 h-6" aria-hidden="true" />
-          </div>
-          <h2 className="text-2xl font-bold text-slate-100">Create Account</h2>
-          <p className="text-xs text-slate-400">
-            Initialize your encrypted identity for private messaging
+    <div className="mx-auto flex min-h-[100dvh] w-full max-w-md flex-col px-[30px] animate-fade">
+      <div className="pt-1.5">
+        <button
+          type="button"
+          onClick={() => navigate('/login')}
+          aria-label="Back to sign in"
+          className="-ml-2 flex h-11 w-11 cursor-pointer items-center justify-center rounded-full text-text hover:bg-surface focus:outline-none focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent"
+        >
+          <ChevronLeft width={20} height={20} strokeWidth={2.75} aria-hidden="true" />
+        </button>
+      </div>
+
+      <div className="flex flex-1 flex-col justify-center gap-[30px] pb-10">
+        <div>
+          <h1 className="text-[32px] font-bold leading-[1.08] tracking-[-0.03em]">Create account</h1>
+          <p className="mt-2.5 text-[15px] leading-normal text-muted">
+            Your keys are generated on this device and never leave it.
           </p>
         </div>
 
-        <form onSubmit={handleSubmit} className="space-y-3.5">
-          <Input
-            label="Username"
-            type="text"
-            autoComplete="username"
-            value={username}
-            onChange={(e) => setUsername(e.target.value)}
-            placeholder="e.g. alice_wonder"
-            helperText="At least 3 characters. Letters, numbers, hyphens, and underscores."
-            disabled={isLoading}
-            required
-          />
-
-          <Input
-            label="Display Name (Optional)"
+        <form onSubmit={handleSubmit} className="flex flex-col gap-3">
+          <VadeField
             type="text"
             autoComplete="name"
+            placeholder="Display name"
+            aria-label="Display name"
             value={displayName}
-            onChange={(e) => setDisplayName(e.target.value)}
-            placeholder="e.g. Alice W."
+            onChange={(event) => setDisplayName(event.target.value)}
             disabled={isLoading}
           />
-
-          <Input
-            label="Email Address"
+          <VadeField
+            type="text"
+            autoComplete="username"
+            placeholder="Username"
+            aria-label="Username"
+            value={username}
+            onChange={(event) => setUsername(event.target.value)}
+            disabled={isLoading}
+            required
+          />
+          <VadeField
             type="email"
             autoComplete="email"
+            placeholder="Email"
+            aria-label="Email"
             value={email}
-            onChange={(e) => setEmail(e.target.value)}
-            placeholder="alice@example.com"
+            onChange={(event) => setEmail(event.target.value)}
             disabled={isLoading}
             required
           />
-
-          <Input
-            label="Password"
+          <VadeField
             type="password"
             autoComplete="new-password"
+            placeholder="Password"
+            aria-label="Password"
             value={password}
-            onChange={(e) => setPassword(e.target.value)}
-            placeholder="At least 8 characters"
-            disabled={isLoading}
-            required
-          />
-
-          <Input
-            label="Confirm Password"
-            type="password"
-            autoComplete="new-password"
-            value={confirmPassword}
-            onChange={(e) => setConfirmPassword(e.target.value)}
-            placeholder="Re-enter password"
+            onChange={(event) => setPassword(event.target.value)}
             error={error}
+            helperText={error ? undefined : 'At least 8 characters.'}
             disabled={isLoading}
             required
           />
-
-          <Button
-            type="submit"
-            variant="primary"
-            size="md"
-            isLoading={isLoading}
-            className="w-full mt-3"
-            rightIcon={<ArrowRight className="w-4 h-4" />}
-          >
-            Register & Continue
-          </Button>
+          <VadeButton type="submit" block isLoading={isLoading} className="mt-1.5">
+            Create account
+          </VadeButton>
         </form>
-
-        <div className="text-center pt-2 border-t border-slate-800/80">
-          <p className="text-xs text-slate-400">
-            Already have an account?{' '}
-            <Link
-              to="/login"
-              className="font-semibold text-emerald-400 hover:text-emerald-300 transition-colors focus:outline-none focus-visible:underline"
-            >
-              Sign In
-            </Link>
-          </p>
-        </div>
       </div>
     </div>
   );
