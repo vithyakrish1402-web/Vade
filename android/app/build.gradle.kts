@@ -5,6 +5,44 @@ plugins {
     alias(libs.plugins.ksp)
 }
 
+// ==============================================================================
+// Release signing inputs
+//
+// Supplied via environment variables or Gradle properties — put them in
+// ~/.gradle/gradle.properties or CI secrets, NEVER in this repo. Both the
+// KEYSTORE_* names and the legacy STORE_* property names are accepted, since
+// the two used to disagree and a mismatch silently produced a debug-signed build.
+// ==============================================================================
+fun signingValue(vararg names: String): String? {
+    for (name in names) {
+        val value = System.getenv(name) ?: project.findProperty(name) as? String
+        if (!value.isNullOrBlank()) return value
+    }
+    return null
+}
+
+val releaseStorePath = signingValue("VADE_RELEASE_KEYSTORE_PATH", "VADE_RELEASE_STORE_FILE")
+val releaseStorePassword = signingValue("VADE_RELEASE_KEYSTORE_PASSWORD", "VADE_RELEASE_STORE_PASSWORD")
+val releaseKeyAliasValue = signingValue("VADE_RELEASE_KEY_ALIAS")
+val releaseKeyPasswordValue = signingValue("VADE_RELEASE_KEY_PASSWORD")
+
+val missingSigningVars = listOf(
+    "VADE_RELEASE_KEYSTORE_PATH" to releaseStorePath,
+    "VADE_RELEASE_KEYSTORE_PASSWORD" to releaseStorePassword,
+    "VADE_RELEASE_KEY_ALIAS" to releaseKeyAliasValue,
+    "VADE_RELEASE_KEY_PASSWORD" to releaseKeyPasswordValue
+).filter { it.second == null }.map { it.first }
+
+val releaseKeystoreFile = releaseStorePath?.let { file(it) }
+val releaseSigningComplete = missingSigningVars.isEmpty()
+val releaseKeystoreExists = releaseKeystoreFile?.exists() == true
+
+// Only a complete config pointing at a keystore that actually exists counts as usable.
+// Anything less must fail the build rather than quietly degrade to the debug key.
+val releaseSigningUsable = releaseSigningComplete && releaseKeystoreExists
+val allowInsecureReleaseSigning =
+    (signingValue("VADE_ALLOW_INSECURE_RELEASE_SIGNING") ?: "false").toBoolean()
+
 android {
     // Must match the actual Kotlin source package ("package com.enctxt" in every .kt file),
     // NOT applicationId below — this is only used to resolve the manifest's relative class
@@ -30,16 +68,11 @@ android {
 
     signingConfigs {
         create("release") {
-            val storeFilePath = System.getenv("VADE_RELEASE_KEYSTORE_PATH") ?: (project.findProperty("VADE_RELEASE_STORE_FILE") as? String)
-            val storePasswordVal = System.getenv("VADE_RELEASE_KEYSTORE_PASSWORD") ?: (project.findProperty("VADE_RELEASE_STORE_PASSWORD") as? String)
-            val keyAliasVal = System.getenv("VADE_RELEASE_KEY_ALIAS") ?: (project.findProperty("VADE_RELEASE_KEY_ALIAS") as? String)
-            val keyPasswordVal = System.getenv("VADE_RELEASE_KEY_PASSWORD") ?: (project.findProperty("VADE_RELEASE_KEY_PASSWORD") as? String)
-
-            if (!storeFilePath.isNullOrBlank() && !storePasswordVal.isNullOrBlank() && !keyAliasVal.isNullOrBlank() && !keyPasswordVal.isNullOrBlank()) {
-                storeFile = file(storeFilePath)
-                storePassword = storePasswordVal
-                keyAlias = keyAliasVal
-                keyPassword = keyPasswordVal
+            if (releaseSigningUsable) {
+                storeFile = releaseKeystoreFile
+                storePassword = releaseStorePassword
+                keyAlias = releaseKeyAliasValue
+                keyPassword = releaseKeyPasswordValue
             }
         }
     }
@@ -51,12 +84,14 @@ android {
                 getDefaultProguardFile("proguard-android-optimize.txt"),
                 "proguard-rules.pro"
             )
-            val releaseSigning = signingConfigs.getByName("release")
-            if (releaseSigning.storeFile != null && releaseSigning.storeFile!!.exists()) {
-                signingConfig = releaseSigning
+            // Real release keystore when one is properly configured. The debug fallback exists
+            // ONLY so a non-distributable local/CI smoke build can run; the task-graph guard at
+            // the bottom of this file hard-fails such a build unless it was explicitly opted
+            // into via VADE_ALLOW_INSECURE_RELEASE_SIGNING.
+            signingConfig = if (releaseSigningUsable) {
+                signingConfigs.getByName("release")
             } else {
-                // Fallback for CI/development release testing when external keystore is unprovided
-                signingConfig = signingConfigs.getByName("debug")
+                signingConfigs.getByName("debug")
             }
 
             // Production backend (Render). Always HTTPS/WSS — cleartext is
@@ -157,4 +192,82 @@ dependencies {
     androidTestImplementation(libs.androidx.ui.test.junit4)
     debugImplementation(libs.androidx.ui.tooling)
     debugImplementation(libs.androidx.ui.test.manifest)
+}
+
+// ==============================================================================
+// Fail-closed release signing guard
+//
+// A release artifact must never be produced with the debug key unless that was
+// explicitly and knowingly opted into. The debug keystore is shared and publicly
+// known (password "android"), so a debug-signed "release" could be updated over
+// by anyone who repackages the app — unacceptable for an E2EE messenger.
+//
+// This is enforced on the task graph rather than at configuration time so that
+// unrelated work (assembleDebug, test, lint) still runs without release signing
+// credentials present.
+// ==============================================================================
+// Matched by exact task path, never by prefix: intermediate tasks such as
+// packageReleaseResources and bundleReleaseClassesToRuntimeJar are pulled in by plain
+// `test` and produce no signed artifact, so a prefix match would break ordinary builds.
+val releaseArtifactTasks = setOf(
+    "assembleRelease",
+    "bundleRelease",
+    "packageRelease",
+    "signReleaseBundle"
+).map { "${project.path}:$it" }.toSet()
+val buildLogger = logger
+
+gradle.taskGraph.whenReady {
+    val buildsReleaseArtifact = allTasks.any { it.path in releaseArtifactTasks }
+    if (!buildsReleaseArtifact || releaseSigningUsable) return@whenReady
+
+    val reason = when {
+        !releaseSigningComplete && missingSigningVars.size == 4 ->
+            "No release signing credentials were provided."
+        !releaseSigningComplete ->
+            "Release signing is only partially configured. Missing: ${missingSigningVars.joinToString(", ")}"
+        else ->
+            "Release keystore not found at: ${releaseKeystoreFile?.absolutePath}"
+    }
+
+    if (allowInsecureReleaseSigning) {
+        buildLogger.warn(
+            """
+            ${"=".repeat(78)}
+            WARNING: building a RELEASE artifact signed with the DEBUG key.
+            $reason
+            Proceeding only because VADE_ALLOW_INSECURE_RELEASE_SIGNING=true.
+            This artifact is NOT distributable. Do not upload or share it.
+            ${"=".repeat(78)}
+            """.trimIndent()
+        )
+        return@whenReady
+    }
+
+    throw GradleException(
+        """
+        Release signing is not configured.
+
+        $reason
+
+        A release build must be signed with your own release keystore. Falling back to
+        the debug key would produce an artifact anyone could forge an update for, since
+        that key is shared and its password is publicly known.
+
+        Provide these as environment variables or Gradle properties (use
+        ~/.gradle/gradle.properties or CI secrets — never commit them):
+
+          VADE_RELEASE_KEYSTORE_PATH      (legacy alias: VADE_RELEASE_STORE_FILE)
+          VADE_RELEASE_KEYSTORE_PASSWORD  (legacy alias: VADE_RELEASE_STORE_PASSWORD)
+          VADE_RELEASE_KEY_ALIAS
+          VADE_RELEASE_KEY_PASSWORD
+
+        For a local or CI smoke build where signing identity does not matter, you can
+        opt in explicitly to debug-key signing:
+
+          ./gradlew assembleRelease -PVADE_ALLOW_INSECURE_RELEASE_SIGNING=true
+
+        Never distribute an artifact built with that flag.
+        """.trimIndent()
+    )
 }
