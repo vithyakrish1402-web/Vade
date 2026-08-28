@@ -42,9 +42,24 @@ class GestureEnrollmentFlowTest {
         return out
     }
 
-    /** Deliberately unlike [shape]: a horizontal line. */
-    private fun differentShape(): List<GesturePoint> =
-        (0..80).map { GesturePoint(40f + 200f * it / 80f, 60f) }
+    /**
+     * Deliberately unlike [shape], but still a legitimate gesture — a straight line would be
+     * refused by the distinctiveness check before it ever reached the comparison, which is a
+     * different rejection path than the one these cases are about.
+     */
+    private fun differentShape(): List<GesturePoint> {
+        val corners = listOf(40f to 230f, 40f to 40f, 230f to 230f, 230f to 40f) // an "N"
+        val out = mutableListOf<GesturePoint>()
+        for (segment in 0 until corners.size - 1) {
+            val (x0, y0) = corners[segment]
+            val (x1, y1) = corners[segment + 1]
+            for (step in 0..40) {
+                val t = step / 40f
+                out.add(GesturePoint(x0 + (x1 - x0) * t, y0 + (y1 - y0) * t))
+            }
+        }
+        return out
+    }
 
     @Before
     fun setUp() {

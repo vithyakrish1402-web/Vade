@@ -20,6 +20,7 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.lifecycle.ViewModel
+import com.enctxt.core.gesture.GestureNormalizer
 import com.enctxt.core.gesture.GesturePoint
 import com.enctxt.core.gesture.GestureRecognizer
 import com.enctxt.core.gesture.GestureRepository
@@ -69,6 +70,16 @@ class GestureEnrollmentViewModel(
         if (!isMemorableStroke(points)) {
             _uiState.value = state.copy(
                 statusMessage = "Too short to be memorable. Draw a longer, continuous shape.",
+                isError = true
+            )
+            return
+        }
+
+        // Checked on the way in rather than at save time, so the user is told why on the very
+        // first stroke instead of getting a generic failure after confirming.
+        if (!GestureNormalizer.isDistinctiveShape(points)) {
+            _uiState.value = state.copy(
+                statusMessage = "Too simple — a straight line is easy to guess. Draw a shape with at least one turn.",
                 isError = true
             )
             return

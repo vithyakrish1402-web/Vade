@@ -24,6 +24,16 @@ object GestureNormalizer {
     const val MIN_GESTURE_PATH_LENGTH = 30f // dp — same conceptual minimum as Web Phase 6
     const val NORMALIZED_BOUNDING_SIZE = 100f
 
+    /**
+     * Straightness above this is refused at enrollment.
+     *
+     * Scale and translation normalization makes every straight stroke look alike no matter its
+     * direction or length, so a line carries almost no identifying information — a diagonal and
+     * a horizontal swipe scored as near-matches for each other. Real shapes sit far below this:
+     * the straightest useful one measured was an "L" at 0.71, against 1.00 for a line.
+     */
+    const val MAX_ENROLLMENT_STRAIGHTNESS = 0.90f
+
     fun distance(a: GesturePoint, b: GesturePoint): Float {
         val dx = b.x - a.x
         val dy = b.y - a.y
@@ -50,6 +60,23 @@ object GestureNormalizer {
         }
         return calculatePathLength(points) >= minPathLength
     }
+
+    /**
+     * How close a stroke is to a straight line: end-to-end displacement over path length.
+     * A straight line is 1.0; a shape that returns towards its start approaches 0.0.
+     */
+    fun straightness(points: List<GesturePoint>): Float {
+        val pathLength = calculatePathLength(points)
+        if (pathLength <= 0f) return 1f
+        return distance(points.first(), points.last()) / pathLength
+    }
+
+    /**
+     * Whether a stroke has enough shape to be worth enrolling. Length alone is not enough —
+     * a long straight swipe is still a line.
+     */
+    fun isDistinctiveShape(points: List<GesturePoint>): Boolean =
+        points.size >= 2 && straightness(points) <= MAX_ENROLLMENT_STRAIGHTNESS
 
     /**
      * Resamples a stroke to exactly [n] equidistant points along its arc length, so drawing

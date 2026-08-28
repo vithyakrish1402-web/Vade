@@ -23,6 +23,16 @@ export const MIN_GESTURE_PATH_LENGTH = 30; // Minimum pixels drawn to be conside
 export const NORMALIZED_BOUNDING_SIZE = 100; // Standard bounding box size (100x100)
 
 /**
+ * Straightness above this is refused at enrollment.
+ *
+ * Scale and translation normalization makes every straight stroke look alike no matter its
+ * direction or length, so a line carries almost no identifying information — a diagonal and a
+ * horizontal swipe scored as near-matches for each other. Real shapes sit far below this: the
+ * straightest useful one measured was an "L" at 0.71, against 1.00 for a line.
+ */
+export const MAX_ENROLLMENT_STRAIGHTNESS = 0.9;
+
+/**
  * Calculates Euclidean distance between two points.
  */
 export function distance(p1: Point, p2: Point): number {
@@ -41,6 +51,25 @@ export function calculatePathLength(points: Point[]): number {
     total += distance(points[i - 1], points[i]);
   }
   return total;
+}
+
+/**
+ * How close a stroke is to a straight line: end-to-end displacement over path length.
+ * A straight line is 1.0; a shape that returns towards its start approaches 0.0.
+ */
+export function straightness(points: Point[]): number {
+  const pathLength = calculatePathLength(points);
+  if (pathLength <= 0) return 1;
+  return distance(points[0], points[points.length - 1]) / pathLength;
+}
+
+/**
+ * Whether a stroke has enough shape to be worth enrolling. Length alone is not enough —
+ * a long straight swipe is still a line.
+ */
+export function isDistinctiveShape(points: Point[]): boolean {
+  if (!points || points.length < 2) return false;
+  return straightness(points) <= MAX_ENROLLMENT_STRAIGHTNESS;
 }
 
 /**

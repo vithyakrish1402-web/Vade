@@ -28,6 +28,11 @@ class GestureRepository(private val storage: GestureStorage) {
         if (rawSteps.size !in GestureSequence.MIN_SEQUENCE_LENGTH..GestureSequence.MAX_SEQUENCE_LENGTH) return false
         if (!storage.isAvailable()) return false
 
+        // A straight swipe normalizes to the same template as any other straight swipe, so it
+        // would unlock against unrelated gestures. Refused here as well as in the UI, so no
+        // caller can enroll one by taking a different route in.
+        if (rawSteps.any { !GestureNormalizer.isDistinctiveShape(it) }) return false
+
         val templates = rawSteps.map { GestureNormalizer.normalize(it) ?: return false }
 
         val now = Instant.now().toString()

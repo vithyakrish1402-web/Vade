@@ -6,7 +6,7 @@ import { useProtectionStyle } from '../hooks/useProtectionStyle';
 import { DEFAULT_REVEAL_DURATION_MS } from '../hooks/useMessageReveal';
 import { REVEAL_STROKE_COUNT } from '../components/gesture/GestureRevealModal';
 import { compareEnrolledGestures } from '../utils/gestureRecognizer';
-import type { Point } from '../utils/gestureNormalize';
+import { isDistinctiveShape, type Point } from '../utils/gestureNormalize';
 import { GesturePad, GesturePips, isMemorableStroke } from '../components/vade/GesturePad';
 import { ProtectionStylePicker, styleLabel } from '../components/vade/ProtectionStylePicker';
 import { VadeButton } from '../components/vade/VadeButton';
@@ -75,6 +75,13 @@ export const GestureEnrollmentPage: React.FC<GestureEnrollmentPageProps> = ({
     if (!isMemorableStroke(points)) {
       setIsError(true);
       setFeedback('Too short to be memorable. Draw a longer, continuous shape.');
+      return;
+    }
+    // Checked on the way in rather than at save time, so the user is told why on the very
+    // first stroke instead of getting a generic failure after confirming.
+    if (!isDistinctiveShape(points)) {
+      setIsError(true);
+      setFeedback('Too simple — a straight line is easy to guess. Draw a shape with at least one turn.');
       return;
     }
     setFirstStroke(points);
