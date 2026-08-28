@@ -22,8 +22,19 @@ data class GestureSequence(
 
     companion object {
         const val SCHEMA_VERSION = 1
-        const val MIN_SEQUENCE_LENGTH = 2
+
+        /**
+         * Enrollment records a single shape, so one template is a complete sequence.
+         *
+         * This was 2 while enrollment was a multi-step wizard, which silently rejected every
+         * single-shape save — the user confirmed their gesture, the write was refused, and the
+         * screen sat on the confirm step forever. Strength now comes from repeating the one
+         * shape [GestureRevealManager.REVEAL_STROKE_COUNT] times at reveal, not from enrolling
+         * several different ones.
+         */
+        const val MIN_SEQUENCE_LENGTH = 1
+
+        /** Sequences enrolled under the older multi-step flow still load and still work. */
         const val MAX_SEQUENCE_LENGTH = 5
-        const val DEFAULT_SEQUENCE_LENGTH = 3
     }
 }

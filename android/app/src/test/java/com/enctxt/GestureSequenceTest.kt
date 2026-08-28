@@ -114,8 +114,16 @@ class GestureSequenceTest {
     }
 
     @Test
+    fun testEnrollmentAcceptsASingleShape() {
+        // Enrollment records one shape; reveal asks for it three times. This previously
+        // returned false, which stranded the user on the confirm step forever.
+        assertTrue(repository.saveSequence(userId, listOf(shapeL)))
+        assertEquals(1, repository.sequenceLength(userId))
+    }
+
+    @Test
     fun testEnrollmentRejectsOutOfRangeStepCount() {
-        assertFalse(repository.saveSequence(userId, listOf(shapeL))) // 1 step, below minimum
+        assertFalse(repository.saveSequence(userId, emptyList())) // no steps at all
         assertFalse(
             repository.saveSequence(
                 userId,
