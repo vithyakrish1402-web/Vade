@@ -5,12 +5,15 @@ import androidx.compose.foundation.background
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.indication
+import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.ripple.rememberRipple
 import androidx.compose.material.icons.filled.*
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
@@ -382,15 +385,26 @@ private fun VadeBottomBar(navController: NavController) {
                 .fillMaxWidth()
                 .height(82.dp)
                 .padding(horizontal = 34.dp)
-                .padding(top = 10.dp)
+                .padding(top = 6.dp)
         ) {
             ROOT_DESTINATIONS.forEach { (route, label, icon) ->
                 val isSelected = currentDestination?.hierarchy?.any { it.route == route } == true
+
+                // The whole cell stays the tap target, but the press indication is an
+                // unbounded circular ripple centred on the icon. A bounded ripple fills the
+                // cell, and on a bar with no visible cell edges a rectangular slab of grey
+                // reads as a rendering glitch rather than as feedback.
+                val interactionSource = remember { MutableInteractionSource() }
+
                 Column(
                     modifier = Modifier
                         .weight(1f)
                         .fillMaxHeight()
-                        .clickable(role = Role.Tab) {
+                        .clickable(
+                            interactionSource = interactionSource,
+                            indication = null,
+                            role = Role.Tab
+                        ) {
                             if (!isSelected) {
                                 navController.navigate(route) {
                                     popUpTo(navController.graph.findStartDestination().id) {
@@ -405,12 +419,22 @@ private fun VadeBottomBar(navController: NavController) {
                     horizontalAlignment = Alignment.CenterHorizontally,
                     verticalArrangement = Arrangement.spacedBy(5.dp)
                 ) {
-                    Icon(
-                        icon,
-                        contentDescription = null,
-                        tint = if (isSelected) colors.text else colors.faint,
-                        modifier = Modifier.size(VadeIconSize.nav)
-                    )
+                    Box(
+                        modifier = Modifier
+                            .size(VadeSpace.touchTarget)
+                            .indication(
+                                interactionSource = interactionSource,
+                                indication = rememberRipple(bounded = false, radius = 26.dp)
+                            ),
+                        contentAlignment = Alignment.Center
+                    ) {
+                        Icon(
+                            icon,
+                            contentDescription = null,
+                            tint = if (isSelected) colors.text else colors.faint,
+                            modifier = Modifier.size(VadeIconSize.nav)
+                        )
+                    }
                     Box(
                         modifier = Modifier
                             .size(4.dp)

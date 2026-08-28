@@ -5,6 +5,7 @@ import androidx.activity.ComponentActivity
 import androidx.activity.SystemBarStyle
 import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.remember
 import androidx.navigation.compose.rememberNavController
@@ -18,12 +19,10 @@ class MainActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
 
-        // Edge-to-edge with transparent system bars; the bottom bar draws over the navigation
-        // inset and content is padded by WindowInsets rather than by fixed values.
-        enableEdgeToEdge(
-            statusBarStyle = SystemBarStyle.auto(TRANSPARENT, TRANSPARENT),
-            navigationBarStyle = SystemBarStyle.auto(TRANSPARENT, TRANSPARENT)
-        )
+        // Edge-to-edge with transparent system bars; the bottom bar draws over the
+        // navigation inset and content is padded by WindowInsets rather than by fixed values.
+        // The icon colour is re-applied from the app's own theme below — see applyBarStyle.
+        enableEdgeToEdge()
 
         val app = application as EnctxtApplication
 
@@ -53,8 +52,15 @@ class MainActivity : ComponentActivity() {
 
         setContent {
             val themeController = remember { ThemeController(themeStore) }
+            val isDark = themeController.isDark()
 
-            VadeTheme(darkTheme = themeController.isDark()) {
+            // Vade's theme is independent of the system's, so the system bar icons have to
+            // follow the app. SystemBarStyle.auto() reads the *system* dark-mode setting,
+            // which left light icons on a light ground whenever the two disagreed — the clock
+            // and status icons were invisible.
+            LaunchedEffect(isDark) { applyBarStyle(isDark) }
+
+            VadeTheme(darkTheme = isDark) {
                 val navController = rememberNavController()
                 NavGraph(
                     navController = navController,
@@ -70,6 +76,15 @@ class MainActivity : ComponentActivity() {
                 )
             }
         }
+    }
+
+    private fun applyBarStyle(isDark: Boolean) {
+        val style = if (isDark) {
+            SystemBarStyle.dark(TRANSPARENT)
+        } else {
+            SystemBarStyle.light(TRANSPARENT, TRANSPARENT)
+        }
+        enableEdgeToEdge(statusBarStyle = style, navigationBarStyle = style)
     }
 
     override fun onWindowFocusChanged(hasFocus: Boolean) {
