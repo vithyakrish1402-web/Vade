@@ -1,182 +1,179 @@
 package com.enctxt.presentation.components
 
 import androidx.compose.foundation.background
-import androidx.compose.foundation.layout.Arrangement
-import androidx.compose.foundation.layout.Box
-import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.Row
-import androidx.compose.foundation.layout.Spacer
-import androidx.compose.foundation.layout.fillMaxWidth
-import androidx.compose.foundation.layout.height
-import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.layout.size
-import androidx.compose.foundation.shape.CircleShape
-import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.Lock
-import androidx.compose.material3.Button
-import androidx.compose.material3.LinearProgressIndicator
-import androidx.compose.material3.MaterialTheme
+import androidx.compose.foundation.clickable
+import androidx.compose.foundation.layout.*
 import androidx.compose.material3.Text
-import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.semantics.Role
+import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.compose.ui.window.Dialog
+import androidx.compose.ui.window.DialogProperties
 import com.enctxt.core.gesture.GesturePoint
 import com.enctxt.core.gesture.RevealState
+import com.enctxt.presentation.components.vade.GesturePad
+import com.enctxt.presentation.components.vade.GesturePadSkin
+import com.enctxt.presentation.components.vade.GesturePips
+import com.enctxt.presentation.components.vade.VadeButton
+import com.enctxt.presentation.theme.VadeShape
+import com.enctxt.presentation.theme.VadeType
+
+/** The overlay is drawn on its own dark ground, so these are fixed rather than themed. */
+private val OVERLAY_SCRIM = Color(0xA808090A)
+private val OVERLAY_INK = Color(0xFFFFFFFF)
+private val OVERLAY_MUTED = Color(0x9EFFFFFF)
+private val OVERLAY_WARN = Color(0xFFF0B48A)
 
 /**
- * Authentication modal for Layer 3 reveal (Phase 16).
+ * The reveal overlay: a full-bleed scrim over the thread rather than a card modal, so nothing
+ * of the conversation is legible behind it while a gesture is being drawn.
  *
- * Never displays the stored gesture shape — the user must recall their own sequence.
- * Shows only generic failure feedback (never which step or gesture failed) and a step
- * progress indicator (● ○ ○) so the user knows where they are without leaking anything
- * about the enrolled template.
+ * Feedback says only that the gesture did not match — never how close it was, which stroke
+ * diverged, or how many attempts remain. That text comes from GestureRevealManager, which is
+ * where the failure is actually known.
  */
 @Composable
 fun GestureRevealDialog(
     state: RevealState.Authenticating,
-    sequenceLength: Int,
+    requiredStrokes: Int,
     isConfigured: Boolean,
     feedback: String?,
     onStroke: (List<GesturePoint>) -> Unit,
     onDismiss: () -> Unit,
     onOpenSetup: () -> Unit
 ) {
-    Dialog(onDismissRequest = onDismiss) {
-        Box(
+    Dialog(
+        onDismissRequest = onDismiss,
+        properties = DialogProperties(usePlatformDefaultWidth = false)
+    ) {
+        Column(
             modifier = Modifier
-                .background(Color(0xFF0F172A), RoundedCornerShape(24.dp))
-                .padding(24.dp)
+                .fillMaxSize()
+                .background(OVERLAY_SCRIM)
+                .padding(28.dp),
+            horizontalAlignment = Alignment.CenterHorizontally,
+            verticalArrangement = Arrangement.Center
         ) {
             if (!isConfigured) {
-                NotConfiguredContent(onOpenSetup = onOpenSetup, onDismiss = onDismiss)
+                Text(
+                    "No reveal gesture yet",
+                    style = VadeType.name.copy(fontSize = 17.sp),
+                    color = OVERLAY_INK,
+                    textAlign = TextAlign.Center
+                )
+                Text(
+                    "Set a gesture on this device before you can read protected messages.",
+                    style = VadeType.rowSecondary,
+                    color = OVERLAY_MUTED,
+                    textAlign = TextAlign.Center,
+                    modifier = Modifier
+                        .widthIn(max = 300.dp)
+                        .padding(top = 8.dp, bottom = 20.dp)
+                )
+                VadeButton(text = "Set up gesture", onClick = onOpenSetup)
             } else {
-                Column(horizontalAlignment = Alignment.CenterHorizontally) {
-                    Text(
-                        "Authenticate to reveal",
-                        color = Color.White,
-                        fontWeight = androidx.compose.ui.text.font.FontWeight.Bold,
-                        fontSize = 16.sp
-                    )
-                    Text(
-                        "Step ${state.step + 1} of $sequenceLength",
-                        color = Color(0xFF94A3B8),
-                        fontSize = 12.sp
-                    )
+                Text(
+                    "Draw to reveal",
+                    style = VadeType.name.copy(fontSize = 17.sp),
+                    color = OVERLAY_INK
+                )
+                Text(
+                    "Stroke ${(state.step + 1).coerceAtMost(requiredStrokes)} of $requiredStrokes",
+                    style = VadeType.rowSecondary,
+                    color = OVERLAY_MUTED,
+                    modifier = Modifier.padding(top = 3.dp, bottom = 20.dp)
+                )
 
-                    Spacer(modifier = Modifier.height(12.dp))
-                    StepProgressIndicator(total = sequenceLength, currentIndex = state.step)
-                    Spacer(modifier = Modifier.height(16.dp))
+                GesturePips(
+                    total = requiredStrokes,
+                    completed = state.step,
+                    skin = GesturePadSkin.Overlay
+                )
 
-                    GestureCanvas(onStrokeComplete = onStroke)
+                Spacer(Modifier.height(20.dp))
 
-                    Spacer(modifier = Modifier.height(12.dp))
-                    Text(
-                        text = feedback ?: "Draw your gesture for step ${state.step + 1}.",
-                        color = if (feedback != null) Color(0xFFF43F5E) else Color(0xFF94A3B8),
-                        fontSize = 12.sp
-                    )
+                GesturePad(
+                    onStroke = onStroke,
+                    hasError = feedback != null,
+                    skin = GesturePadSkin.Overlay,
+                    size = 272.dp,
+                    contentDescriptionText = "Draw your reveal gesture in one continuous stroke."
+                )
 
-                    Spacer(modifier = Modifier.height(12.dp))
-                    TextButton(onClick = onDismiss) {
-                        Text("Cancel", color = Color(0xFF94A3B8))
+                Box(
+                    modifier = Modifier
+                        .heightIn(min = 20.dp)
+                        .padding(top = 16.dp)
+                ) {
+                    if (feedback != null) {
+                        Text(
+                            feedback,
+                            style = VadeType.bodySmall,
+                            color = OVERLAY_WARN,
+                            textAlign = TextAlign.Center
+                        )
                     }
                 }
             }
-        }
-    }
-}
 
-@Composable
-fun GestureLockedDialog(
-    state: RevealState.Locked,
-    onDismiss: () -> Unit
-) {
-    Dialog(onDismissRequest = onDismiss) {
-        Box(
-            modifier = Modifier
-                .background(Color(0xFF0F172A), RoundedCornerShape(24.dp))
-                .padding(24.dp)
-        ) {
-            Column(horizontalAlignment = Alignment.CenterHorizontally) {
-                Box(
-                    modifier = Modifier
-                        .size(56.dp)
-                        .background(Color(0xFFF43F5E).copy(alpha = 0.12f), CircleShape),
-                    contentAlignment = Alignment.Center
-                ) {
-                    androidx.compose.material3.Icon(
-                        Icons.Default.Lock,
-                        contentDescription = null,
-                        tint = Color(0xFFF43F5E)
-                    )
-                }
-                Spacer(modifier = Modifier.height(12.dp))
-                Text("Too Many Failed Attempts", color = Color.White, fontWeight = androidx.compose.ui.text.font.FontWeight.Bold)
-                Spacer(modifier = Modifier.height(8.dp))
-                val maxLockoutSeconds = 30f
-                val lockProgress = (state.remainingSeconds / maxLockoutSeconds).coerceIn(0f, 1f)
-                LinearProgressIndicator(
-                    progress = { lockProgress },
-                    modifier = Modifier
-                        .fillMaxWidth(0.7f)
-                        .height(4.dp)
-                        .clip(RoundedCornerShape(2.dp)),
-                    color = Color(0xFFF43F5E),
-                    trackColor = Color(0xFF881337)
-                )
-                Spacer(modifier = Modifier.height(8.dp))
-                Text(
-                    "Try again in ${state.remainingSeconds}s",
-                    color = Color(0xFFF43F5E),
-                    fontSize = 12.sp,
-                    fontWeight = androidx.compose.ui.text.font.FontWeight.Medium
-                )
-                Spacer(modifier = Modifier.height(16.dp))
-                TextButton(onClick = onDismiss) {
-                    Text("Close", color = Color(0xFF94A3B8))
-                }
-            }
-        }
-    }
-}
-
-@Composable
-private fun NotConfiguredContent(onOpenSetup: () -> Unit, onDismiss: () -> Unit) {
-    Column(horizontalAlignment = Alignment.CenterHorizontally) {
-        Text("No Reveal Gesture", color = Color.White, fontWeight = androidx.compose.ui.text.font.FontWeight.Bold)
-        Spacer(modifier = Modifier.height(4.dp))
-        Text(
-            "You haven't configured a reveal gesture on this device.",
-            color = Color(0xFF94A3B8),
-            fontSize = 12.sp
-        )
-        Spacer(modifier = Modifier.height(16.dp))
-        Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-            TextButton(onClick = onDismiss) { Text("Cancel", color = Color(0xFF94A3B8)) }
-            Button(onClick = onOpenSetup) { Text("Set Up Gesture") }
-        }
-    }
-}
-
-/** ● for completed/current steps, ○ for remaining — communicates progress, never the shape. */
-@Composable
-fun StepProgressIndicator(total: Int, currentIndex: Int) {
-    Row(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
-        for (i in 0 until total) {
-            Box(
+            Text(
+                "Cancel",
+                style = VadeType.rowSecondary,
+                color = OVERLAY_MUTED,
                 modifier = Modifier
-                    .size(8.dp)
-                    .background(
-                        if (i <= currentIndex) Color(0xFF10B981) else Color(0xFF334155),
-                        CircleShape
-                    )
+                    .padding(top = 20.dp)
+                    .clip(VadeShape.pill)
+                    .clickable(onClick = onDismiss, role = Role.Button)
+                    .padding(horizontal = 14.dp, vertical = 8.dp)
+            )
+        }
+    }
+}
+
+/**
+ * Shown after five consecutive failures. Says how long the pause lasts and nothing else —
+ * dismissing it hides the message, not the countdown, which keeps running in the manager.
+ */
+@Composable
+fun GestureLockedDialog(state: RevealState.Locked, onDismiss: () -> Unit) {
+    Dialog(
+        onDismissRequest = onDismiss,
+        properties = DialogProperties(usePlatformDefaultWidth = false)
+    ) {
+        Column(
+            modifier = Modifier
+                .fillMaxSize()
+                .background(OVERLAY_SCRIM)
+                .padding(28.dp),
+            horizontalAlignment = Alignment.CenterHorizontally,
+            verticalArrangement = Arrangement.Center
+        ) {
+            Text(
+                "Try again shortly",
+                style = VadeType.name.copy(fontSize = 17.sp),
+                color = OVERLAY_INK
+            )
+            Text(
+                "Reveal is paused for ${state.remainingSeconds}s.",
+                style = VadeType.rowSecondary,
+                color = OVERLAY_MUTED,
+                modifier = Modifier.padding(top = 8.dp)
+            )
+            Text(
+                "Close",
+                style = VadeType.rowSecondary,
+                color = OVERLAY_MUTED,
+                modifier = Modifier
+                    .padding(top = 20.dp)
+                    .clip(VadeShape.pill)
+                    .clickable(onClick = onDismiss, role = Role.Button)
+                    .padding(horizontal = 14.dp, vertical = 8.dp)
             )
         }
     }

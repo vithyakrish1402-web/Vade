@@ -42,6 +42,19 @@ class GestureRevealManager(
     val isConfigured: Boolean get() = repository.isConfigured(userId)
     val sequenceLength: Int get() = repository.sequenceLength(userId)
 
+    /**
+     * How many strokes this reveal needs.
+     *
+     * Enrollment now records a single shape, and revealing a message asks for it three times in
+     * a row — one stroke is too easy to land by accident for something that exposes plaintext.
+     * Accounts enrolled under the older multi-step flow still walk their stored sequence, so an
+     * existing gesture keeps working without re-enrollment.
+     */
+    val requiredStrokes: Int
+        get() = repository.sequenceLength(userId).let { if (it > 1) it else REVEAL_STROKE_COUNT }
+
+    private val isLegacySequence: Boolean get() = repository.sequenceLength(userId) > 1
+
     /** Begins (or restarts) authentication targeting [messageId]. No-op while locked out. */
     fun startReveal(messageId: String) {
         if (_state.value is RevealState.Locked) return
@@ -60,13 +73,19 @@ class GestureRevealManager(
         val current = _state.value
         if (current !is RevealState.Authenticating) return
 
+        // A stroke too short to recognise is reported the same way as a wrong one. Saying it
+        // was short would tell an attacker something about the enrolled shape's length.
         if (!GestureNormalizer.isValidStroke(rawPoints)) {
-            _feedback.value = "Stroke too short. Draw a clear continuous gesture."
+            onStepMismatch(current.messageId)
             return
         }
 
+        // Single-shape enrollment checks every stroke against the one template; a legacy
+        // sequence walks its steps in order.
+        val templateIndex = if (isLegacySequence) current.step else 0
+
         val matched = try {
-            repository.verifyStep(userId, current.step, rawPoints)
+            repository.verifyStep(userId, templateIndex, rawPoints)
         } catch (_: Exception) {
             false // Fail closed on any unexpected recognition error.
         }
@@ -74,7 +93,7 @@ class GestureRevealManager(
         if (matched) {
             _feedback.value = null
             val nextStep = current.step + 1
-            if (nextStep >= repository.sequenceLength(userId)) {
+            if (nextStep >= requiredStrokes) {
                 onSequenceAuthenticated(current.messageId)
             } else {
                 _state.value = RevealState.Authenticating(current.messageId, nextStep)
@@ -108,12 +127,13 @@ class GestureRevealManager(
     private fun onStepMismatch(messageId: String) {
         failedAttempts += 1
 
-        // Never reveal which specific gesture in the sequence failed.
+        // Says only that it did not match — never how close the attempt was, which stroke
+        // diverged, or how many attempts remain.
         if (failedAttempts >= MAX_FAILED_ATTEMPTS) {
             _feedback.value = null
             enterLockout()
         } else {
-            _feedback.value = "Gesture didn't match. Sequence restarted at step 1."
+            _feedback.value = "That did not match."
             _state.value = RevealState.Authenticating(messageId, step = 0)
         }
     }
@@ -171,6 +191,14 @@ class GestureRevealManager(
     companion object {
         const val MAX_FAILED_ATTEMPTS = 5
         const val LOCKOUT_DURATION_SECONDS = 30
-        const val REVEAL_DURATION_SECONDS = 8
+        /**
+         * The reveal window. Fixed rather than user-configurable: a window the user can
+         * lengthen is a window an attacker can lengthen, and six seconds is enough to read a
+         * message once.
+         */
+        const val REVEAL_DURATION_SECONDS = 6
+
+        /** Strokes required to reveal, for a gesture enrolled as a single shape. */
+        const val REVEAL_STROKE_COUNT = 3
     }
 }

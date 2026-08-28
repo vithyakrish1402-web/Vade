@@ -1,0 +1,5 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- The window background only. Every other colour is a Compose token (VadeTheme.kt). -->
+<resources>
+    <color name="vade_bg">#FCFCFB</color>
+</resources>

@@ -1,32 +1,40 @@
 package com.enctxt.presentation
 
+import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.foundation.background
+import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.foundation.shape.CircleShape
-import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.*
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.text.font.FontFamily
-import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.graphics.vector.ImageVector
+import androidx.compose.ui.semantics.Role
+import androidx.compose.ui.semantics.contentDescription
+import androidx.compose.ui.semantics.semantics
+import androidx.compose.ui.text.style.TextAlign
+import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.text.input.KeyboardType
-import androidx.compose.ui.text.input.PasswordVisualTransformation
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import androidx.navigation.NavController
+import androidx.navigation.NavDestination.Companion.hierarchy
+import androidx.navigation.NavGraph.Companion.findStartDestination
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
+import androidx.navigation.compose.currentBackStackEntryAsState
 import androidx.navigation.compose.rememberNavController
 import com.enctxt.core.gesture.GesturePoint
 import com.enctxt.core.gesture.GestureRepository
@@ -51,36 +59,12 @@ import com.enctxt.presentation.components.GestureEnrollmentViewModel
 import com.enctxt.presentation.components.GestureLockedDialog
 import com.enctxt.presentation.components.GestureRevealDialog
 import com.enctxt.presentation.components.GestureSettingsScreen
-import com.enctxt.presentation.components.ProtectedMessage
+import com.enctxt.presentation.components.vade.*
+import com.enctxt.presentation.theme.*
 import kotlinx.coroutines.FlowPreview
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.flow.*
 import kotlinx.coroutines.launch
-
-// ==============================================================================
-// 1. Compose Theme & Color Palette
-// ==============================================================================
-
-private val DarkColorScheme = darkColorScheme(
-    primary = Color(0xFF10B981), // Emerald-500
-    onPrimary = Color.Black,
-    secondary = Color(0xFF334155), // Slate-700
-    onSecondary = Color.White,
-    background = Color(0xFF090D16), // Deep Slate-950
-    onBackground = Color(0xFFF1F5F9),
-    surface = Color(0xFF0F172A), // Slate-900
-    onSurface = Color(0xFFE2E8F0),
-    error = Color(0xFFF43F5E), // Rose-500
-    onError = Color.White
-)
-
-@Composable
-fun EnctxtTheme(content: @Composable () -> Unit) {
-    MaterialTheme(
-        colorScheme = DarkColorScheme,
-        content = content
-    )
-}
 
 // ==============================================================================
 // 2. ViewModels
@@ -366,8 +350,77 @@ class MessageViewModel(
 }
 
 // ==============================================================================
-// 3. Compose Navigation & Screens
+// 3. Navigation shell
 // ==============================================================================
+
+/** The three roots that carry the bottom bar. Everything else is a pushed screen. */
+private val ROOT_DESTINATIONS = listOf(
+    Triple("conversations", "Messages", Icons.Default.ChatBubbleOutline),
+    Triple("search", "Search", Icons.Default.Search),
+    Triple("profile", "Profile", Icons.Default.PersonOutline)
+)
+
+/**
+ * An 82dp bar with a 4dp active dot. Every item carries an accessible name, so the selected
+ * state never rests on colour alone. Drawn over the navigation inset, with content padded by
+ * WindowInsets rather than a fixed value.
+ */
+@Composable
+private fun VadeBottomBar(navController: NavController) {
+    val colors = vadeColors
+    val backStackEntry by navController.currentBackStackEntryAsState()
+    val currentDestination = backStackEntry?.destination
+
+    Column(
+        modifier = Modifier
+            .fillMaxWidth()
+            .background(colors.bg)
+    ) {
+        HorizontalDivider(color = colors.line, thickness = 1.dp)
+        Row(
+            modifier = Modifier
+                .fillMaxWidth()
+                .height(82.dp)
+                .padding(horizontal = 34.dp)
+                .padding(top = 10.dp)
+        ) {
+            ROOT_DESTINATIONS.forEach { (route, label, icon) ->
+                val isSelected = currentDestination?.hierarchy?.any { it.route == route } == true
+                Column(
+                    modifier = Modifier
+                        .weight(1f)
+                        .fillMaxHeight()
+                        .clickable(role = Role.Tab) {
+                            if (!isSelected) {
+                                navController.navigate(route) {
+                                    popUpTo(navController.graph.findStartDestination().id) {
+                                        saveState = true
+                                    }
+                                    launchSingleTop = true
+                                    restoreState = true
+                                }
+                            }
+                        }
+                        .semantics { contentDescription = label },
+                    horizontalAlignment = Alignment.CenterHorizontally,
+                    verticalArrangement = Arrangement.spacedBy(5.dp)
+                ) {
+                    Icon(
+                        icon,
+                        contentDescription = null,
+                        tint = if (isSelected) colors.text else colors.faint,
+                        modifier = Modifier.size(VadeIconSize.nav)
+                    )
+                    Box(
+                        modifier = Modifier
+                            .size(4.dp)
+                            .background(if (isSelected) colors.accent else Color.Transparent, CircleShape)
+                    )
+                }
+            }
+        }
+    }
+}
 
 @Composable
 fun NavGraph(
@@ -379,336 +432,514 @@ fun NavGraph(
     gestureRepository: GestureRepository,
     contactSecurityRepository: ContactSecurityRepository,
     deviceRepository: DeviceRepository,
-    cryptoRepository: CryptoRepository
+    cryptoRepository: CryptoRepository,
+    themeController: ThemeController
 ) {
     val authState by authViewModel.uiState.collectAsState()
     val currentUserId = (authState as? AuthUiState.Authenticated)?.user?.id ?: ""
+    val currentUser = (authState as? AuthUiState.Authenticated)?.user
 
-    NavHost(
-        navController = navController,
-        startDestination = if (authState is AuthUiState.Authenticated) "conversations" else "login"
-    ) {
-        composable("login") {
-            LoginScreen(
-                viewModel = authViewModel,
-                onNavigateToRegister = { navController.navigate("register") },
-                onLoginSuccess = {
-                    navController.navigate("conversations") {
-                        popUpTo("login") { inclusive = true }
-                    }
-                }
-            )
+    val backStackEntry by navController.currentBackStackEntryAsState()
+    val currentRoute = backStackEntry?.destination?.route
+    val showBottomBar = ROOT_DESTINATIONS.any { it.first == currentRoute }
+
+    Scaffold(
+        containerColor = vadeColors.bg,
+        contentColor = vadeColors.text,
+        bottomBar = {
+            // System back leaves chat, sheets and overlays before it leaves the app; the bar
+            // only exists on the three roots, so it never offers an escape from a flow.
+            AnimatedVisibility(visible = showBottomBar) {
+                VadeBottomBar(navController)
+            }
         }
+    ) { scaffoldPadding ->
+        NavHost(
+            navController = navController,
+            startDestination = if (authState is AuthUiState.Authenticated) "conversations" else "welcome",
+            modifier = Modifier
+                .fillMaxSize()
+                .padding(scaffoldPadding)
+        ) {
+            composable("welcome") {
+                WelcomeScreen(
+                    onGetStarted = { navController.navigate("register") },
+                    onSignIn = { navController.navigate("login") }
+                )
+            }
 
-        composable("register") {
-            RegisterScreen(
-                viewModel = authViewModel,
-                onNavigateToLogin = { navController.popBackStack() },
-                onRegisterSuccess = {
-                    navController.navigate("conversations") {
-                        popUpTo("register") { inclusive = true }
-                    }
-                }
-            )
-        }
-
-        composable("conversations") {
-            ConversationListScreen(
-                viewModel = conversationViewModel,
-                onOpenSearch = { navController.navigate("search") },
-                onOpenConversation = { convId, peerId, peerName ->
-                    navController.navigate("conversation/$convId/$peerId/$peerName")
-                },
-                onOpenGestureSettings = { navController.navigate("gesture-settings") },
-                onOpenDevices = { navController.navigate("devices") },
-                onLogout = {
-                    authViewModel.logout {
-                        navController.navigate("login") {
+            composable("login") {
+                LoginScreen(
+                    viewModel = authViewModel,
+                    onNavigateToRegister = { navController.navigate("register") },
+                    onLoginSuccess = {
+                        navController.navigate("conversations") {
                             popUpTo(0) { inclusive = true }
                         }
                     }
-                }
-            )
-        }
+                )
+            }
 
-        composable("devices") {
-            DeviceManagementScreen(
-                deviceRepository = deviceRepository,
-                cryptoRepository = cryptoRepository,
-                onBack = { navController.popBackStack() },
-                onCurrentDeviceRevoked = {
-                    authViewModel.logout {
-                        navController.navigate("login") {
+            composable("register") {
+                RegisterScreen(
+                    viewModel = authViewModel,
+                    onBack = { navController.popBackStack() },
+                    // An account without a reveal gesture cannot read its own messages, so
+                    // enrollment is part of sign-up rather than a setting to find later.
+                    onRegisterSuccess = {
+                        navController.navigate("gesture-enrollment?onboarding=true") {
                             popUpTo(0) { inclusive = true }
                         }
                     }
-                }
-            )
-        }
+                )
+            }
 
-        composable("contact-security/{peerId}/{peerName}") { backStackEntry ->
-            val peerId = backStackEntry.arguments?.getString("peerId") ?: ""
-            val peerName = backStackEntry.arguments?.getString("peerName") ?: ""
-
-            ContactSecurityScreen(
-                peerId = peerId,
-                peerName = peerName,
-                currentUserId = currentUserId,
-                contactSecurityRepository = contactSecurityRepository,
-                cryptoRepository = cryptoRepository,
-                onBack = { navController.popBackStack() }
-            )
-        }
-
-        composable("gesture-settings") {
-            GestureSettingsScreen(
-                repository = gestureRepository,
-                userId = currentUserId,
-                onBack = { navController.popBackStack() },
-                onChangeGesture = { navController.navigate("gesture-enrollment") }
-            )
-        }
-
-        composable("gesture-enrollment") {
-            val viewModel = androidx.lifecycle.viewmodel.compose.viewModel<GestureEnrollmentViewModel>(
-                factory = object : androidx.lifecycle.ViewModelProvider.Factory {
-                    @Suppress("UNCHECKED_CAST")
-                    override fun <T : androidx.lifecycle.ViewModel> create(modelClass: Class<T>): T {
-                        return GestureEnrollmentViewModel(gestureRepository, currentUserId) as T
+            composable("conversations") {
+                ConversationListScreen(
+                    viewModel = conversationViewModel,
+                    onOpenSearch = { navController.navigate("search") },
+                    onOpenConversation = { convId, peerId, peerName ->
+                        navController.navigate("conversation/$convId/$peerId/$peerName")
                     }
-                }
-            )
-            GestureEnrollmentScreen(
-                viewModel = viewModel,
-                onBack = { navController.popBackStack() },
-                onComplete = { navController.popBackStack() }
-            )
-        }
+                )
+            }
 
-        composable("search") {
-            SearchScreen(
-                viewModel = searchViewModel,
-                onBack = { navController.popBackStack() },
-                onStartChat = { convId, peerId, peerName ->
-                    navController.navigate("conversation/$convId/$peerId/$peerName") {
-                        popUpTo("search") { inclusive = true }
+            composable("search") {
+                SearchScreen(
+                    viewModel = searchViewModel,
+                    onStartChat = { convId, peerId, peerName ->
+                        navController.navigate("conversation/$convId/$peerId/$peerName")
                     }
-                }
-            )
-        }
+                )
+            }
 
-        composable("conversation/{convId}/{peerId}/{peerName}") { backStackEntry ->
-            val convId = backStackEntry.arguments?.getString("convId") ?: ""
-            val peerId = backStackEntry.arguments?.getString("peerId") ?: ""
-            val peerName = backStackEntry.arguments?.getString("peerName") ?: ""
+            composable("profile") {
+                ProfileScreen(
+                    user = currentUser,
+                    userId = currentUserId,
+                    gestureRepository = gestureRepository,
+                    themeController = themeController,
+                    onOpenGestureSettings = { navController.navigate("gesture-settings") },
+                    onOpenDevices = { navController.navigate("devices") },
+                    onLogout = {
+                        authViewModel.logout {
+                            navController.navigate("welcome") {
+                                popUpTo(0) { inclusive = true }
+                            }
+                        }
+                    }
+                )
+            }
 
-            ConversationScreen(
-                conversationId = convId,
-                peerId = peerId,
-                peerName = peerName,
-                currentUserId = currentUserId,
-                viewModel = messageViewModel,
-                gestureRepository = gestureRepository,
-                contactSecurityRepository = contactSecurityRepository,
-                onBack = { navController.popBackStack() },
-                onOpenGestureSettings = { navController.navigate("gesture-settings") },
-                onOpenContactSecurity = { navController.navigate("contact-security/$peerId/$peerName") }
-            )
+            composable("devices") {
+                DeviceManagementScreen(
+                    deviceRepository = deviceRepository,
+                    cryptoRepository = cryptoRepository,
+                    onBack = { navController.popBackStack() },
+                    onCurrentDeviceRevoked = {
+                        authViewModel.logout {
+                            navController.navigate("welcome") {
+                                popUpTo(0) { inclusive = true }
+                            }
+                        }
+                    }
+                )
+            }
+
+            composable("contact-security/{peerId}/{peerName}") { backStackEntry ->
+                ContactSecurityScreen(
+                    peerId = backStackEntry.arguments?.getString("peerId") ?: "",
+                    peerName = backStackEntry.arguments?.getString("peerName") ?: "",
+                    currentUserId = currentUserId,
+                    contactSecurityRepository = contactSecurityRepository,
+                    cryptoRepository = cryptoRepository,
+                    onBack = { navController.popBackStack() }
+                )
+            }
+
+            composable("gesture-settings") {
+                GestureSettingsScreen(
+                    repository = gestureRepository,
+                    userId = currentUserId,
+                    onBack = { navController.popBackStack() },
+                    onChangeGesture = { navController.navigate("gesture-enrollment?onboarding=false") }
+                )
+            }
+
+            composable("gesture-enrollment?onboarding={onboarding}") { backStackEntry ->
+                val isOnboarding = backStackEntry.arguments?.getString("onboarding") == "true"
+                val viewModel = androidx.lifecycle.viewmodel.compose.viewModel<GestureEnrollmentViewModel>(
+                    factory = object : androidx.lifecycle.ViewModelProvider.Factory {
+                        @Suppress("UNCHECKED_CAST")
+                        override fun <T : androidx.lifecycle.ViewModel> create(modelClass: Class<T>): T {
+                            return GestureEnrollmentViewModel(gestureRepository, currentUserId) as T
+                        }
+                    }
+                )
+                GestureEnrollmentScreen(
+                    viewModel = viewModel,
+                    userId = currentUserId,
+                    isOnboarding = isOnboarding,
+                    onBack = {
+                        if (isOnboarding) Unit else navController.popBackStack()
+                    },
+                    onComplete = {
+                        if (isOnboarding) {
+                            navController.navigate("conversations") {
+                                popUpTo(0) { inclusive = true }
+                            }
+                        } else {
+                            navController.popBackStack()
+                        }
+                    }
+                )
+            }
+
+            composable("conversation/{convId}/{peerId}/{peerName}") { backStackEntry ->
+                val convId = backStackEntry.arguments?.getString("convId") ?: ""
+                val peerId = backStackEntry.arguments?.getString("peerId") ?: ""
+                val peerName = backStackEntry.arguments?.getString("peerName") ?: ""
+
+                ConversationScreen(
+                    conversationId = convId,
+                    peerId = peerId,
+                    peerName = peerName,
+                    currentUserId = currentUserId,
+                    viewModel = messageViewModel,
+                    gestureRepository = gestureRepository,
+                    contactSecurityRepository = contactSecurityRepository,
+                    onBack = { navController.popBackStack() },
+                    onOpenGestureSettings = { navController.navigate("gesture-settings") },
+                    onOpenContactSecurity = { navController.navigate("contact-security/$peerId/$peerName") }
+                )
+            }
         }
     }
 }
 
 // ==============================================================================
-// 4. Conversation List Screen
+// 4. Welcome
 // ==============================================================================
 
-@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+fun WelcomeScreen(onGetStarted: () -> Unit, onSignIn: () -> Unit) {
+    val colors = vadeColors
+
+    Column(
+        modifier = Modifier
+            .fillMaxSize()
+            .background(colors.bg)
+            .padding(horizontal = 30.dp)
+            .padding(bottom = 30.dp),
+        verticalArrangement = Arrangement.Center
+    ) {
+        Text("Vade", style = VadeType.displayTitle, color = colors.text)
+        Text(
+            "Messages nobody can read\nover your shoulder.",
+            style = VadeType.body.copy(fontSize = 17.sp, lineHeight = 26.sp),
+            color = colors.muted,
+            modifier = Modifier.padding(top = 12.dp)
+        )
+
+        Spacer(Modifier.height(36.dp))
+
+        listOf(
+            Triple(
+                Icons.Default.Lock,
+                "Protected by default",
+                "Nothing readable sits on your screen until you ask for it."
+            ),
+            Triple(
+                Icons.Default.Gesture,
+                "Revealed by gesture",
+                "A shape only you know, drawn on the message itself."
+            ),
+            Triple(
+                Icons.Default.VpnKey,
+                "Keys stay on device",
+                "Generated here, never uploaded, verifiable in person."
+            )
+        ).forEach { (icon, title, body) ->
+            Row(
+                modifier = Modifier.padding(bottom = VadeSpace.gutter),
+                horizontalArrangement = Arrangement.spacedBy(VadeSpace.row)
+            ) {
+                Box(
+                    modifier = Modifier
+                        .size(34.dp)
+                        .background(colors.surface, CircleShape),
+                    contentAlignment = Alignment.Center
+                ) {
+                    Icon(icon, contentDescription = null, tint = colors.accentInk, modifier = Modifier.size(16.dp))
+                }
+                Column {
+                    Text(title, style = VadeType.name, color = colors.text)
+                    Text(
+                        body,
+                        style = VadeType.bodySmall.copy(fontSize = 13.5.sp),
+                        color = colors.muted,
+                        modifier = Modifier.padding(top = 2.dp)
+                    )
+                }
+            }
+        }
+
+        Spacer(Modifier.height(18.dp))
+
+        VadeButton(
+            text = "Get started",
+            onClick = onGetStarted,
+            modifier = Modifier.fillMaxWidth()
+        )
+        Text(
+            "I already have an account",
+            style = VadeType.body,
+            color = colors.muted,
+            modifier = Modifier
+                .align(Alignment.CenterHorizontally)
+                .clip(VadeShape.pill)
+                .clickable(onClick = onSignIn, role = Role.Button)
+                .padding(horizontal = 12.dp, vertical = 12.dp)
+        )
+    }
+}
+
+// ==============================================================================
+// 5. Messages
+// ==============================================================================
+
 @Composable
 fun ConversationListScreen(
     viewModel: ConversationViewModel,
     onOpenSearch: () -> Unit,
-    onOpenConversation: (String, String, String) -> Unit,
-    onOpenGestureSettings: () -> Unit,
-    onOpenDevices: () -> Unit,
-    onLogout: () -> Unit
+    onOpenConversation: (String, String, String) -> Unit
 ) {
+    val colors = vadeColors
     val conversations by viewModel.cachedConversations.collectAsState(initial = emptyList())
     val isLoading by viewModel.isLoading.collectAsState()
 
-    Scaffold(
-        topBar = {
-            TopAppBar(
-                title = {
-                    Row(verticalAlignment = Alignment.CenterVertically) {
-                        Icon(Icons.Default.Shield, contentDescription = null, tint = MaterialTheme.colorScheme.primary)
-                        Spacer(modifier = Modifier.width(8.dp))
-                        Text("Vade", fontWeight = FontWeight.Bold)
-                    }
-                },
-                actions = {
-                    IconButton(onClick = onOpenDevices) {
-                        Icon(Icons.Default.Devices, contentDescription = "Device Trust & Management")
-                    }
-                    IconButton(onClick = onOpenGestureSettings) {
-                        Icon(Icons.Default.Fingerprint, contentDescription = "Reveal Gesture Settings")
-                    }
-                    IconButton(onClick = onLogout) {
-                        Icon(Icons.Default.ExitToApp, contentDescription = "Log Out")
-                    }
-                },
-                colors = TopAppBarDefaults.topAppBarColors(containerColor = MaterialTheme.colorScheme.surface)
+    Box(modifier = Modifier.fillMaxSize()) {
+        Column(modifier = Modifier.fillMaxSize()) {
+            Text(
+                "Vade",
+                style = VadeType.screenTitle,
+                color = colors.text,
+                modifier = Modifier.padding(
+                    start = VadeSpace.screenPadding,
+                    end = VadeSpace.screenPadding,
+                    top = 14.dp,
+                    bottom = 10.dp
+                )
             )
-        },
-        floatingActionButton = {
-            FloatingActionButton(
-                onClick = onOpenSearch,
-                containerColor = MaterialTheme.colorScheme.primary,
-                contentColor = Color.Black
+
+            Row(
+                modifier = Modifier
+                    .padding(horizontal = VadeSpace.screenPadding)
+                    .padding(bottom = 14.dp)
+                    .fillMaxWidth()
+                    .height(42.dp)
+                    .clip(VadeShape.pill)
+                    .background(colors.surface)
+                    .clickable(onClick = onOpenSearch, role = Role.Button)
+                    .padding(horizontal = 15.dp),
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.spacedBy(9.dp)
             ) {
-                Icon(Icons.Default.Add, contentDescription = "Start Conversation")
+                Icon(
+                    Icons.Default.Search,
+                    contentDescription = null,
+                    tint = colors.muted,
+                    modifier = Modifier.size(16.dp)
+                )
+                Text("Search", style = VadeType.body, color = colors.muted)
             }
-        },
-        containerColor = MaterialTheme.colorScheme.background
-    ) { padding ->
-        Box(modifier = Modifier.fillMaxSize().padding(padding)) {
+
             if (conversations.isEmpty() && !isLoading) {
                 Column(
-                    modifier = Modifier.fillMaxSize().padding(32.dp),
+                    modifier = Modifier.fillMaxSize(),
                     horizontalAlignment = Alignment.CenterHorizontally,
                     verticalArrangement = Arrangement.Center
                 ) {
-                    Icon(Icons.Default.ChatBubbleOutline, contentDescription = null, tint = Color.Gray, modifier = Modifier.size(56.dp))
-                    Spacer(modifier = Modifier.height(16.dp))
-                    Text("No Conversations Yet", fontSize = 18.sp, fontWeight = FontWeight.SemiBold, color = Color.White)
-                    Text("Tap '+' below to start an encrypted chat", fontSize = 13.sp, color = Color.Gray)
+                    EmptyState(
+                        icon = Icons.Default.ChatBubbleOutline,
+                        title = "No conversations yet",
+                        body = "Find someone by username to start a protected conversation.",
+                        action = {
+                            VadeButton(
+                                text = "Find someone",
+                                onClick = onOpenSearch,
+                                size = VadeButtonSize.Small
+                            )
+                        }
+                    )
                 }
             } else {
                 LazyColumn(modifier = Modifier.fillMaxSize()) {
-                    items(conversations, key = { it.id }) { conv ->
-                        ConversationItemRow(
-                            conversation = conv,
-                            onClick = { onOpenConversation(conv.id, conv.peerId, conv.peerDisplayName.ifEmpty { conv.peerUsername }) }
+                    items(conversations, key = { it.id }) { conversation ->
+                        val name = conversation.peerDisplayName.ifEmpty { conversation.peerUsername }
+                        ConversationRow(
+                            name = name,
+                            time = formatListTime(conversation.updatedAt),
+                            onOpen = { onOpenConversation(conversation.id, conversation.peerId, name) }
                         )
-                        HorizontalDivider(color = Color(0xFF1E293B))
                     }
                 }
             }
         }
-    }
-}
 
-@Composable
-fun ConversationItemRow(
-    conversation: com.enctxt.core.storage.ConversationEntity,
-    onClick: () -> Unit
-) {
-    Row(
-        modifier = Modifier
-            .fillMaxWidth()
-            .clickable(onClick = onClick)
-            .padding(16.dp),
-        verticalAlignment = Alignment.CenterVertically
-    ) {
-        Box(
+        FloatingActionButton(
+            onClick = onOpenSearch,
+            containerColor = colors.outBg,
+            contentColor = colors.outFg,
+            shape = CircleShape,
             modifier = Modifier
-                .size(48.dp)
-                .background(MaterialTheme.colorScheme.secondary, CircleShape),
-            contentAlignment = Alignment.Center
+                .align(Alignment.BottomEnd)
+                .padding(end = VadeSpace.screenPadding, bottom = VadeSpace.screenPadding)
+                .size(54.dp)
         ) {
-            val initial = conversation.peerDisplayName.take(1).uppercase()
-                .ifEmpty { conversation.peerUsername.take(1).uppercase() }
-            Text(initial, color = Color.White, fontWeight = FontWeight.Bold, fontSize = 18.sp)
-        }
-
-        Spacer(modifier = Modifier.width(16.dp))
-
-        Column(modifier = Modifier.weight(1f)) {
-            Text(
-                conversation.peerDisplayName.ifEmpty { conversation.peerUsername },
-                fontWeight = FontWeight.SemiBold,
-                color = Color.White,
-                fontSize = 16.sp
-            )
-            Spacer(modifier = Modifier.height(4.dp))
-            Text(
-                "🔒 Protected conversation",
-                fontSize = 13.sp,
-                color = Color(0xFF94A3B8),
-                fontStyle = androidx.compose.ui.text.font.FontStyle.Italic
-            )
+            Icon(Icons.Default.Add, contentDescription = "New conversation", modifier = Modifier.size(22.dp))
         }
     }
 }
 
+/** "10:42" today, "Yesterday", a weekday within the week, then a date. */
+private fun formatListTime(isoTimestamp: String): String = try {
+    val instant = java.time.Instant.parse(isoTimestamp)
+    val zone = java.time.ZoneId.systemDefault()
+    val date = instant.atZone(zone).toLocalDate()
+    val today = java.time.LocalDate.now(zone)
+    val daysAgo = java.time.temporal.ChronoUnit.DAYS.between(date, today)
+
+    when {
+        daysAgo <= 0L -> java.time.format.DateTimeFormatter.ofPattern("HH:mm")
+            .format(instant.atZone(zone))
+        daysAgo == 1L -> "Yesterday"
+        daysAgo < 7L -> java.time.format.DateTimeFormatter.ofPattern("EEE").format(date)
+        else -> java.time.format.DateTimeFormatter.ofPattern("d MMM").format(date)
+    }
+} catch (_: Exception) {
+    ""
+}
+
 // ==============================================================================
-// 5. User Search Screen
+// 6. Search
 // ==============================================================================
 
-@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun SearchScreen(
     viewModel: SearchViewModel,
-    onBack: () -> Unit,
     onStartChat: (String, String, String) -> Unit
 ) {
+    val colors = vadeColors
     val query by viewModel.query.collectAsState()
     val results by viewModel.searchResults.collectAsState()
     val isSearching by viewModel.isSearching.collectAsState()
 
-    Scaffold(
-        topBar = {
-            TopAppBar(
-                title = { Text("New Conversation") },
-                navigationIcon = {
-                    IconButton(onClick = onBack) {
-                        Icon(Icons.Default.ArrowBack, contentDescription = "Back")
+    Column(modifier = Modifier.fillMaxSize()) {
+        Text(
+            "Search",
+            style = VadeType.screenTitle,
+            color = colors.text,
+            modifier = Modifier.padding(
+                start = VadeSpace.screenPadding,
+                end = VadeSpace.screenPadding,
+                top = 14.dp,
+                bottom = 14.dp
+            )
+        )
+
+        VadeField(
+            value = query,
+            onValueChange = { viewModel.onQueryChanged(it) },
+            placeholder = "Name or username",
+            modifier = Modifier
+                .padding(horizontal = VadeSpace.screenPadding)
+                .padding(bottom = 8.dp)
+        )
+
+        when {
+            isSearching -> Box(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(32.dp),
+                contentAlignment = Alignment.Center
+            ) {
+                CircularProgressIndicator(color = colors.muted, strokeWidth = 2.dp)
+            }
+
+            results.isEmpty() && query.isNotBlank() -> Box(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(top = 40.dp),
+                contentAlignment = Alignment.Center
+            ) {
+                EmptyState(
+                    icon = Icons.Default.Search,
+                    title = "No one found",
+                    body = "Check the spelling, or ask them for their exact username."
+                )
+            }
+
+            else -> LazyColumn(modifier = Modifier.weight(1f)) {
+                if (results.isNotEmpty()) {
+                    item {
+                        SectionLabel(
+                            "Matches",
+                            modifier = Modifier.padding(horizontal = VadeSpace.screenPadding, vertical = 6.dp)
+                        )
                     }
-                },
-                colors = TopAppBarDefaults.topAppBarColors(containerColor = MaterialTheme.colorScheme.surface)
-            )
-        },
-        containerColor = MaterialTheme.colorScheme.background
-    ) { padding ->
-        Column(modifier = Modifier.fillMaxSize().padding(padding).padding(16.dp)) {
-            OutlinedTextField(
-                value = query,
-                onValueChange = { viewModel.onQueryChanged(it) },
-                label = { Text("Search by username...") },
-                leadingIcon = { Icon(Icons.Default.Search, contentDescription = null) },
-                singleLine = true,
-                modifier = Modifier.fillMaxWidth(),
-                shape = RoundedCornerShape(12.dp)
-            )
-
-            Spacer(modifier = Modifier.height(16.dp))
-
-            if (isSearching) {
-                Box(modifier = Modifier.fillMaxWidth().padding(32.dp), contentAlignment = Alignment.Center) {
-                    CircularProgressIndicator(color = MaterialTheme.colorScheme.primary)
                 }
-            } else {
-                LazyColumn(modifier = Modifier.fillMaxSize()) {
-                    items(results, key = { it.id }) { user ->
-                        Row(
-                            modifier = Modifier
-                                .fillMaxWidth()
-                                .clickable { viewModel.startConversation(user, onStartChat) }
-                                .padding(vertical = 12.dp, horizontal = 8.dp),
-                            verticalAlignment = Alignment.CenterVertically
-                        ) {
-                            Box(
-                                modifier = Modifier.size(40.dp).background(MaterialTheme.colorScheme.secondary, CircleShape),
-                                contentAlignment = Alignment.Center
-                            ) {
-                                Text(user.username.take(1).uppercase(), color = Color.White, fontWeight = FontWeight.Bold)
+                items(results, key = { it.id }) { user ->
+                    val name = user.displayName.ifEmpty { user.username }
+                    Row(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .clickable(role = Role.Button) {
+                                viewModel.startConversation(user) { convId, peerId, _ ->
+                                    onStartChat(convId, peerId, name)
+                                }
                             }
-                            Spacer(modifier = Modifier.width(12.dp))
-                            Column {
-                                Text(user.displayName.ifEmpty { user.username }, fontWeight = FontWeight.SemiBold, color = Color.White)
-                                Text("@${user.username}", fontSize = 12.sp, color = Color.Gray)
-                            }
+                            .heightIn(min = VadeSpace.touchTarget)
+                            .padding(horizontal = VadeSpace.screenPadding, vertical = 12.dp),
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.spacedBy(VadeSpace.row)
+                    ) {
+                        VadeAvatar(name, size = 40.dp)
+                        Column(modifier = Modifier.weight(1f)) {
+                            Text(
+                                name,
+                                style = VadeType.name.copy(fontSize = 15.sp),
+                                color = colors.text,
+                                maxLines = 1,
+                                overflow = TextOverflow.Ellipsis
+                            )
+                            Text("@${user.username}", style = VadeType.rowSecondary, color = colors.muted)
                         }
-                        HorizontalDivider(color = Color(0xFF1E293B))
+                        Icon(
+                            Icons.Default.ChevronRight,
+                            contentDescription = null,
+                            tint = colors.faint,
+                            modifier = Modifier.size(18.dp)
+                        )
+                    }
+                }
+                item {
+                    Row(
+                        modifier = Modifier.padding(horizontal = VadeSpace.screenPadding, vertical = 16.dp),
+                        horizontalArrangement = Arrangement.spacedBy(6.dp),
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        Icon(
+                            Icons.Default.Lock,
+                            contentDescription = null,
+                            tint = colors.faint,
+                            modifier = Modifier.size(VadeIconSize.small)
+                        )
+                        Text(
+                            "Search covers names and usernames only.",
+                            style = VadeType.bodySmall,
+                            color = colors.faint
+                        )
                     }
                 }
             }
@@ -717,10 +948,147 @@ fun SearchScreen(
 }
 
 // ==============================================================================
-// 6. Conversation & Encrypted Messaging Screen (Phase 14 Reliability)
+// 7. Profile
 // ==============================================================================
 
-@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+fun ProfileScreen(
+    user: UserSummary?,
+    userId: String,
+    gestureRepository: GestureRepository,
+    themeController: ThemeController,
+    onOpenGestureSettings: () -> Unit,
+    onOpenDevices: () -> Unit,
+    onLogout: () -> Unit
+) {
+    val colors = vadeColors
+    val context = androidx.compose.ui.platform.LocalContext.current
+    val stylePreference = remember { SharedPrefsProtectionStylePreference(context) }
+
+    var protectionMode by remember { mutableStateOf(stylePreference.getMode(userId)) }
+    var isStyleSheetOpen by remember { mutableStateOf(false) }
+    var isSignOutConfirmOpen by remember { mutableStateOf(false) }
+
+    val isGestureConfigured = remember(userId) { gestureRepository.isConfigured(userId) }
+    val name = user?.displayName?.ifEmpty { user.username } ?: ""
+
+    Column(
+        modifier = Modifier
+            .fillMaxSize()
+            .verticalScroll(rememberScrollState())
+    ) {
+        Text(
+            "Profile",
+            style = VadeType.screenTitle,
+            color = colors.text,
+            modifier = Modifier.padding(
+                start = VadeSpace.screenPadding,
+                end = VadeSpace.screenPadding,
+                top = 14.dp,
+                bottom = 18.dp
+            )
+        )
+
+        Column(
+            modifier = Modifier.padding(horizontal = VadeSpace.screenPadding),
+            verticalArrangement = Arrangement.spacedBy(VadeSpace.section)
+        ) {
+            Row(
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.spacedBy(14.dp)
+            ) {
+                VadeAvatar(name, size = 56.dp)
+                Column {
+                    Text(name, style = VadeType.name.copy(fontSize = 17.sp), color = colors.text)
+                    Text("@${user?.username ?: ""}", style = VadeType.body, color = colors.muted)
+                }
+            }
+
+            SettingsGroup(label = "Privacy & security") {
+                SettingsRow(
+                    label = "Protection style",
+                    value = protectionStyleLabel(protectionMode),
+                    onClick = { isStyleSheetOpen = true }
+                )
+                SettingsRow(
+                    label = "Gesture reveal",
+                    value = if (isGestureConfigured) {
+                        "${GestureRevealManager.REVEAL_STROKE_COUNT} strokes · " +
+                            "${GestureRevealManager.REVEAL_DURATION_SECONDS}s"
+                    } else {
+                        "Not set up"
+                    },
+                    onClick = onOpenGestureSettings
+                )
+                SettingsRow(label = "Devices", onClick = onOpenDevices, showDivider = false)
+            }
+
+            SettingsGroup(label = "Appearance") {
+                SettingsRow(
+                    label = "Theme",
+                    value = themeController.preference.label,
+                    onClick = { themeController.cycle() },
+                    showChevron = false,
+                    showDivider = false
+                )
+            }
+
+            SettingsGroup(label = "About") {
+                SettingsRow(label = "Version", value = "1.0.0")
+                SettingsRow(
+                    label = "Protocol",
+                    value = "v1 · ECDH P-256 · AES-256-GCM",
+                    showDivider = false
+                )
+            }
+
+            Text(
+                "Sign out",
+                style = VadeType.body,
+                color = colors.muted,
+                modifier = Modifier
+                    .clip(VadeShape.pill)
+                    .clickable(role = Role.Button) { isSignOutConfirmOpen = true }
+                    .padding(horizontal = 8.dp, vertical = 10.dp)
+            )
+
+            Spacer(Modifier.height(VadeSpace.section))
+        }
+    }
+
+    if (isStyleSheetOpen) {
+        VadeActionSheet(
+            onDismiss = { isStyleSheetOpen = false },
+            title = "Protection style",
+            description = "How protected messages look on this device. Encryption is unchanged " +
+                "either way, and this choice is never sent anywhere."
+        ) {
+            ProtectionStylePicker(
+                selected = protectionMode,
+                onSelect = { mode ->
+                    stylePreference.setMode(userId, mode)
+                    protectionMode = mode
+                    isStyleSheetOpen = false
+                }
+            )
+        }
+    }
+
+    if (isSignOutConfirmOpen) {
+        ConfirmDialog(
+            title = "Sign out?",
+            body = "Your keys and gesture stay on this device. You will need your password to sign back in.",
+            confirmLabel = "Sign out",
+            onConfirm = onLogout,
+            onDismiss = { isSignOutConfirmOpen = false }
+        )
+    }
+}
+
+// ==============================================================================
+// 8. Conversation
+// ==============================================================================
+
 @Composable
 fun ConversationScreen(
     conversationId: String,
@@ -734,11 +1102,11 @@ fun ConversationScreen(
     onOpenGestureSettings: () -> Unit = {},
     onOpenContactSecurity: () -> Unit = {}
 ) {
+    val colors = vadeColors
     var inputText by remember { mutableStateOf("") }
     val messages by viewModel.messages.collectAsState()
     val isOnline by viewModel.isOnline.collectAsState()
     val wsState by viewModel.wsState.collectAsState()
-    val isSyncing by viewModel.isSyncing.collectAsState()
     val listState = rememberLazyListState()
 
     // Layer 3 gesture reveal — scoped to this screen's composition lifetime so navigating away
@@ -801,7 +1169,8 @@ fun ConversationScreen(
         revealManager.revokeReveal()
     }
 
-    // Layer 3 / Phase 18: Screenshot & screen-capture protection (FLAG_SECURE) during sensitive reveal & gesture auth
+    // Layer 3 / Phase 18: FLAG_SECURE for the reveal window, cleared on re-protect, so
+    // screenshots and recents previews stay protected.
     val context = androidx.compose.ui.platform.LocalContext.current
     val isSensitiveWindow = revealState is RevealState.Revealed || revealState is RevealState.Authenticating
     // Keyed on the sensitivity flag rather than on revealState: keying on the
@@ -823,7 +1192,7 @@ fun ConversationScreen(
     }
 
     // Protection Style (Protected Text v2) — a local display preference, re-read on ON_RESUME
-    // so a change made in Settings takes effect immediately upon returning to this screen.
+    // so a change made in Profile takes effect immediately upon returning to this screen.
     var protectionStyleGeneration by remember { mutableIntStateOf(0) }
     DisposableEffect(lifecycleOwner) {
         val observer = androidx.lifecycle.LifecycleEventObserver { _, event ->
@@ -842,205 +1211,218 @@ fun ConversationScreen(
     }
 
     LaunchedEffect(messages.size) {
-        if (messages.isNotEmpty()) {
-            listState.animateScrollToItem(messages.size - 1)
-        }
+        if (messages.isNotEmpty()) listState.animateScrollToItem(messages.size - 1)
     }
 
-    Scaffold(
-        topBar = {
-            TopAppBar(
-                title = {
-                    Column {
-                        Row(verticalAlignment = Alignment.CenterVertically) {
-                            Text(peerName, fontWeight = FontWeight.Bold, fontSize = 16.sp)
-                            Spacer(modifier = Modifier.width(6.dp))
-                            when (val sec = contactSecurityState) {
-                                is ContactSecurityState.Verified -> {
-                                    Box(
-                                        modifier = Modifier
-                                            .clickable { onOpenContactSecurity() }
-                                            .background(Color(0xFF064E3B), RoundedCornerShape(8.dp))
-                                            .padding(horizontal = 6.dp, vertical = 2.dp)
-                                    ) {
-                                        Text("Verified ✓", fontSize = 10.sp, color = Color(0xFF10B981), fontWeight = FontWeight.Bold)
-                                    }
-                                }
-                                is ContactSecurityState.KeyChanged -> {
-                                    Box(
-                                        modifier = Modifier
-                                            .clickable { onOpenContactSecurity() }
-                                            .background(Color(0xFF881337), RoundedCornerShape(8.dp))
-                                            .padding(horizontal = 6.dp, vertical = 2.dp)
-                                    ) {
-                                        Text("⚠ Key Changed", fontSize = 10.sp, color = Color(0xFFFDA4AF), fontWeight = FontWeight.Bold)
-                                    }
-                                }
-                                is ContactSecurityState.Unverified -> {
-                                    Box(
-                                        modifier = Modifier
-                                            .clickable { onOpenContactSecurity() }
-                                            .background(Color(0xFF1E293B), RoundedCornerShape(8.dp))
-                                            .padding(horizontal = 6.dp, vertical = 2.dp)
-                                    ) {
-                                        Text("Unverified", fontSize = 10.sp, color = Color(0xFF94A3B8), fontWeight = FontWeight.Medium)
-                                    }
-                                }
-                                is ContactSecurityState.NoKey -> {}
-                            }
-                        }
-                        Row(verticalAlignment = Alignment.CenterVertically) {
-                            val dotColor = if (!isOnline) Color(0xFFEF4444) else if (wsState == WebSocketState.CONNECTED) Color(0xFF10B981) else Color(0xFFF59E0B)
-                            Box(modifier = Modifier.size(6.dp).background(dotColor, CircleShape))
-                            Spacer(modifier = Modifier.width(4.dp))
-                            val statusLabel = if (!isOnline) "Offline (Queued)" else if (isSyncing) "Syncing..." else "E2EE Active"
-                            Text(statusLabel, fontSize = 11.sp, color = Color(0xFF94A3B8))
-                        }
-                    }
-                },
-                navigationIcon = {
-                    IconButton(onClick = onBack) {
-                        Icon(Icons.Default.ArrowBack, contentDescription = "Back")
-                    }
-                },
-                actions = {
-                    IconButton(onClick = onOpenContactSecurity) {
-                        val iconTint = when (contactSecurityState) {
-                            is ContactSecurityState.Verified -> Color(0xFF10B981)
-                            is ContactSecurityState.KeyChanged -> Color(0xFFF43F5E)
-                            else -> Color(0xFF94A3B8)
-                        }
-                        Icon(Icons.Default.Security, contentDescription = "Contact Security", tint = iconTint)
-                    }
-                },
-                colors = TopAppBarDefaults.topAppBarColors(containerColor = MaterialTheme.colorScheme.surface)
-            )
-        },
-        containerColor = MaterialTheme.colorScheme.background
-    ) { padding ->
-        Column(
+    var actionsTarget by remember { mutableStateOf<MessageUiModel?>(null) }
+
+    Column(
+        modifier = Modifier
+            .fillMaxSize()
+            .background(colors.bg)
+            // The IME resizes the timeline and the composer stays pinned above it.
+            .imePadding()
+    ) {
+        // Header: back, who you are talking to, and one line of security state. Offline takes
+        // the subtitle over the verification state — a connection you do not have is the more
+        // immediately useful fact, and verification is one tap away.
+        Row(
             modifier = Modifier
-                .fillMaxSize()
-                .padding(padding)
+                .fillMaxWidth()
+                .padding(start = 4.dp, end = 12.dp, top = 6.dp, bottom = 12.dp),
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.spacedBy(4.dp)
         ) {
-            // Offline Warning Banner
-            if (!isOnline) {
-                Box(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .background(Color(0xFF7F1D1D))
-                        .padding(horizontal = 16.dp, vertical = 6.dp),
-                    contentAlignment = Alignment.Center
-                ) {
-                    Text("⚠️ Offline — Outgoing messages are encrypted and queued locally.", fontSize = 11.sp, color = Color.White)
-                }
-            }
-
-            // In-Chat Key Changed Warning Banner (§15)
-            if (contactSecurityState is ContactSecurityState.KeyChanged) {
-                Box(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .background(Color(0xFF881337))
-                        .clickable { onOpenContactSecurity() }
-                        .padding(horizontal = 16.dp, vertical = 8.dp)
-                ) {
-                    Row(verticalAlignment = Alignment.CenterVertically) {
-                        Icon(Icons.Default.Warning, contentDescription = null, tint = Color(0xFFF43F5E), modifier = Modifier.size(18.dp))
-                        Spacer(modifier = Modifier.width(8.dp))
-                        Column(modifier = Modifier.weight(1f)) {
-                            Text("⚠ Security key changed", fontWeight = FontWeight.Bold, fontSize = 11.sp, color = Color(0xFFFDA4AF))
-                            Text(
-                                "$peerName's security key has changed. Messages may not be secure until you verify $peerName's new identity.",
-                                fontSize = 11.sp,
-                                color = Color.White
-                            )
-                        }
-                        Spacer(modifier = Modifier.width(8.dp))
-                        Icon(Icons.Default.ChevronRight, contentDescription = "Verify", tint = Color(0xFFFDA4AF), modifier = Modifier.size(16.dp))
-                    }
-                }
-            }
-
-            // Message Timeline
-            LazyColumn(
-                state = listState,
-                modifier = Modifier
-                    .weight(1f)
-                    .fillMaxWidth()
-                    .padding(horizontal = 12.dp, vertical = 8.dp)
-            ) {
-                items(messages, key = { it.localId }) { msg ->
-                    MessageBubble(
-                        msg = msg,
-                        onRetry = { viewModel.retrySend(msg) },
-                        revealState = revealState,
-                        protectionMode = protectionMode,
-                        onRevealClick = {
-                            val current = revealState
-                            when {
-                                current is RevealState.Revealed && current.messageId == msg.localId ->
-                                    revealManager.hide()
-                                !revealManager.isConfigured -> onOpenGestureSettings()
-                                else -> revealManager.startReveal(msg.localId)
-                            }
-                        }
-                    )
-                    Spacer(modifier = Modifier.height(8.dp))
-                }
-            }
-
-            // Message Composer
-            Row(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .background(MaterialTheme.colorScheme.surface)
-                    .padding(8.dp),
-                verticalAlignment = Alignment.CenterVertically
-            ) {
-                OutlinedTextField(
-                    value = inputText,
-                    onValueChange = { if (it.length <= 5000) inputText = it },
-                    placeholder = { Text("End-to-end encrypted message...", fontSize = 13.sp) },
-                    modifier = Modifier.weight(1f),
-                    maxLines = 4,
-                    shape = RoundedCornerShape(20.dp)
+            VadeIconButton(
+                icon = Icons.Default.ChevronLeft,
+                contentDescription = "Back to conversations",
+                onClick = onBack,
+                diameter = 34.dp
+            )
+            VadeAvatar(peerName, size = 38.dp)
+            Column(modifier = Modifier
+                .weight(1f)
+                .padding(start = 7.dp)) {
+                Text(
+                    peerName,
+                    style = VadeType.name,
+                    color = colors.text,
+                    maxLines = 1,
+                    overflow = TextOverflow.Ellipsis
                 )
+                if (!isOnline) {
+                    Text("Offline", style = VadeType.rowSecondary.copy(fontSize = 12.sp), color = colors.muted)
+                } else if (wsState != WebSocketState.CONNECTED) {
+                    Text("Connecting", style = VadeType.rowSecondary.copy(fontSize = 12.sp), color = colors.muted)
+                } else {
+                    SecurityChip(state = contactSecurityState, inline = true)
+                }
+            }
+            VadeIconButton(
+                icon = Icons.Default.MoreVert,
+                contentDescription = "Contact security",
+                onClick = onOpenContactSecurity,
+                diameter = 34.dp
+            )
+        }
+        HorizontalDivider(color = colors.line, thickness = 1.dp)
 
-                Spacer(modifier = Modifier.width(8.dp))
+        if (contactSecurityState is ContactSecurityState.KeyChanged) {
+            KeyChangedBanner(
+                onReview = onOpenContactSecurity,
+                modifier = Modifier.padding(horizontal = 16.dp, vertical = 12.dp)
+            )
+        }
 
-                IconButton(
-                    onClick = {
-                        if (inputText.isNotBlank()) {
-                            viewModel.sendMessage(inputText)
-                            inputText = ""
+        LazyColumn(
+            state = listState,
+            modifier = Modifier
+                .weight(1f)
+                .fillMaxWidth(),
+            contentPadding = PaddingValues(horizontal = 16.dp, vertical = 14.dp),
+            verticalArrangement = Arrangement.spacedBy(7.dp)
+        ) {
+            items(messages, key = { it.localId }) { message ->
+                MessageRow(
+                    message = message,
+                    revealState = revealState,
+                    protectionMode = protectionMode,
+                    isOffline = !isOnline,
+                    onReveal = {
+                        when {
+                            !revealManager.isConfigured -> onOpenGestureSettings()
+                            else -> revealManager.startReveal(message.localId)
                         }
                     },
-                    enabled = inputText.isNotBlank(),
+                    onHide = { revealManager.hide() },
+                    onLongPress = { actionsTarget = message },
+                    onRetry = { viewModel.retrySend(message) }
+                )
+            }
+
+            item {
+                Row(
                     modifier = Modifier
-                        .size(44.dp)
-                        .background(
-                            if (inputText.isNotBlank()) MaterialTheme.colorScheme.primary else Color.DarkGray,
-                            CircleShape
-                        )
+                        .fillMaxWidth()
+                        .padding(top = 14.dp, bottom = 6.dp),
+                    horizontalArrangement = Arrangement.Center,
+                    verticalAlignment = Alignment.CenterVertically
                 ) {
-                    Icon(Icons.Default.Send, contentDescription = "Send", tint = Color.Black)
+                    Icon(
+                        Icons.Default.Lock,
+                        contentDescription = null,
+                        tint = colors.faint,
+                        modifier = Modifier.size(VadeIconSize.small)
+                    )
+                    Spacer(Modifier.width(6.dp))
+                    Text("Tap a message to reveal it", style = VadeType.bodySmall, color = colors.faint)
                 }
+            }
+        }
+
+        HorizontalDivider(color = colors.line, thickness = 1.dp)
+
+        // The composer stays usable while offline — composing works and sending queues, so no
+        // draft is silently lost. The placeholder says which of the two is happening.
+        Row(
+            modifier = Modifier
+                .fillMaxWidth()
+                .navigationBarsPadding()
+                .padding(horizontal = 16.dp, vertical = 8.dp),
+            verticalAlignment = Alignment.Bottom,
+            horizontalArrangement = Arrangement.spacedBy(9.dp)
+        ) {
+            Row(
+                modifier = Modifier
+                    .weight(1f)
+                    .heightIn(min = 44.dp)
+                    .clip(VadeShape.pill)
+                    .background(colors.surface),
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                BasicTextFieldRow(
+                    value = inputText,
+                    onValueChange = { if (it.length <= 5000) inputText = it },
+                    placeholder = if (isOnline) "Message" else "Message · sends when online"
+                )
+            }
+
+            Box(
+                modifier = Modifier
+                    .size(44.dp)
+                    .clip(CircleShape)
+                    .background(if (inputText.isNotBlank()) colors.outBg else colors.surface)
+                    .clickable(enabled = inputText.isNotBlank(), role = Role.Button) {
+                        viewModel.sendMessage(inputText)
+                        inputText = ""
+                    },
+                contentAlignment = Alignment.Center
+            ) {
+                Icon(
+                    Icons.Default.Send,
+                    contentDescription = "Send message",
+                    tint = if (inputText.isNotBlank()) colors.outFg else colors.faint,
+                    modifier = Modifier.size(18.dp)
+                )
             }
         }
     }
 
-    // Gesture authentication modal — only rendered while actively authenticating or locked out.
-    // Never shown for RevealState.Protected/Revealed, and never displays the stored gesture.
+    // Long-press actions. Copy and forward are deliberately absent — both would move plaintext
+    // outside the reveal window, which is the one thing the whole design exists to prevent.
+    actionsTarget?.let { target ->
+        val targetRevealed = (revealState as? RevealState.Revealed)?.messageId == target.localId
+        VadeActionSheet(
+            onDismiss = { actionsTarget = null },
+            kicker = "Message actions",
+            footnote = "Copy and forward are unavailable for protected messages."
+        ) {
+            if (targetRevealed) {
+                ActionSheetRow(
+                    label = "Hide again",
+                    note = "Re-protect this message now",
+                    icon = Icons.Default.VisibilityOff,
+                    onClick = {
+                        revealManager.hide()
+                        actionsTarget = null
+                    }
+                )
+            } else {
+                ActionSheetRow(
+                    label = "Reveal",
+                    note = "Draw your gesture to read it",
+                    icon = Icons.Default.Visibility,
+                    onClick = {
+                        actionsTarget = null
+                        if (!revealManager.isConfigured) {
+                            onOpenGestureSettings()
+                        } else {
+                            revealManager.startReveal(target.localId)
+                        }
+                    }
+                )
+            }
+            ActionSheetRow(
+                label = "Message details",
+                note = "Sent · ${formatListTime(target.createdAt)} · " +
+                    protectionStyleLabel(protectionMode),
+                icon = Icons.Default.Info,
+                onClick = { actionsTarget = null }
+            )
+        }
+    }
+
+    // Gesture authentication overlay — only rendered while actively authenticating or locked
+    // out. Never shown for Protected/Revealed, and never displays the stored gesture.
     // The dismissed flag only hides the lockout dialog's UI — it never touches the underlying
     // countdown, which keeps running in GestureRevealManager regardless of dialog visibility.
     var lockedDialogDismissed by remember(revealState is RevealState.Locked) { mutableStateOf(false) }
 
-    when (val s = revealState) {
+    when (val current = revealState) {
         is RevealState.Authenticating -> {
             GestureRevealDialog(
-                state = s,
-                sequenceLength = revealManager.sequenceLength,
+                state = current,
+                requiredStrokes = revealManager.requiredStrokes,
                 isConfigured = revealManager.isConfigured,
                 feedback = revealFeedback,
                 onStroke = { points: List<GesturePoint> -> revealManager.submitStroke(points) },
@@ -1053,7 +1435,7 @@ fun ConversationScreen(
         }
         is RevealState.Locked -> {
             if (!lockedDialogDismissed) {
-                GestureLockedDialog(state = s, onDismiss = { lockedDialogDismissed = true })
+                GestureLockedDialog(state = current, onDismiss = { lockedDialogDismissed = true })
             }
         }
         else -> Unit
@@ -1061,107 +1443,123 @@ fun ConversationScreen(
 }
 
 @Composable
-fun MessageBubble(
-    msg: MessageUiModel,
-    onRetry: () -> Unit = {},
-    revealState: RevealState = RevealState.Protected,
-    protectionMode: ProtectedRenderMode = ProtectedRenderMode.HOMOGLYPH,
-    onRevealClick: () -> Unit = {}
+private fun RowScope.BasicTextFieldRow(
+    value: String,
+    onValueChange: (String) -> Unit,
+    placeholder: String
 ) {
-    val isOutgoing = msg.isOutgoing
+    val colors = vadeColors
+    Box(
+        modifier = Modifier
+            .weight(1f)
+            .padding(horizontal = 16.dp, vertical = 10.dp),
+        contentAlignment = Alignment.CenterStart
+    ) {
+        if (value.isEmpty()) {
+            Text(placeholder, style = VadeType.body, color = colors.muted)
+        }
+        androidx.compose.foundation.text.BasicTextField(
+            value = value,
+            onValueChange = onValueChange,
+            textStyle = VadeType.body.copy(color = colors.text),
+            cursorBrush = androidx.compose.ui.graphics.SolidColor(colors.accent),
+            maxLines = 4,
+            modifier = Modifier
+                .fillMaxWidth()
+                .semantics { contentDescription = "Message text" }
+        )
+    }
+}
+
+/**
+ * One message in the timeline. While a message is revealed the meta row is replaced by the
+ * countdown — the window is always visible for as long as it is open.
+ */
+@Composable
+fun MessageRow(
+    message: MessageUiModel,
+    revealState: RevealState,
+    protectionMode: ProtectedRenderMode,
+    isOffline: Boolean,
+    onReveal: () -> Unit,
+    onHide: () -> Unit,
+    onLongPress: () -> Unit,
+    onRetry: () -> Unit
+) {
+    val colors = vadeColors
+    val isOutgoing = message.isOutgoing
+    val revealed = revealState as? RevealState.Revealed
+    val isRevealedHere = revealed?.messageId == message.localId
 
     Column(
         modifier = Modifier.fillMaxWidth(),
-        horizontalAlignment = if (isOutgoing) Alignment.End else Alignment.Start
+        horizontalAlignment = if (isOutgoing) Alignment.End else Alignment.Start,
+        verticalArrangement = Arrangement.spacedBy(6.dp)
     ) {
-        val isRevealedHere = revealState is RevealState.Revealed && revealState.messageId == msg.localId
+        when (message.decryptionState) {
+            DecryptionState.DECRYPTED -> MessageBubbleSurface(
+                content = message.transientPlaintext ?: "",
+                messageId = message.localId,
+                isOutgoing = isOutgoing,
+                revealState = revealState,
+                protectionMode = protectionMode,
+                onReveal = onReveal,
+                onLongPress = onLongPress
+            )
 
-        Box(
-            modifier = Modifier
-                .widthIn(max = 280.dp)
-                .background(
-                    if (isOutgoing) Color(0xFF065F46) else Color(0xFF1E293B),
-                    RoundedCornerShape(
-                        topStart = 16.dp,
-                        topEnd = 16.dp,
-                        bottomStart = if (isOutgoing) 16.dp else 4.dp,
-                        bottomEnd = if (isOutgoing) 4.dp else 16.dp
-                    )
-                )
-                .then(
-                    if (msg.decryptionState == DecryptionState.DECRYPTED)
-                        Modifier.clickable(onClick = onRevealClick)
-                    else Modifier
-                )
-                .padding(12.dp)
-        ) {
-            when (msg.decryptionState) {
-                DecryptionState.DECRYPTED -> {
-                    Row(verticalAlignment = Alignment.Top) {
-                        ProtectedMessage(
-                            content = msg.transientPlaintext ?: "",
-                            revealState = revealState,
-                            messageId = msg.localId,
-                            protectionMode = protectionMode,
-                            color = Color.White,
-                            fontSize = 14.sp,
-                            modifier = Modifier.weight(1f, fill = false)
-                        )
-                        Spacer(modifier = Modifier.width(6.dp))
-                        Icon(
-                            imageVector = if (isRevealedHere) Icons.Default.VisibilityOff else Icons.Default.Visibility,
-                            contentDescription = if (isRevealedHere) "Hide message" else "Reveal message with gesture",
-                            tint = Color(0xFF94A3B8),
-                            modifier = Modifier.size(16.dp)
-                        )
-                    }
-                }
-                DecryptionState.DECRYPTION_FAILED -> {
-                    Text(
-                        text = "⚠️ Unable to decrypt message",
-                        color = MaterialTheme.colorScheme.error,
-                        fontSize = 13.sp,
-                        fontStyle = androidx.compose.ui.text.font.FontStyle.Italic
-                    )
-                }
-                else -> {
-                    Text(
-                        text = "Decrypting...",
-                        color = Color.Gray,
-                        fontSize = 13.sp
-                    )
-                }
-            }
+            DecryptionState.DECRYPTION_FAILED -> Text(
+                "Unable to decrypt message",
+                style = VadeType.message,
+                color = colors.warn,
+                modifier = Modifier
+                    .clip(if (isOutgoing) VadeShape.bubbleOutgoing else VadeShape.bubbleIncoming)
+                    .background(colors.warnTint)
+                    .padding(horizontal = 15.dp, vertical = 11.dp)
+            )
+
+            else -> Text(
+                "Decrypting…",
+                style = VadeType.message,
+                color = colors.muted,
+                modifier = Modifier
+                    .clip(if (isOutgoing) VadeShape.bubbleOutgoing else VadeShape.bubbleIncoming)
+                    .background(colors.surface)
+                    .padding(horizontal = 15.dp, vertical = 11.dp)
+            )
         }
 
-        Spacer(modifier = Modifier.height(2.dp))
-
-        // Delivery Status
-        if (isOutgoing) {
-            val (statusText, canRetry) = when (msg.localState) {
-                MessageLocalState.READ -> "✓✓ Read" to false
-                MessageLocalState.DELIVERED -> "✓✓ Delivered" to false
-                MessageLocalState.SENT -> "✓ Sent" to false
-                MessageLocalState.SENDING -> "Sending..." to false
-                MessageLocalState.PENDING_SEND -> "⏳ Queued (Offline)" to false
-                MessageLocalState.FAILED -> "❌ Failed (Tap to retry)" to true
-                else -> "..." to false
-            }
-
-            Text(
-                text = statusText,
-                fontSize = 10.sp,
-                color = if (canRetry) MaterialTheme.colorScheme.error else Color.Gray,
-                modifier = Modifier
-                    .padding(end = 4.dp)
-                    .then(if (canRetry) Modifier.clickable(onClick = onRetry) else Modifier)
+        if (isRevealedHere && revealed != null) {
+            RevealCountdown(remainingSeconds = revealed.remainingSeconds, onHide = onHide)
+        } else {
+            MessageMeta(
+                time = formatMessageTime(message.createdAt),
+                isOutgoing = isOutgoing,
+                status = message.localState.toDeliveryStatus(isOffline),
+                onRetry = onRetry
             )
         }
     }
 }
 
+private fun MessageLocalState.toDeliveryStatus(isOffline: Boolean): MessageDeliveryStatus = when (this) {
+    MessageLocalState.READ -> MessageDeliveryStatus.Read
+    MessageLocalState.DELIVERED -> MessageDeliveryStatus.Delivered
+    MessageLocalState.SENT -> MessageDeliveryStatus.Sent
+    MessageLocalState.FAILED -> MessageDeliveryStatus.Failed
+    MessageLocalState.PENDING_SEND -> MessageDeliveryStatus.Queued
+    MessageLocalState.SENDING -> if (isOffline) MessageDeliveryStatus.Queued else MessageDeliveryStatus.Sending
+    else -> MessageDeliveryStatus.Sending
+}
+
+private fun formatMessageTime(isoTimestamp: String): String = try {
+    java.time.format.DateTimeFormatter.ofPattern("HH:mm")
+        .format(java.time.Instant.parse(isoTimestamp).atZone(java.time.ZoneId.systemDefault()))
+} catch (_: Exception) {
+    ""
+}
+
 // ==============================================================================
-// 7. Login & Register Screens
+// 9. Login & Register
 // ==============================================================================
 
 @Composable
@@ -1170,175 +1568,163 @@ fun LoginScreen(
     onNavigateToRegister: () -> Unit,
     onLoginSuccess: () -> Unit
 ) {
+    val colors = vadeColors
     var identifier by remember { mutableStateOf("") }
     var password by remember { mutableStateOf("") }
     val uiState by viewModel.uiState.collectAsState()
 
     LaunchedEffect(uiState) {
-        if (uiState is AuthUiState.Authenticated) {
-            onLoginSuccess()
-        }
+        if (uiState is AuthUiState.Authenticated) onLoginSuccess()
     }
 
     Column(
         modifier = Modifier
             .fillMaxSize()
-            .background(MaterialTheme.colorScheme.background)
-            .padding(24.dp),
-        horizontalAlignment = Alignment.CenterHorizontally,
+            .background(colors.bg)
+            .padding(horizontal = 30.dp)
+            .padding(bottom = 40.dp),
         verticalArrangement = Arrangement.Center
     ) {
-        Icon(Icons.Default.Shield, contentDescription = null, tint = MaterialTheme.colorScheme.primary, modifier = Modifier.size(56.dp))
-        Spacer(modifier = Modifier.height(12.dp))
-        Text("Vade", fontSize = 28.sp, fontWeight = FontWeight.Bold, color = Color.White)
-        Text("End-to-End Encrypted Private Chat", fontSize = 13.sp, color = Color.Gray)
+        Text("Vade", style = VadeType.displayTitle, color = colors.text)
+        Text(
+            "Private messaging,\nredesigned.",
+            style = VadeType.body.copy(fontSize = 16.sp, lineHeight = 24.sp),
+            color = colors.muted,
+            modifier = Modifier.padding(top = 10.dp, bottom = 34.dp)
+        )
 
-        Spacer(modifier = Modifier.height(32.dp))
-
-        OutlinedTextField(
+        VadeField(
             value = identifier,
-            onValueChange = { identifier = it; viewModel.resetError() },
-            label = { Text("Username or Email") },
-            leadingIcon = { Icon(Icons.Default.Person, contentDescription = null) },
-            singleLine = true,
-            modifier = Modifier.fillMaxWidth(),
-            shape = RoundedCornerShape(12.dp)
+            onValueChange = { identifier = it },
+            placeholder = "Username or email",
+            modifier = Modifier.padding(bottom = 12.dp)
         )
-
-        Spacer(modifier = Modifier.height(16.dp))
-
-        OutlinedTextField(
+        VadeField(
             value = password,
-            onValueChange = { password = it; viewModel.resetError() },
-            label = { Text("Password") },
-            leadingIcon = { Icon(Icons.Default.Lock, contentDescription = null) },
-            visualTransformation = PasswordVisualTransformation(),
-            keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Password),
-            singleLine = true,
-            modifier = Modifier.fillMaxWidth(),
-            shape = RoundedCornerShape(12.dp)
+            onValueChange = { password = it },
+            placeholder = "Password",
+            isPassword = true,
+            isError = uiState is AuthUiState.Error,
+            supportingText = (uiState as? AuthUiState.Error)?.message
         )
 
-        if (uiState is AuthUiState.Error) {
-            Spacer(modifier = Modifier.height(12.dp))
-            Text((uiState as AuthUiState.Error).message, color = MaterialTheme.colorScheme.error, fontSize = 12.sp)
-        }
+        VadeButton(
+            text = "Continue",
+            onClick = { viewModel.login(identifier.trim(), password) },
+            enabled = identifier.isNotBlank() && password.isNotBlank(),
+            isLoading = uiState is AuthUiState.Loading,
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(top = 18.dp)
+        )
 
-        Spacer(modifier = Modifier.height(24.dp))
-
-        Button(
-            onClick = { viewModel.login(identifier, password) },
-            enabled = uiState !is AuthUiState.Loading,
-            modifier = Modifier.fillMaxWidth().height(50.dp),
-            shape = RoundedCornerShape(12.dp),
-            colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.primary)
-        ) {
-            if (uiState is AuthUiState.Loading) {
-                CircularProgressIndicator(modifier = Modifier.size(24.dp), color = Color.Black)
-            } else {
-                Text("Sign In", fontWeight = FontWeight.Bold, color = Color.Black)
-            }
-        }
-
-        Spacer(modifier = Modifier.height(16.dp))
-
-        TextButton(onClick = onNavigateToRegister) {
-            Text("Don't have an account? Sign Up", color = MaterialTheme.colorScheme.primary)
-        }
+        Text(
+            "Create account",
+            style = VadeType.name,
+            color = colors.accentInk,
+            modifier = Modifier
+                .align(Alignment.CenterHorizontally)
+                .padding(top = 28.dp)
+                .clip(VadeShape.pill)
+                .clickable(onClick = onNavigateToRegister, role = Role.Button)
+                .padding(horizontal = 12.dp, vertical = 10.dp)
+        )
     }
 }
 
 @Composable
 fun RegisterScreen(
     viewModel: AuthViewModel,
-    onNavigateToLogin: () -> Unit,
+    onBack: () -> Unit,
     onRegisterSuccess: () -> Unit
 ) {
+    val colors = vadeColors
     var username by remember { mutableStateOf("") }
-    var email by remember { mutableStateOf("") }
     var displayName by remember { mutableStateOf("") }
+    var email by remember { mutableStateOf("") }
     var password by remember { mutableStateOf("") }
     val uiState by viewModel.uiState.collectAsState()
 
     LaunchedEffect(uiState) {
-        if (uiState is AuthUiState.Authenticated) {
-            onRegisterSuccess()
-        }
+        if (uiState is AuthUiState.Authenticated) onRegisterSuccess()
     }
 
     Column(
         modifier = Modifier
             .fillMaxSize()
-            .background(MaterialTheme.colorScheme.background)
-            .padding(24.dp),
-        horizontalAlignment = Alignment.CenterHorizontally,
-        verticalArrangement = Arrangement.Center
+            .background(colors.bg)
+            .padding(horizontal = 30.dp)
     ) {
-        Text("Create Account", fontSize = 24.sp, fontWeight = FontWeight.Bold, color = Color.White)
-        Text("Register for end-to-end encrypted messaging", fontSize = 12.sp, color = Color.Gray)
-
-        Spacer(modifier = Modifier.height(24.dp))
-
-        OutlinedTextField(
-            value = username,
-            onValueChange = { username = it },
-            label = { Text("Username") },
-            modifier = Modifier.fillMaxWidth(),
-            shape = RoundedCornerShape(12.dp)
+        VadeIconButton(
+            icon = Icons.Default.ChevronLeft,
+            contentDescription = "Back to sign in",
+            onClick = onBack,
+            diameter = 34.dp,
+            modifier = Modifier.padding(top = 6.dp, start = 0.dp)
         )
 
-        Spacer(modifier = Modifier.height(12.dp))
-
-        OutlinedTextField(
-            value = email,
-            onValueChange = { email = it },
-            label = { Text("Email Address") },
-            modifier = Modifier.fillMaxWidth(),
-            shape = RoundedCornerShape(12.dp)
-        )
-
-        Spacer(modifier = Modifier.height(12.dp))
-
-        OutlinedTextField(
-            value = displayName,
-            onValueChange = { displayName = it },
-            label = { Text("Display Name") },
-            modifier = Modifier.fillMaxWidth(),
-            shape = RoundedCornerShape(12.dp)
-        )
-
-        Spacer(modifier = Modifier.height(12.dp))
-
-        OutlinedTextField(
-            value = password,
-            onValueChange = { password = it },
-            label = { Text("Password") },
-            visualTransformation = PasswordVisualTransformation(),
-            modifier = Modifier.fillMaxWidth(),
-            shape = RoundedCornerShape(12.dp)
-        )
-
-        if (uiState is AuthUiState.Error) {
-            Spacer(modifier = Modifier.height(12.dp))
-            Text((uiState as AuthUiState.Error).message, color = MaterialTheme.colorScheme.error, fontSize = 12.sp)
-        }
-
-        Spacer(modifier = Modifier.height(20.dp))
-
-        Button(
-            onClick = { viewModel.register(username, email, password, displayName) },
-            enabled = uiState !is AuthUiState.Loading,
-            modifier = Modifier.fillMaxWidth().height(50.dp),
-            shape = RoundedCornerShape(12.dp),
-            colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.primary)
+        Column(
+            modifier = Modifier
+                .weight(1f)
+                .padding(bottom = 40.dp),
+            verticalArrangement = Arrangement.Center
         ) {
-            Text("Create Account", fontWeight = FontWeight.Bold, color = Color.Black)
-        }
+            Text(
+                "Create account",
+                style = VadeType.screenTitle.copy(fontSize = 32.sp),
+                color = colors.text
+            )
+            Text(
+                "Your keys are generated on this device and never leave it.",
+                style = VadeType.body.copy(fontSize = 15.sp),
+                color = colors.muted,
+                modifier = Modifier.padding(top = 10.dp, bottom = 30.dp)
+            )
 
-        Spacer(modifier = Modifier.height(12.dp))
+            VadeField(
+                value = displayName,
+                onValueChange = { displayName = it },
+                placeholder = "Display name",
+                modifier = Modifier.padding(bottom = 12.dp)
+            )
+            VadeField(
+                value = username,
+                onValueChange = { username = it },
+                placeholder = "Username",
+                modifier = Modifier.padding(bottom = 12.dp)
+            )
+            VadeField(
+                value = email,
+                onValueChange = { email = it },
+                placeholder = "Email",
+                keyboardType = KeyboardType.Email,
+                modifier = Modifier.padding(bottom = 12.dp)
+            )
+            VadeField(
+                value = password,
+                onValueChange = { password = it },
+                placeholder = "Password",
+                isPassword = true,
+                isError = uiState is AuthUiState.Error,
+                supportingText = (uiState as? AuthUiState.Error)?.message ?: "At least 8 characters."
+            )
 
-        TextButton(onClick = onNavigateToLogin) {
-            Text("Already have an account? Sign In", color = MaterialTheme.colorScheme.primary)
+            VadeButton(
+                text = "Create account",
+                onClick = {
+                    viewModel.register(
+                        username.trim(),
+                        email.trim(),
+                        password,
+                        displayName.trim()
+                    )
+                },
+                enabled = username.isNotBlank() && email.isNotBlank() && password.isNotBlank(),
+                isLoading = uiState is AuthUiState.Loading,
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(top = 18.dp)
+            )
         }
     }
 }

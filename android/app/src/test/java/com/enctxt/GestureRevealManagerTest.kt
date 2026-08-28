@@ -162,7 +162,7 @@ class GestureRevealManagerTest {
     // ---- Reveal timer ----
 
     @Test
-    fun testRevealAutoProtectsAfterEightSeconds() = runTest {
+    fun testRevealAutoProtectsAfterTheRevealWindow() = runTest {
         val manager = GestureRevealManager(repository, userId, this)
         manager.startReveal(messageId)
         manager.submitStroke(step0)
@@ -170,8 +170,11 @@ class GestureRevealManagerTest {
         manager.submitStroke(step2)
         assertTrue(manager.state.value.isRevealedFor(messageId))
 
-        advanceTimeBy(7_500)
-        assertTrue("Should still be revealed just before 8s", manager.state.value.isRevealedFor(messageId))
+        advanceTimeBy((GestureRevealManager.REVEAL_DURATION_SECONDS - 1) * 1_000L + 500)
+        assertTrue(
+            "Should still be revealed just before the window closes",
+            manager.state.value.isRevealedFor(messageId)
+        )
 
         advanceTimeBy(1_000)
         advanceUntilIdle()
