@@ -32,6 +32,15 @@ lerna-debug.log*
 *.db
 *.db-journal
 
+# Signing keystores & credentials (NEVER commit — release signing values belong in
+# ~/.gradle/gradle.properties or CI secrets)
+*.jks
+*.keystore
+*.p12
+*.pepk
+keystore.properties
+signing.properties
+
 # IDE & OS files
 .vscode/*
 !.vscode/extensions.json
