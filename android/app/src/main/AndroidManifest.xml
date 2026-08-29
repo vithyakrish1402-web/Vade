@@ -7,6 +7,12 @@
          disables notifications for the app, which is what showed up as "blocked" in Settings
          before this was requested at runtime. -->
     <uses-permission android:name="android.permission.POST_NOTIFICATIONS" />
+    <!-- The WebSocket connection that delivers messages/notifications is what battery
+         optimization (Doze) kills first when the app is backgrounded — confirmed on-device: a
+         connection died at ~9s under Doze vs. surviving 90+ seconds and multiple heartbeats once
+         exempted. Requesting the exemption is the standard, Play-policy-sanctioned path for an
+         app whose core function is a persistent real-time connection. -->
+    <uses-permission android:name="android.permission.REQUEST_IGNORE_BATTERY_OPTIMIZATIONS" />
 
     <application
         android:name=".EnctxtApplication"

@@ -1,8 +1,12 @@
 package com.enctxt
 
+import android.content.Intent
 import android.content.pm.PackageManager
+import android.net.Uri
 import android.os.Build
 import android.os.Bundle
+import android.os.PowerManager
+import android.provider.Settings
 import androidx.activity.ComponentActivity
 import androidx.activity.SystemBarStyle
 import androidx.activity.compose.setContent
@@ -36,6 +40,13 @@ class MainActivity : ComponentActivity() {
         val notificationPermissionLauncher = registerForActivityResult(
             ActivityResultContracts.RequestPermission()
         ) { /* no-op: SystemNotifier checks the grant state itself before every notify() */ }
+
+        // Confirmed on-device: Doze kills the message-delivery WebSocket within ~9 seconds of
+        // backgrounding without this exemption, silently breaking both notifications and unread
+        // counts. Asked once, right after sign-in, same as the notification permission above.
+        val batteryOptimizationLauncher = registerForActivityResult(
+            ActivityResultContracts.StartActivityForResult()
+        ) { /* no-op: nothing to react to either way — the OS dialog handles the outcome */ }
 
         val app = application as EnctxtApplication
 
@@ -84,6 +95,16 @@ class MainActivity : ComponentActivity() {
                 ) == PackageManager.PERMISSION_GRANTED
                 if (!granted) {
                     notificationPermissionLauncher.launch(android.Manifest.permission.POST_NOTIFICATIONS)
+                }
+
+                val powerManager = getSystemService(PowerManager::class.java)
+                if (powerManager?.isIgnoringBatteryOptimizations(packageName) == false) {
+                    batteryOptimizationLauncher.launch(
+                        Intent(
+                            Settings.ACTION_REQUEST_IGNORE_BATTERY_OPTIMIZATIONS,
+                            Uri.parse("package:$packageName")
+                        )
+                    )
                 }
             }
 

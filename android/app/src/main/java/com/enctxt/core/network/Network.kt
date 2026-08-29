@@ -300,6 +300,13 @@ class WebSocketClient(
         val client = OkHttpClient.Builder()
             .cookieJar(cookieJar)
             .readTimeout(0, TimeUnit.MILLISECONDS)
+            // Without this, OkHttp has no way to notice the socket is actually dead — a mobile
+            // carrier's NAT can silently drop a connection (no FIN/RST reaches either side), and
+            // with readTimeout disabled (required for a long-lived WS) nothing else would ever
+            // surface the failure. This makes OkHttp send its own protocol-level ping every 15s
+            // and fail the connection (triggering onFailure -> scheduleReconnect) if no frame
+            // comes back, independent of the app-level JSON ping/pong above.
+            .pingInterval(15, TimeUnit.SECONDS)
             .build()
 
         val request = Request.Builder()
