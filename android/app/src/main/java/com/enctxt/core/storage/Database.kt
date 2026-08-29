@@ -24,6 +24,7 @@ data class ConversationEntity(
     val peerDisplayName: String,
     val createdAt: String,
     val updatedAt: String,
+    val unreadCount: Int = 0,
     val lastSyncedAt: Long = 0L,
     val lastKnownMessageId: String? = null
 )
@@ -88,6 +89,15 @@ interface ConversationDao {
     @Insert(onConflict = OnConflictStrategy.REPLACE)
     suspend fun insertConversation(conversation: ConversationEntity)
 
+    @Query("UPDATE conversations SET unreadCount = unreadCount + 1, updatedAt = :updatedAt WHERE id = :id")
+    suspend fun incrementUnreadCount(id: String, updatedAt: String)
+
+    @Query("UPDATE conversations SET unreadCount = 0 WHERE id = :id")
+    suspend fun clearUnreadCount(id: String)
+
+    @Query("UPDATE conversations SET updatedAt = :updatedAt WHERE id = :id")
+    suspend fun updateUpdatedAt(id: String, updatedAt: String)
+
     @Query("UPDATE conversations SET lastSyncedAt = :syncedAt, lastKnownMessageId = :lastMsgId WHERE id = :convId")
     suspend fun updateSyncCursor(convId: String, syncedAt: Long, lastMsgId: String?)
 
@@ -131,21 +141,40 @@ interface MessageDao {
     suspend fun clearAllMessages()
 }
 
-// ==============================================================================
-// 3. Database Singleton Definition
-// ==============================================================================
-
 @Database(
     entities = [
         UserSessionEntity::class,
         ConversationEntity::class,
         EncryptedMessageEntity::class
     ],
-    version = 2,
+    version = 3,
     exportSchema = false
 )
 abstract class EnctxtDatabase : RoomDatabase() {
     abstract fun sessionDao(): SessionDao
     abstract fun conversationDao(): ConversationDao
     abstract fun messageDao(): MessageDao
+
+    companion object {
+        val MIGRATION_1_2 = object : androidx.room.migration.Migration(1, 2) {
+            override fun migrate(db: androidx.sqlite.db.SupportSQLiteDatabase) {
+                db.execSQL("ALTER TABLE conversations ADD COLUMN lastSyncedAt INTEGER NOT NULL DEFAULT 0")
+                db.execSQL("ALTER TABLE conversations ADD COLUMN lastKnownMessageId TEXT")
+            }
+        }
+
+        val MIGRATION_2_3 = object : androidx.room.migration.Migration(2, 3) {
+            override fun migrate(db: androidx.sqlite.db.SupportSQLiteDatabase) {
+                db.execSQL("ALTER TABLE conversations ADD COLUMN unreadCount INTEGER NOT NULL DEFAULT 0")
+            }
+        }
+
+        val MIGRATION_1_3 = object : androidx.room.migration.Migration(1, 3) {
+            override fun migrate(db: androidx.sqlite.db.SupportSQLiteDatabase) {
+                db.execSQL("ALTER TABLE conversations ADD COLUMN lastSyncedAt INTEGER NOT NULL DEFAULT 0")
+                db.execSQL("ALTER TABLE conversations ADD COLUMN lastKnownMessageId TEXT")
+                db.execSQL("ALTER TABLE conversations ADD COLUMN unreadCount INTEGER NOT NULL DEFAULT 0")
+            }
+        }
+    }
 }

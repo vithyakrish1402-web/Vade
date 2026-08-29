@@ -7,6 +7,7 @@ import kotlinx.coroutines.flow.*
 import kotlinx.serialization.encodeToString
 import kotlinx.serialization.json.Json
 import okhttp3.*
+import okhttp3.HttpUrl.Companion.toHttpUrl
 import okhttp3.MediaType.Companion.toMediaType
 import okhttp3.RequestBody.Companion.toRequestBody
 import java.io.IOException
@@ -57,6 +58,20 @@ class MemoryCookieJar : CookieJar {
 
     fun getSessionCookie(cookieName: String = "enctxt_session"): Cookie? {
         return cookieStore.values.flatten().find { it.name == cookieName }
+    }
+
+    /** Injects a cookie recovered from persistent "remember me" storage, ahead of any request. */
+    fun restoreCookie(host: String, name: String, value: String, expiresAt: Long) {
+        val cookie = Cookie.Builder()
+            .name(name)
+            .value(value)
+            .domain(host)
+            .path("/")
+            .expiresAt(expiresAt)
+            .build()
+        val hostCookies = cookieStore.getOrPut(host) { mutableListOf() }
+        hostCookies.removeAll { it.name == name }
+        hostCookies.add(cookie)
     }
 
     fun clear() {
@@ -212,6 +227,12 @@ open class ApiClient(
     }
 
     fun getCookieJar(): MemoryCookieJar = cookieJar
+
+    /** Re-injects a "remember me" cookie recovered from encrypted storage, against this build's configured host. */
+    fun restoreSessionCookie(name: String, value: String, expiresAt: Long) {
+        val host = config.baseUrl.toHttpUrl().host
+        cookieJar.restoreCookie(host, name, value, expiresAt)
+    }
 }
 
 // ==============================================================================

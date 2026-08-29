@@ -27,6 +27,10 @@ class SyncCoordinator(
     private val globalSyncLock = Mutex()
     private val scope = CoroutineScope(Dispatchers.IO + SupervisorJob())
 
+    var conversationRepository: com.enctxt.data.repository.ConversationRepository? = null
+    var activeConversationId: String? = null
+    var currentUserId: String? = null
+
     private val _isGlobalSyncing = MutableStateFlow(false)
     val isGlobalSyncing: StateFlow<Boolean> = _isGlobalSyncing.asStateFlow()
 
@@ -36,6 +40,21 @@ class SyncCoordinator(
             wsClient.connectionState.collect { state ->
                 if (state == WebSocketState.CONNECTED) {
                     flushOfflineQueue()
+                    conversationRepository?.fetchConversations()
+                }
+            }
+        }
+
+        // Global listener for WebSocket real-time events
+        scope.launch {
+            wsClient.serverEvents.collect { event ->
+                if (event.type == "message.created" && event.message != null) {
+                    val uid = currentUserId ?: database.sessionDao().getActiveSession()?.userId ?: ""
+                    conversationRepository?.handleIncomingMessage(
+                        message = event.message,
+                        currentUserId = uid,
+                        activeConversationId = activeConversationId
+                    )
                 }
             }
         }
@@ -72,12 +91,15 @@ class SyncCoordinator(
                         mergedCount++
                     }
 
-                    // Update conversation sync timestamp
+                    // Update conversation sync timestamp and updatedAt
                     database.conversationDao().updateSyncCursor(
                         convId = conversationId,
                         syncedAt = System.currentTimeMillis(),
                         lastMsgId = dtos.firstOrNull()?.id
                     )
+                    dtos.maxByOrNull { it.createdAt }?.createdAt?.let { latestAt ->
+                        database.conversationDao().updateUpdatedAt(conversationId, latestAt)
+                    }
 
                     NetworkResult.Success(mergedCount)
                 }

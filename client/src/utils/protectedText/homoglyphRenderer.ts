@@ -78,12 +78,10 @@ export const HOMOGLYPH_MAP: Record<string, string> = {
 export function renderHomoglyph(content: string): string {
   if (!content) return '';
 
-  let result = '';
-
-  // Use code point iterator to preserve multi-byte emoji surrogate pairs
+  const chars: string[] = [];
   for (const char of content) {
-    result += HOMOGLYPH_MAP[char] || char;
+    chars.push(HOMOGLYPH_MAP[char] || char);
   }
 
-  return result;
+  return chars.join('');
 }

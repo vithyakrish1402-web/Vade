@@ -8,6 +8,7 @@ import com.enctxt.core.network.ApiClient
 import com.enctxt.core.network.ConnectivityMonitor
 import com.enctxt.core.network.NetworkConfig
 import com.enctxt.core.network.WebSocketClient
+import com.enctxt.core.security.EncryptedSessionCookieStore
 import com.enctxt.core.security.KeyStoreManager
 import com.enctxt.core.storage.EnctxtDatabase
 import com.enctxt.core.sync.SyncCoordinator
@@ -69,6 +70,12 @@ class EnctxtApplication : Application() {
             EnctxtDatabase::class.java,
             "enctxt_native.db"
         )
+            .addMigrations(
+                EnctxtDatabase.MIGRATION_1_2,
+                EnctxtDatabase.MIGRATION_2_3,
+                EnctxtDatabase.MIGRATION_1_3
+            )
+            .fallbackToDestructiveMigration()
             .fallbackToDestructiveMigrationOnDowngrade()
             .build()
 
@@ -91,9 +98,10 @@ class EnctxtApplication : Application() {
         deviceRepository = DeviceRepository(apiClient)
 
         // 4. Initialize repositories
-        authRepository = AuthRepository(apiClient, database)
+        authRepository = AuthRepository(apiClient, database, EncryptedSessionCookieStore(applicationContext))
         userRepository = UserRepository(apiClient)
         conversationRepository = ConversationRepository(apiClient, database)
+        syncCoordinator.conversationRepository = conversationRepository
         cryptoRepository = CryptoRepository(apiClient, keyStoreManager)
         messageRepository = MessageRepository(apiClient, database, cryptoRepository, syncCoordinator)
 

@@ -10,8 +10,8 @@ import androidx.compose.ui.test.performTouchInput
 import androidx.compose.ui.test.swipeDown
 import com.enctxt.core.gesture.GesturePoint
 import com.enctxt.core.gesture.RevealState
-import com.enctxt.presentation.components.GestureCanvas
 import com.enctxt.presentation.components.ProtectedMessage
+import com.enctxt.presentation.components.vade.GesturePad
 import org.junit.Rule
 import org.junit.Test
 
@@ -79,11 +79,11 @@ class GestureRevealUiTest {
     }
 
     @Test
-    fun gestureCanvas_tinyTap_neverInvokesOnStrokeComplete() {
+    fun gesturePad_tinyTap_neverInvokesOnStrokeComplete() {
         var invoked = false
         composeRule.setContent {
             MaterialTheme {
-                GestureCanvas(onStrokeComplete = { invoked = true })
+                GesturePad(onStroke = { invoked = true })
             }
         }
 
@@ -97,11 +97,11 @@ class GestureRevealUiTest {
     }
 
     @Test
-    fun gestureCanvas_meaningfulDrag_invokesOnStrokeCompleteWithPoints() {
+    fun gesturePad_meaningfulDrag_invokesOnStrokeCompleteWithPoints() {
         var captured: List<GesturePoint>? = null
         composeRule.setContent {
             MaterialTheme {
-                GestureCanvas(onStrokeComplete = { captured = it })
+                GesturePad(onStroke = { captured = it })
             }
         }
 

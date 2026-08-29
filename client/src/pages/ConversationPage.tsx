@@ -3,6 +3,7 @@ import { useNavigate, useParams } from 'react-router-dom';
 import { AlertTriangle, Eye, EyeOff, Info, Loader2 } from 'lucide-react';
 import type { ConversationDetails } from '@enctxt/shared';
 import { useAuth } from '../auth/AuthContext';
+import { useConversationsContext } from '../hooks/ConversationsContext';
 import { conversationService } from '../services/conversationService';
 import { ApiClientError } from '../services/api';
 import { useMessages } from '../hooks/useMessages';
@@ -24,6 +25,17 @@ export const ConversationPage: React.FC = () => {
   const { conversationId } = useParams<{ conversationId: string }>();
   const navigate = useNavigate();
   const { user } = useAuth();
+  const { setActiveConversationId, markConversationRead } = useConversationsContext();
+
+  useEffect(() => {
+    if (conversationId) {
+      setActiveConversationId(conversationId);
+      markConversationRead(conversationId);
+    }
+    return () => {
+      setActiveConversationId(null);
+    };
+  }, [conversationId, setActiveConversationId, markConversationRead]);
 
   const [conversation, setConversation] = useState<ConversationDetails | null>(null);
   const [isLoadingConversation, setIsLoadingConversation] = useState(true);

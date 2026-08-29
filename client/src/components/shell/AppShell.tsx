@@ -8,6 +8,7 @@ import { formatConversationTime } from '../../utils/dateUtils';
 import { Avatar, BottomNav } from '../vade/Chrome';
 import { ConversationRow } from '../vade/ConversationRow';
 import { ConversationSkeletonList } from '../ui/Skeleton';
+import { MessageNotificationBar } from '../ui/MessageNotificationBar';
 
 const RAIL_ITEMS = [
   { to: '/app', label: 'Messages', Icon: MessageCircle, end: true },
@@ -53,7 +54,7 @@ const DesktopRail: React.FC = () => {
 const DesktopListPane: React.FC = () => {
   const navigate = useNavigate();
   const { conversationId } = useParams<{ conversationId: string }>();
-  const { conversations, isLoading } = useConversationsContext();
+  const { conversations, isLoading, unreadCounts } = useConversationsContext();
 
   return (
     <div className="hidden w-[352px] shrink-0 flex-col border-r border-line lg:flex">
@@ -85,7 +86,7 @@ const DesktopListPane: React.FC = () => {
                 isSelected={conversation.id === conversationId}
                 name={conversation.participant.displayName}
                 time={formatConversationTime(conversation.updatedAt)}
-                unreadCount={0}
+                unreadCount={unreadCounts[conversation.id] || 0}
                 isVerified={Boolean(verification)}
                 isFlagged={false}
                 onOpen={() => navigate(`/app/conversations/${conversation.id}`)}
@@ -114,6 +115,7 @@ const AppShellInner: React.FC = () => {
 
   return (
     <div className="flex h-[100dvh] w-full overflow-hidden bg-bg text-text">
+      <MessageNotificationBar />
       <DesktopRail />
       <DesktopListPane />
       <div className="relative flex min-w-0 flex-1 flex-col overflow-hidden">

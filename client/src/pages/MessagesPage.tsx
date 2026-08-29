@@ -20,7 +20,7 @@ const CONNECTION_BANNERS: Partial<Record<string, string>> = {
 
 export const MessagesPage: React.FC = () => {
   const navigate = useNavigate();
-  const { conversations, isLoading, error, fetchConversations } = useConversationsContext();
+  const { conversations, isLoading, error, fetchConversations, unreadCounts } = useConversationsContext();
   const connectionStatus = useConnectionStatus();
 
   const banner = CONNECTION_BANNERS[connectionStatus];
@@ -96,7 +96,7 @@ export const MessagesPage: React.FC = () => {
                   key={conversation.id}
                   name={conversation.participant.displayName}
                   time={formatConversationTime(conversation.updatedAt)}
-                  unreadCount={0}
+                  unreadCount={unreadCounts[conversation.id] || 0}
                   isVerified={Boolean(verification)}
                   isFlagged={false}
                   onOpen={() => navigate(`/app/conversations/${conversation.id}`)}

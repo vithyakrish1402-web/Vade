@@ -27,7 +27,8 @@ import javax.crypto.SecretKey
 
 class AuthRepository(
     private val apiClient: ApiClient,
-    private val database: EnctxtDatabase
+    private val database: EnctxtDatabase,
+    private val sessionCookieStore: SessionCookieStore
 ) {
     fun observeSession(): Flow<UserSessionEntity?> =
         database.sessionDao().observeActiveSession()
@@ -47,11 +48,13 @@ class AuthRepository(
                     email = request.email
                 )
             )
+            // A fresh sign-up stays signed in — there's no "remember me" choice to make yet.
+            persistSessionCookie()
         }
         return result
     }
 
-    suspend fun login(request: LoginRequest): NetworkResult<AuthResponse> {
+    suspend fun login(request: LoginRequest, rememberMe: Boolean): NetworkResult<AuthResponse> {
         val result = apiClient.login(request)
         if (result is NetworkResult.Success && result.data.user != null) {
             val user = result.data.user
@@ -62,8 +65,24 @@ class AuthRepository(
                     displayName = user.displayName
                 )
             )
+            if (rememberMe) {
+                persistSessionCookie()
+            } else {
+                sessionCookieStore.clear()
+            }
         }
         return result
+    }
+
+    /** Re-injects a session cookie saved from a prior "remember me" login, ahead of [checkSession]. */
+    fun restorePersistedSession() {
+        val persisted = sessionCookieStore.load() ?: return
+        apiClient.restoreSessionCookie(persisted.name, persisted.value, persisted.expiresAt)
+    }
+
+    private fun persistSessionCookie() {
+        val cookie = apiClient.getCookieJar().getSessionCookie() ?: return
+        sessionCookieStore.save(PersistedSessionCookie(cookie.name, cookie.value, cookie.expiresAt))
     }
 
     suspend fun checkSession(): NetworkResult<AuthResponse> {
@@ -79,12 +98,14 @@ class AuthRepository(
             )
         } else if (result is NetworkResult.Error && result.statusCode == 401) {
             database.sessionDao().clearSession()
+            sessionCookieStore.clear()
         }
         return result
     }
 
     suspend fun logout(): NetworkResult<LogoutResponse> {
         val result = apiClient.logout()
+        sessionCookieStore.clear()
         database.sessionDao().clearSession()
         database.conversationDao().clearAll()
         database.messageDao().clearAllMessages()
@@ -124,13 +145,15 @@ class ConversationRepository(
             is NetworkResult.Success -> {
                 val list = res.data.conversations
                 val entities = list.map { item ->
+                    val existing = database.conversationDao().getConversation(item.id)
                     ConversationEntity(
                         id = item.id,
                         peerId = item.participant.id,
                         peerUsername = item.participant.username,
                         peerDisplayName = item.participant.displayName,
                         createdAt = item.createdAt,
-                        updatedAt = item.updatedAt
+                        updatedAt = item.updatedAt,
+                        unreadCount = existing?.unreadCount ?: 0
                     )
                 }
                 database.conversationDao().insertConversations(entities)
@@ -154,7 +177,8 @@ class ConversationRepository(
                         peerUsername = peer.username,
                         peerDisplayName = peer.displayName,
                         createdAt = conv.createdAt,
-                        updatedAt = conv.updatedAt
+                        updatedAt = conv.updatedAt,
+                        unreadCount = 0
                     )
                 )
                 NetworkResult.Success(conv)
@@ -162,6 +186,54 @@ class ConversationRepository(
             is NetworkResult.Error -> NetworkResult.Error(res.code, res.message, res.statusCode)
             is NetworkResult.Loading -> NetworkResult.Loading
         }
+    }
+
+    suspend fun handleIncomingMessage(
+        message: MessageItemDto,
+        currentUserId: String,
+        activeConversationId: String?
+    ): Unit = withContext(Dispatchers.IO) {
+        val existing = database.conversationDao().getConversation(message.conversationId)
+        val isFromPeer = message.senderId != currentUserId
+        val isActive = activeConversationId == message.conversationId
+
+        if (existing != null) {
+            if (isFromPeer && !isActive) {
+                database.conversationDao().incrementUnreadCount(message.conversationId, message.createdAt)
+            } else {
+                database.conversationDao().updateUpdatedAt(message.conversationId, message.createdAt)
+            }
+        } else {
+            // New conversation (Bug 2): fetch conversation details and insert into Room
+            when (val detailsResult = apiClient.getConversationDetails(message.conversationId)) {
+                is NetworkResult.Success -> {
+                    val details = detailsResult.data.conversation
+                    val peer = details.participants.find { it.id != currentUserId }
+                        ?: UserSummary(id = message.senderId, username = "contact", displayName = "Contact")
+                    val unread = if (isFromPeer && !isActive) 1 else 0
+
+                    database.conversationDao().insertConversation(
+                        ConversationEntity(
+                            id = message.conversationId,
+                            peerId = peer.id,
+                            peerUsername = peer.username,
+                            peerDisplayName = peer.displayName.ifEmpty { peer.username },
+                            createdAt = details.createdAt,
+                            updatedAt = message.createdAt,
+                            unreadCount = unread
+                        )
+                    )
+                }
+                else -> {
+                    // Fallback to full fetch
+                    fetchConversations()
+                }
+            }
+        }
+    }
+
+    suspend fun clearUnread(conversationId: String) = withContext(Dispatchers.IO) {
+        database.conversationDao().clearUnreadCount(conversationId)
     }
 }
 
@@ -461,6 +533,7 @@ class MessageRepository(
 
     suspend fun markAsRead(conversationId: String) {
         apiClient.markConversationRead(conversationId)
+        database.conversationDao().clearUnreadCount(conversationId)
     }
 
     suspend fun syncConversation(conversationId: String) {

@@ -25,6 +25,10 @@ class SessionInitializer(
      */
     suspend fun initializeSession(): SessionInitState = withContext(Dispatchers.IO) {
         // 1. Check/Restore Active Server Session
+        // Re-inject any "remember me" cookie first — the cookie jar is in-memory and starts
+        // empty on every process launch, so without this a remembered session still asks the
+        // user to log in again every time the app was killed.
+        authRepository.restorePersistedSession()
         val authResult = authRepository.checkSession()
         if (authResult !is NetworkResult.Success || authResult.data.user == null) {
             return@withContext SessionInitState.Error("Session unauthenticated or expired")

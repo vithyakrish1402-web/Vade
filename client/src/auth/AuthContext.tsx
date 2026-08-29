@@ -1,6 +1,7 @@
 import React, { createContext, useContext, useState, useEffect, useCallback } from 'react';
 import type { UserSummary, RegisterInput, LoginInput } from '@enctxt/shared';
 import { authService } from '../services/authService';
+import { wsClient } from '../services/websocket';
 
 interface AuthContextType {
   user: UserSummary | null;
@@ -61,6 +62,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const logout = async (): Promise<void> => {
     setIsLoading(true);
     try {
+      wsClient.disconnect();
       await authService.logout();
     } finally {
       setUser(null);

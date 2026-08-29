@@ -1,5 +1,6 @@
 import React, { createContext, useContext } from 'react';
 import { useConversations } from './useConversations';
+import { useAuth } from '../auth/AuthContext';
 
 type ConversationsValue = ReturnType<typeof useConversations>;
 
@@ -13,7 +14,8 @@ const ConversationsContext = createContext<ConversationsValue | null>(null);
  * incoming messages — independently.
  */
 export const ConversationsProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
-  const value = useConversations();
+  const { user } = useAuth();
+  const value = useConversations(user?.id);
   return <ConversationsContext.Provider value={value}>{children}</ConversationsContext.Provider>;
 };
 
@@ -22,3 +24,4 @@ export function useConversationsContext(): ConversationsValue {
   if (!context) throw new Error('useConversationsContext must be used within a ConversationsProvider');
   return context;
 }
+

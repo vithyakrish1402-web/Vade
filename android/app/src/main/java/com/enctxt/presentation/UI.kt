@@ -2,6 +2,7 @@ package com.enctxt.presentation
 
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.foundation.background
+import androidx.compose.foundation.border
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.foundation.clickable
@@ -12,6 +13,7 @@ import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.foundation.shape.CircleShape
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.ripple.rememberRipple
 import androidx.compose.material.icons.filled.*
@@ -106,16 +108,16 @@ class AuthViewModel(
         }
     }
 
-    fun login(identifier: String, pass: String) {
+    fun login(identifier: String, pass: String, rememberMe: Boolean = true) {
         if (identifier.isBlank() || pass.isBlank()) {
             _uiState.value = AuthUiState.Error("Username/email and password are required")
             return
         }
         viewModelScope.launch {
             _uiState.value = AuthUiState.Loading
-            when (val res = authRepository.login(LoginRequest(identifier, pass))) {
+            when (val res = authRepository.login(LoginRequest(identifier, pass), rememberMe)) {
                 is NetworkResult.Success -> {
-                    cryptoRepository.initializeIdentityKey()
+                    sessionInitializer.initializeSession()
                     val user = res.data.user ?: UserSummary("id", identifier, identifier)
                     _uiState.value = AuthUiState.Authenticated(user)
                 }
@@ -136,7 +138,7 @@ class AuthViewModel(
             _uiState.value = AuthUiState.Loading
             when (val res = authRepository.register(RegisterRequest(user, email, pass, name.ifEmpty { null }))) {
                 is NetworkResult.Success -> {
-                    cryptoRepository.initializeIdentityKey()
+                    sessionInitializer.initializeSession()
                     val u = res.data.user ?: UserSummary("id", user, name.ifEmpty { user })
                     _uiState.value = AuthUiState.Authenticated(u)
                 }
@@ -272,6 +274,8 @@ class MessageViewModel(
         activeConversationId = conversationId
         activePeerId = peerId
         currentUserId = userId
+        syncCoordinator.activeConversationId = conversationId
+        syncCoordinator.currentUserId = userId
 
         messageObserverJob?.cancel()
         wsListenerJob?.cancel()
@@ -286,7 +290,7 @@ class MessageViewModel(
         // 2. Subscribe to WebSocket room
         wsClient.subscribe(conversationId)
 
-        // 3. Catch-up sync from REST history
+        // 3. Catch-up sync from REST history and clear unread count
         viewModelScope.launch {
             _isLoading.value = true
             messageRepository.syncConversation(conversationId)
@@ -347,6 +351,7 @@ class MessageViewModel(
 
     override fun onCleared() {
         super.onCleared()
+        syncCoordinator.activeConversationId = null
         activeConversationId?.let { wsClient.unsubscribe(it) }
         _messages.value = emptyList() // Flush transient decrypted plaintext from memory
     }
@@ -804,6 +809,7 @@ fun ConversationListScreen(
                         ConversationRow(
                             name = name,
                             time = formatListTime(conversation.updatedAt),
+                            unreadCount = conversation.unreadCount,
                             onOpen = { onOpenConversation(conversation.id, conversation.peerId, name) }
                         )
                     }
@@ -1595,6 +1601,7 @@ fun LoginScreen(
     val colors = vadeColors
     var identifier by remember { mutableStateOf("") }
     var password by remember { mutableStateOf("") }
+    var rememberMe by remember { mutableStateOf(true) }
     val uiState by viewModel.uiState.collectAsState()
 
     LaunchedEffect(uiState) {
@@ -1632,14 +1639,47 @@ fun LoginScreen(
             supportingText = (uiState as? AuthUiState.Error)?.message
         )
 
+        Row(
+            verticalAlignment = Alignment.CenterVertically,
+            modifier = Modifier
+                .padding(top = 14.dp)
+                .clip(RoundedCornerShape(8.dp))
+                .clickable(role = Role.Checkbox) { rememberMe = !rememberMe }
+                .padding(vertical = 6.dp)
+        ) {
+            Box(
+                contentAlignment = Alignment.Center,
+                modifier = Modifier
+                    .size(20.dp)
+                    .clip(RoundedCornerShape(6.dp))
+                    .background(if (rememberMe) colors.accent else Color.Transparent)
+                    .border(1.5.dp, if (rememberMe) colors.accent else colors.line, RoundedCornerShape(6.dp))
+            ) {
+                if (rememberMe) {
+                    Icon(
+                        Icons.Default.Check,
+                        contentDescription = null,
+                        tint = Color.White,
+                        modifier = Modifier.size(13.dp)
+                    )
+                }
+            }
+            Text(
+                "Remember me",
+                style = VadeType.body.copy(fontSize = 14.sp),
+                color = colors.text,
+                modifier = Modifier.padding(start = 10.dp)
+            )
+        }
+
         VadeButton(
             text = "Continue",
-            onClick = { viewModel.login(identifier.trim(), password) },
+            onClick = { viewModel.login(identifier.trim(), password, rememberMe) },
             enabled = identifier.isNotBlank() && password.isNotBlank(),
             isLoading = uiState is AuthUiState.Loading,
             modifier = Modifier
                 .fillMaxWidth()
-                .padding(top = 18.dp)
+                .padding(top = 10.dp)
         )
 
         Text(
