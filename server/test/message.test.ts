@@ -248,4 +248,86 @@ describe('Encrypted Messaging API (Phase 7 — E2EE)', () => {
       expect(res.status).toBe(403);
     });
   });
+
+  // ==========================================
+  // DELETE /api/conversations/:id/messages/:messageId (DELETE FOR EVERYONE)
+  // ==========================================
+  describe('DELETE /api/conversations/:conversationId/messages/:messageId', () => {
+    it('allows the sender to delete their own message, wiping ciphertext', async () => {
+      const sendRes = await request(app)
+        .post(`/api/conversations/${conversationId}/messages`)
+        .set('Cookie', userACookie)
+        .send({ envelope: validEnvelope });
+      const messageId = sendRes.body.message.id;
+
+      const res = await request(app)
+        .delete(`/api/conversations/${conversationId}/messages/${messageId}`)
+        .set('Cookie', userACookie);
+
+      expect(res.status).toBe(200);
+      expect(res.body.success).toBe(true);
+      expect(res.body.deletedAt).toBeDefined();
+
+      const stored = mockDb.messages.get(messageId);
+      expect(stored?.deletedAt).not.toBeNull();
+      expect(stored?.ciphertext).toBe('');
+      expect(stored?.nonce).toBe('');
+    });
+
+    it('forbids the recipient from deleting a message they did not send', async () => {
+      const sendRes = await request(app)
+        .post(`/api/conversations/${conversationId}/messages`)
+        .set('Cookie', userACookie)
+        .send({ envelope: validEnvelope });
+      const messageId = sendRes.body.message.id;
+
+      const res = await request(app)
+        .delete(`/api/conversations/${conversationId}/messages/${messageId}`)
+        .set('Cookie', userBCookie);
+
+      expect(res.status).toBe(403);
+      expect(mockDb.messages.get(messageId)?.deletedAt).toBeNull();
+    });
+
+    it('forbids a non-member from deleting a message', async () => {
+      const sendRes = await request(app)
+        .post(`/api/conversations/${conversationId}/messages`)
+        .set('Cookie', userACookie)
+        .send({ envelope: validEnvelope });
+      const messageId = sendRes.body.message.id;
+
+      const res = await request(app)
+        .delete(`/api/conversations/${conversationId}/messages/${messageId}`)
+        .set('Cookie', userCCookie);
+
+      expect(res.status).toBe(403);
+    });
+
+    it('is idempotent — deleting an already-deleted message returns success without erroring', async () => {
+      const sendRes = await request(app)
+        .post(`/api/conversations/${conversationId}/messages`)
+        .set('Cookie', userACookie)
+        .send({ envelope: validEnvelope });
+      const messageId = sendRes.body.message.id;
+
+      const first = await request(app)
+        .delete(`/api/conversations/${conversationId}/messages/${messageId}`)
+        .set('Cookie', userACookie);
+      const second = await request(app)
+        .delete(`/api/conversations/${conversationId}/messages/${messageId}`)
+        .set('Cookie', userACookie);
+
+      expect(first.status).toBe(200);
+      expect(second.status).toBe(200);
+      expect(second.body.deletedAt).toBe(first.body.deletedAt);
+    });
+
+    it('returns 404 for a message that does not exist', async () => {
+      const res = await request(app)
+        .delete(`/api/conversations/${conversationId}/messages/00000000-0000-0000-0000-000000000000`)
+        .set('Cookie', userACookie);
+
+      expect(res.status).toBe(404);
+    });
+  });
 });

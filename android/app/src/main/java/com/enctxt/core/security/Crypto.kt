@@ -24,20 +24,38 @@ class CryptoException(message: String, cause: Throwable? = null) : Exception(mes
 // 1. Android Keystore Identity Key Management
 // ==============================================================================
 
+/**
+ * Whether the hardware-backed identity key is present, absent, or its presence could not be
+ * determined. The three-way split matters: generating a new key when one already exists
+ * silently overwrites it (AndroidKeyStore has no "don't replace" mode), which permanently
+ * destroys access to every message ever encrypted under the old key. Collapsing [Unknown] into
+ * "false" — as a plain boolean check would — turns a transient KeyStore hiccup into irreversible
+ * data loss the moment the caller reacts to it by generating a replacement.
+ */
+sealed class IdentityKeyPresence {
+    object Present : IdentityKeyPresence()
+    object Absent : IdentityKeyPresence()
+    data class Unknown(val cause: Exception) : IdentityKeyPresence()
+}
+
 class KeyStoreManager(
     private val keyAlias: String = "enctxt_identity_key",
     private val keyStoreProvider: String = "AndroidKeyStore"
 ) {
     private val secureRandom = SecureRandom()
 
-    fun hasIdentityKey(): Boolean {
+    fun checkIdentityKeyPresence(): IdentityKeyPresence {
         return try {
             val keyStore = KeyStore.getInstance(keyStoreProvider).apply { load(null) }
-            keyStore.containsAlias(keyAlias)
-        } catch (_: Exception) {
-            false
+            if (keyStore.containsAlias(keyAlias)) IdentityKeyPresence.Present else IdentityKeyPresence.Absent
+        } catch (e: Exception) {
+            IdentityKeyPresence.Unknown(e)
         }
     }
+
+    /** Convenience for non-destructive call sites (UI display, etc.) — never gate key
+     *  generation on this, since it can't distinguish "absent" from "couldn't tell". */
+    fun hasIdentityKey(): Boolean = checkIdentityKeyPresence() == IdentityKeyPresence.Present
 
     /**
      * Generates a new hardware-backed ECDH P-256 key pair inside Android KeyStore.

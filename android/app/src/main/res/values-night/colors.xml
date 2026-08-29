@@ -1,4 +1,14 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
     <color name="vade_bg">#0D0E0F</color>
+
+    <color name="vade_notif_surface">#191B1C</color>
+    <color name="vade_notif_surface_2">#232627</color>
+    <color name="vade_notif_text">#F4F4F2</color>
+    <color name="vade_notif_muted">#8D8F8C</color>
+    <color name="vade_notif_faint">#6B6D6A</color>
+    <color name="vade_notif_line">#1FF4F4F2</color>
+    <color name="vade_notif_accent">#2EC38A</color>
+    <color name="vade_notif_accent_ink">#4FD8A3</color>
+    <color name="vade_notif_accent_tint">#1F2EC38A</color>
 </resources>

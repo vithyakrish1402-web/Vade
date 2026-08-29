@@ -53,7 +53,9 @@ data class EncryptedMessageEntity(
     val aad: String? = null,
     val localState: String = "SENT", // PENDING_SEND, SENDING, SENT, DELIVERED, READ, FAILED
     val createdAt: String,
-    val updatedAt: String
+    val updatedAt: String,
+    /** Delete-for-everyone tombstone — ciphertext/nonce are wiped locally to match the server. */
+    val deletedAt: String? = null
 )
 
 // ==============================================================================
@@ -101,6 +103,9 @@ interface ConversationDao {
     @Query("UPDATE conversations SET lastSyncedAt = :syncedAt, lastKnownMessageId = :lastMsgId WHERE id = :convId")
     suspend fun updateSyncCursor(convId: String, syncedAt: Long, lastMsgId: String?)
 
+    @Query("DELETE FROM conversations WHERE id = :id")
+    suspend fun deleteConversation(id: String)
+
     @Query("DELETE FROM conversations")
     suspend fun clearAll()
 }
@@ -134,6 +139,12 @@ interface MessageDao {
     @Query("DELETE FROM encrypted_messages WHERE localId = :localId")
     suspend fun deleteMessage(localId: String)
 
+    /** Delete-for-everyone tombstone — matches on either id field since a message synced purely
+     *  via history fetch uses the server id as its localId, while one sent from this device
+     *  tracks it separately as serverMessageId. */
+    @Query("UPDATE encrypted_messages SET deletedAt = :deletedAt, ciphertext = '', nonce = '' WHERE localId = :messageId OR serverMessageId = :messageId")
+    suspend fun markMessageDeleted(messageId: String, deletedAt: String)
+
     @Query("DELETE FROM encrypted_messages WHERE conversationId = :conversationId")
     suspend fun deleteConversationMessages(conversationId: String)
 
@@ -147,7 +158,7 @@ interface MessageDao {
         ConversationEntity::class,
         EncryptedMessageEntity::class
     ],
-    version = 3,
+    version = 4,
     exportSchema = false
 )
 abstract class EnctxtDatabase : RoomDatabase() {
@@ -174,6 +185,28 @@ abstract class EnctxtDatabase : RoomDatabase() {
                 db.execSQL("ALTER TABLE conversations ADD COLUMN lastSyncedAt INTEGER NOT NULL DEFAULT 0")
                 db.execSQL("ALTER TABLE conversations ADD COLUMN lastKnownMessageId TEXT")
                 db.execSQL("ALTER TABLE conversations ADD COLUMN unreadCount INTEGER NOT NULL DEFAULT 0")
+            }
+        }
+
+        val MIGRATION_3_4 = object : androidx.room.migration.Migration(3, 4) {
+            override fun migrate(db: androidx.sqlite.db.SupportSQLiteDatabase) {
+                db.execSQL("ALTER TABLE encrypted_messages ADD COLUMN deletedAt TEXT")
+            }
+        }
+
+        val MIGRATION_1_4 = object : androidx.room.migration.Migration(1, 4) {
+            override fun migrate(db: androidx.sqlite.db.SupportSQLiteDatabase) {
+                db.execSQL("ALTER TABLE conversations ADD COLUMN lastSyncedAt INTEGER NOT NULL DEFAULT 0")
+                db.execSQL("ALTER TABLE conversations ADD COLUMN lastKnownMessageId TEXT")
+                db.execSQL("ALTER TABLE conversations ADD COLUMN unreadCount INTEGER NOT NULL DEFAULT 0")
+                db.execSQL("ALTER TABLE encrypted_messages ADD COLUMN deletedAt TEXT")
+            }
+        }
+
+        val MIGRATION_2_4 = object : androidx.room.migration.Migration(2, 4) {
+            override fun migrate(db: androidx.sqlite.db.SupportSQLiteDatabase) {
+                db.execSQL("ALTER TABLE conversations ADD COLUMN unreadCount INTEGER NOT NULL DEFAULT 0")
+                db.execSQL("ALTER TABLE encrypted_messages ADD COLUMN deletedAt TEXT")
             }
         }
     }

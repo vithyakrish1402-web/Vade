@@ -3,6 +3,7 @@ import type {
   CreateConversationResponse,
   ConversationListResponse,
   ConversationDetailResponse,
+  ClearConversationResponse,
 } from '@enctxt/shared';
 import { createConversationSchema, conversationListQuerySchema } from '../utils/validation.js';
 import { ConversationService } from '../services/conversationService.js';
@@ -91,6 +92,31 @@ export class ConversationController {
       res.status(200).json({
         conversation,
       });
+    } catch (error) {
+      next(error);
+    }
+  }
+
+  /**
+   * POST /api/conversations/:conversationId/clear
+   */
+  static async clearConversation(
+    req: Request,
+    res: Response<ClearConversationResponse>,
+    next: NextFunction
+  ): Promise<void> {
+    try {
+      if (!req.user) {
+        throw AppError.unauthorized('Authentication required');
+      }
+
+      const conversationId = req.params.conversationId;
+      if (!conversationId) {
+        throw AppError.badRequest('Conversation ID is required');
+      }
+
+      const response = await ConversationService.clearConversation(conversationId, req.user.id);
+      res.status(200).json(response);
     } catch (error) {
       next(error);
     }

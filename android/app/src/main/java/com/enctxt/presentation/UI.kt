@@ -170,6 +170,7 @@ class ConversationViewModel(
 ) : ViewModel() {
 
     val cachedConversations = conversationRepository.observeCachedConversations()
+    val incomingNotifications: SharedFlow<IncomingMessageNotification> = conversationRepository.incomingNotifications
 
     private val _isLoading = MutableStateFlow(false)
     val isLoading: StateFlow<Boolean> = _isLoading.asStateFlow()
@@ -242,7 +243,8 @@ class MessageViewModel(
     private val messageRepository: MessageRepository,
     private val wsClient: WebSocketClient,
     private val connectivityMonitor: ConnectivityMonitor,
-    private val syncCoordinator: SyncCoordinator
+    private val syncCoordinator: SyncCoordinator,
+    private val conversationRepository: ConversationRepository
 ) : ViewModel() {
 
     private val _messages = MutableStateFlow<List<MessageUiModel>>(emptyList())
@@ -346,6 +348,25 @@ class MessageViewModel(
                 plaintext = plaintext,
                 isOnline = isOnline.value
             )
+        }
+    }
+
+    /** Delete for everyone — server enforces sender-only. */
+    fun deleteMessage(messageId: String) {
+        val convId = activeConversationId ?: return
+        viewModelScope.launch {
+            messageRepository.deleteMessage(convId, messageId)
+        }
+    }
+
+    /** Clears this conversation from the caller's own view only; the peer is unaffected. */
+    fun clearConversation(onCleared: () -> Unit) {
+        val convId = activeConversationId ?: return
+        viewModelScope.launch {
+            val result = conversationRepository.clearConversation(convId)
+            if (result is NetworkResult.Success) {
+                onCleared()
+            }
         }
     }
 
@@ -472,6 +493,9 @@ fun NavGraph(
     val currentRoute = backStackEntry?.destination?.route
     val showBottomBar = ROOT_DESTINATIONS.any { it.first == currentRoute }
 
+    val notificationBannerState = rememberNotificationBannerState(conversationViewModel.incomingNotifications)
+
+    Box(modifier = Modifier.fillMaxSize()) {
     Scaffold(
         containerColor = vadeColors.bg,
         contentColor = vadeColors.text,
@@ -643,6 +667,18 @@ fun NavGraph(
                 )
             }
         }
+    }
+
+        MessageNotificationBanner(
+            state = notificationBannerState,
+            modifier = Modifier
+                .align(Alignment.TopCenter)
+                .statusBarsPadding(),
+            onOpen = { convId, peerId, peerName ->
+                notificationBannerState.dismissAll()
+                navController.navigate("conversation/$convId/$peerId/$peerName")
+            }
+        )
     }
 }
 
@@ -1245,6 +1281,9 @@ fun ConversationScreen(
     }
 
     var actionsTarget by remember { mutableStateOf<MessageUiModel?>(null) }
+    var isHeaderMenuOpen by remember { mutableStateOf(false) }
+    var confirmDeleteTarget by remember { mutableStateOf<MessageUiModel?>(null) }
+    var isClearConfirmOpen by remember { mutableStateOf(false) }
 
     Column(
         modifier = Modifier
@@ -1290,8 +1329,8 @@ fun ConversationScreen(
             }
             VadeIconButton(
                 icon = Icons.Default.MoreVert,
-                contentDescription = "Contact security",
-                onClick = onOpenContactSecurity,
+                contentDescription = "Conversation options",
+                onClick = { isHeaderMenuOpen = true },
                 diameter = 34.dp
             )
         }
@@ -1439,7 +1478,66 @@ fun ConversationScreen(
                 icon = Icons.Default.Info,
                 onClick = { actionsTarget = null }
             )
+            if (target.senderId == currentUserId && target.deletedAt == null && target.serverMessageId != null) {
+                ActionSheetRow(
+                    label = "Delete for everyone",
+                    note = "Removes it from this chat on both sides",
+                    icon = Icons.Default.Delete,
+                    isDestructive = true,
+                    onClick = {
+                        actionsTarget = null
+                        confirmDeleteTarget = target
+                    }
+                )
+            }
         }
+    }
+
+    if (isHeaderMenuOpen) {
+        VadeActionSheet(
+            onDismiss = { isHeaderMenuOpen = false },
+            kicker = "Conversation options"
+        ) {
+            ActionSheetRow(
+                label = "Contact security",
+                note = "Verify identity, view safety number",
+                icon = Icons.Default.Shield,
+                onClick = {
+                    isHeaderMenuOpen = false
+                    onOpenContactSecurity()
+                }
+            )
+            ActionSheetRow(
+                label = "Clear chat",
+                note = "Remove history from your view only",
+                icon = Icons.Default.Delete,
+                isDestructive = true,
+                onClick = {
+                    isHeaderMenuOpen = false
+                    isClearConfirmOpen = true
+                }
+            )
+        }
+    }
+
+    confirmDeleteTarget?.let { target ->
+        ConfirmDialog(
+            title = "Delete this message?",
+            body = "This removes it for everyone in the conversation. This cannot be undone.",
+            confirmLabel = "Delete",
+            onConfirm = { viewModel.deleteMessage(target.serverMessageId ?: target.localId) },
+            onDismiss = { confirmDeleteTarget = null }
+        )
+    }
+
+    if (isClearConfirmOpen) {
+        ConfirmDialog(
+            title = "Clear this chat?",
+            body = "This removes the message history from your view and takes it off your conversation list until a new message arrives. It has no effect on the other person's copy.",
+            confirmLabel = "Clear chat",
+            onConfirm = { viewModel.clearConversation(onCleared = onBack) },
+            onDismiss = { isClearConfirmOpen = false }
+        )
     }
 
     // Gesture authentication overlay — only rendered while actively authenticating or locked

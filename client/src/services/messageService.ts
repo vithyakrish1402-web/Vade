@@ -2,6 +2,7 @@ import type {
   SendMessageInput,
   SendMessageResponse,
   MessageListResponse,
+  DeleteMessageResponse,
 } from '@enctxt/shared';
 import { api } from './api';
 
@@ -39,5 +40,15 @@ export const messageService = {
     return api.post<{ success: boolean }>(`/conversations/${conversationId}/read`, {
       messageId,
     });
+  },
+
+  /** Delete for everyone — only the sender may call this; the server enforces it too. */
+  deleteMessage: (
+    conversationId: string,
+    messageId: string
+  ): Promise<DeleteMessageResponse> => {
+    return api.delete<DeleteMessageResponse>(
+      `/conversations/${conversationId}/messages/${messageId}`
+    );
   },
 };

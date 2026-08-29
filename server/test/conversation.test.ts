@@ -246,4 +246,123 @@ describe('1-to-1 Conversation Architecture API (Phase 3)', () => {
       expect(res.body.error.code).toBe('RESOURCE_NOT_FOUND');
     });
   });
+
+  // ==========================================
+  // POST /api/conversations/:id/clear (CLEAR CHAT — per-user, non-destructive)
+  // ==========================================
+  describe('POST /api/conversations/:conversationId/clear', () => {
+    let sharedConvId: string;
+
+    beforeEach(async () => {
+      const res = await request(app)
+        .post('/api/conversations')
+        .set('Cookie', userACookie)
+        .send({ userId: userBId });
+      sharedConvId = res.body.conversation.id;
+    });
+
+    it('lets a member clear their own view of the conversation', async () => {
+      const res = await request(app)
+        .post(`/api/conversations/${sharedConvId}/clear`)
+        .set('Cookie', userACookie);
+
+      expect(res.status).toBe(200);
+      expect(res.body.success).toBe(true);
+      expect(res.body.clearedAt).toBeDefined();
+    });
+
+    it('forbids a non-member from clearing a conversation', async () => {
+      const res = await request(app)
+        .post(`/api/conversations/${sharedConvId}/clear`)
+        .set('Cookie', userCCookie);
+
+      expect(res.status).toBe(403);
+    });
+
+    it('returns 404 for a non-existent conversation', async () => {
+      const res = await request(app)
+        .post('/api/conversations/00000000-0000-0000-0000-000000000000/clear')
+        .set('Cookie', userACookie);
+
+      expect(res.status).toBe(404);
+    });
+
+    it('removes the conversation from the clearing user\'s list, but not from the other participant\'s', async () => {
+      await request(app).post(`/api/conversations/${sharedConvId}/clear`).set('Cookie', userACookie);
+
+      const aliceList = await request(app).get('/api/conversations').set('Cookie', userACookie);
+      const bobList = await request(app).get('/api/conversations').set('Cookie', userBCookie);
+
+      expect(aliceList.body.conversations.find((c: any) => c.id === sharedConvId)).toBeUndefined();
+      expect(bobList.body.conversations.find((c: any) => c.id === sharedConvId)).toBeDefined();
+    });
+
+    it('brings the conversation back into the list once a new message arrives after clearing', async () => {
+      await request(app).post(`/api/conversations/${sharedConvId}/clear`).set('Cookie', userACookie);
+
+      await request(app)
+        .post(`/api/conversations/${sharedConvId}/messages`)
+        .set('Cookie', userBCookie)
+        .send({
+          envelope: {
+            version: 1,
+            algorithm: 'AES-256-GCM',
+            keyAgreement: 'ECDH-P256',
+            senderKeyId: 'k_bob',
+            recipientKeyId: 'k_alice',
+            nonce: 'bm9uY2U=',
+            ciphertext: 'Y2lwaGVy',
+          },
+        });
+
+      const aliceList = await request(app).get('/api/conversations').set('Cookie', userACookie);
+      expect(aliceList.body.conversations.find((c: any) => c.id === sharedConvId)).toBeDefined();
+    });
+
+    it('hides message history up to the clear point for that user only', async () => {
+      await request(app)
+        .post(`/api/conversations/${sharedConvId}/messages`)
+        .set('Cookie', userACookie)
+        .send({
+          envelope: {
+            version: 1,
+            algorithm: 'AES-256-GCM',
+            keyAgreement: 'ECDH-P256',
+            senderKeyId: 'k_alice',
+            recipientKeyId: 'k_bob',
+            nonce: 'bm9uY2Ux',
+            ciphertext: 'YmVmb3JlX2NsZWFy',
+          },
+        });
+
+      await request(app).post(`/api/conversations/${sharedConvId}/clear`).set('Cookie', userACookie);
+
+      await request(app)
+        .post(`/api/conversations/${sharedConvId}/messages`)
+        .set('Cookie', userBCookie)
+        .send({
+          envelope: {
+            version: 1,
+            algorithm: 'AES-256-GCM',
+            keyAgreement: 'ECDH-P256',
+            senderKeyId: 'k_bob',
+            recipientKeyId: 'k_alice',
+            nonce: 'bm9uY2Uy',
+            ciphertext: 'YWZ0ZXJfY2xlYXI=',
+          },
+        });
+
+      const aliceHistory = await request(app)
+        .get(`/api/conversations/${sharedConvId}/messages`)
+        .set('Cookie', userACookie);
+      const bobHistory = await request(app)
+        .get(`/api/conversations/${sharedConvId}/messages`)
+        .set('Cookie', userBCookie);
+
+      expect(aliceHistory.body.messages).toHaveLength(1);
+      expect(aliceHistory.body.messages[0].ciphertext).toBe('YWZ0ZXJfY2xlYXI=');
+      // Bob never cleared — his view still has both messages.
+      expect(bobHistory.body.messages).toHaveLength(2);
+    });
+  });
 });

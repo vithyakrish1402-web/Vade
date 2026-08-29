@@ -53,6 +53,7 @@ export interface MockConversationMember {
   conversationId: string;
   userId: string;
   joinedAt: Date;
+  clearedAt: Date | null;
 }
 
 export interface MockMessage {
@@ -68,6 +69,7 @@ export interface MockMessage {
   aad: string | null;
   createdAt: Date;
   updatedAt: Date;
+  deletedAt: Date | null;
 }
 
 export class MockDatabase {
@@ -429,6 +431,7 @@ export class MockDatabase {
               conversationId: id,
               userId: m.userId,
               joinedAt: now,
+              clearedAt: null,
             });
           });
         }
@@ -457,6 +460,14 @@ export class MockDatabase {
         );
         return found || null;
       },
+
+      update: async ({ where, data }: { where: { id: string }; data: Partial<MockConversationMember> }) => {
+        const existing = this.members.get(where.id);
+        if (!existing) throw new Error('Conversation member not found');
+        const updated: MockConversationMember = { ...existing, ...data };
+        this.members.set(where.id, updated);
+        return updated;
+      },
     };
   }
 
@@ -474,6 +485,10 @@ export class MockDatabase {
         if (where?.createdAt?.lt) {
           const ltDate = new Date(where.createdAt.lt);
           list = list.filter((m) => m.createdAt < ltDate);
+        }
+        if (where?.createdAt?.gt) {
+          const gtDate = new Date(where.createdAt.gt);
+          list = list.filter((m) => m.createdAt > gtDate);
         }
 
         const isDesc = Array.isArray(orderBy)
@@ -508,6 +523,7 @@ export class MockDatabase {
           aad: data.aad || null,
           createdAt: now,
           updatedAt: now,
+          deletedAt: null,
         };
         this.messages.set(id, newMsg);
 
@@ -518,6 +534,14 @@ export class MockDatabase {
         }
 
         return newMsg;
+      },
+
+      update: async ({ where, data }: { where: { id: string }; data: Partial<MockMessage> }) => {
+        const existing = this.messages.get(where.id);
+        if (!existing) throw new Error('Message not found');
+        const updated: MockMessage = { ...existing, ...data };
+        this.messages.set(where.id, updated);
+        return updated;
       },
     };
   }

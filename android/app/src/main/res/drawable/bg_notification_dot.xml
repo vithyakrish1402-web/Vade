@@ -1,0 +1,7 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- The unread dot on the avatar corner — a 2dp ring in the surface colour makes it read as
+     cut out of the avatar rather than just overlapping it. -->
+<shape xmlns:android="http://schemas.android.com/apk/res/android" android:shape="oval">
+    <solid android:color="@color/vade_notif_accent" />
+    <stroke android:width="2dp" android:color="@color/vade_notif_surface" />
+</shape>

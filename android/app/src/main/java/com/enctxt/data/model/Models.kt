@@ -149,7 +149,22 @@ data class MessageItemDto(
     val aad: String? = null,
     val status: String = "sent",
     val createdAt: String,
-    val updatedAt: String
+    val updatedAt: String,
+    /** Set once the sender deletes this message for everyone; ciphertext/nonce are wiped
+     *  server-side at that point. */
+    val deletedAt: String? = null
+)
+
+@Serializable
+data class DeleteMessageResponse(
+    val success: Boolean,
+    val deletedAt: String
+)
+
+@Serializable
+data class ClearConversationResponse(
+    val success: Boolean,
+    val clearedAt: String
 )
 
 @Serializable
@@ -292,7 +307,12 @@ data class WSServerMessage(
     val deliveredAt: String? = null,
     val readAt: String? = null,
     val readBy: String? = null,
-    val code: String? = null
+    val code: String? = null,
+    /** "message.deleted" */
+    val deletedAt: String? = null,
+    val deletedBy: String? = null,
+    /** "conversation.cleared" — arrives only for the acting user's own other sessions. */
+    val clearedAt: String? = null
 )
 
 // ==============================================================================
@@ -335,7 +355,8 @@ data class MessageUiModel(
     val localState: MessageLocalState = MessageLocalState.SENT,
     val createdAt: String,
     val senderKeyId: String,
-    val recipientKeyId: String
+    val recipientKeyId: String,
+    val deletedAt: String? = null
 )
 
 data class ConversationUiModel(

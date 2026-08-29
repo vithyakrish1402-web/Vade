@@ -78,6 +78,9 @@ export function useMessages(
         // If it's a temporary optimistic message, plaintext is already in memory
         if (msg.id.startsWith('temp-')) continue;
 
+        // Deleted messages have their ciphertext wiped server-side — nothing to decrypt.
+        if (msg.deletedAt) continue;
+
         // Protocol version check
         if (msg.version > 1) {
           updates.set(
@@ -274,6 +277,21 @@ export function useMessages(
               : m
           )
         );
+      } else if (event.type === 'message.deleted') {
+        if (event.conversationId !== conversationId) return;
+        setMessages((prev) =>
+          prev.map((m) =>
+            m.id === event.messageId
+              ? { ...m, deletedAt: event.deletedAt, ciphertext: '', nonce: '' }
+              : m
+          )
+        );
+        setDecryptedMap((prev) => {
+          if (!prev.has(event.messageId)) return prev;
+          const next = new Map(prev);
+          next.delete(event.messageId);
+          return next;
+        });
       }
     });
 
@@ -417,10 +435,36 @@ export function useMessages(
 
   const getDecryptedText = useCallback(
     (msg: MessageItem): string => {
+      if (msg.deletedAt) return 'This message was deleted';
       return decryptedMap.get(msg.id) || 'Decrypting...';
     },
     [decryptedMap]
   );
+
+  // Delete for everyone — sender-only; the server rejects it otherwise. Optimistically wipes
+  // the local copy before the request resolves, then relies on the WS event above to keep
+  // every other open session (including the peer's) in sync.
+  const deleteMessage = async (messageId: string) => {
+    if (!conversationId) return;
+
+    const previous = messages;
+    setMessages((prev) =>
+      prev.map((m) => (m.id === messageId ? { ...m, deletedAt: new Date().toISOString(), ciphertext: '', nonce: '' } : m))
+    );
+    setDecryptedMap((prev) => {
+      if (!prev.has(messageId)) return prev;
+      const next = new Map(prev);
+      next.delete(messageId);
+      return next;
+    });
+
+    try {
+      await messageService.deleteMessage(conversationId, messageId);
+    } catch {
+      // Roll back — the delete didn't actually happen server-side.
+      setMessages(previous);
+    }
+  };
 
   return {
     messages,
@@ -435,6 +479,7 @@ export function useMessages(
     connectionStatus,
     sendMessage,
     retryMessage,
+    deleteMessage,
     loadOlderMessages,
     refreshMessages: fetchInitialMessages,
   };

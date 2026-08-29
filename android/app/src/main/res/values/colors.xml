@@ -1,5 +1,18 @@
 <?xml version="1.0" encoding="utf-8"?>
-<!-- The window background only. Every other colour is a Compose token (VadeTheme.kt). -->
+<!-- The window background, plus the token subset RemoteViews needs for the custom notification
+     layout (RemoteViews can't read Compose's VadeTheme.kt, so these are duplicated verbatim from
+     VadeLightColors / VadeDarkColors — keep them in sync if the palette ever changes). Every
+     other colour in the app is a Compose token. -->
 <resources>
     <color name="vade_bg">#FCFCFB</color>
+
+    <color name="vade_notif_surface">#F2F2F0</color>
+    <color name="vade_notif_surface_2">#E9E9E6</color>
+    <color name="vade_notif_text">#141516</color>
+    <color name="vade_notif_muted">#77776F</color>
+    <color name="vade_notif_faint">#A3A39C</color>
+    <color name="vade_notif_line">#1A141516</color>
+    <color name="vade_notif_accent">#0F9D6B</color>
+    <color name="vade_notif_accent_ink">#0B7A53</color>
+    <color name="vade_notif_accent_tint">#E8F5EF</color>
 </resources>

@@ -153,6 +153,14 @@ open class ApiClient(
     open suspend fun markConversationRead(conversationId: String): NetworkResult<Unit> =
         executePost("/conversations/$conversationId/read", Unit)
 
+    /** Delete for everyone — server enforces sender-only. */
+    open suspend fun deleteMessage(conversationId: String, messageId: String): NetworkResult<DeleteMessageResponse> =
+        executeDelete("/conversations/$conversationId/messages/$messageId")
+
+    /** Clears this conversation from the caller's own view only. */
+    open suspend fun clearConversation(conversationId: String): NetworkResult<ClearConversationResponse> =
+        executePost("/conversations/$conversationId/clear", Unit)
+
     open suspend fun publishIdentityKey(request: PublishKeyRequest): NetworkResult<Unit> =
         executePost("/crypto/identity", request)
 
@@ -195,6 +203,20 @@ open class ApiClient(
                 val request = Request.Builder()
                     .url(config.baseUrl + path)
                     .post(jsonBody.toRequestBody(jsonMediaType))
+                    .build()
+
+                executeRequest(request)
+            } catch (e: Exception) {
+                NetworkResult.Error("NETWORK_ERROR", e.message ?: "Connection failure")
+            }
+        }
+
+    private suspend inline fun <reified T> executeDelete(path: String): NetworkResult<T> =
+        withContext(Dispatchers.IO) {
+            try {
+                val request = Request.Builder()
+                    .url(config.baseUrl + path)
+                    .delete()
                     .build()
 
                 executeRequest(request)

@@ -3,6 +3,7 @@ import type {
   SendMessageInput,
   SendMessageResponse,
   MessageListResponse,
+  DeleteMessageResponse,
 } from '@enctxt/shared';
 import { getPrismaClient } from './db.js';
 import { AppError } from '../utils/errors.js';
@@ -98,6 +99,7 @@ export class MessageService {
       status: 'sent',
       createdAt: createdMessage.createdAt.toISOString(),
       updatedAt: createdMessage.updatedAt.toISOString(),
+      deletedAt: null,
     };
 
     // 5. Broadcast real-time encrypted event to conversation subscribers & user sockets
@@ -135,7 +137,7 @@ export class MessageService {
       where: { id: conversationId },
       include: {
         members: {
-          select: { userId: true },
+          select: { userId: true, clearedAt: true },
         },
       },
     });
@@ -144,14 +146,16 @@ export class MessageService {
       throw AppError.notFound('Conversation not found');
     }
 
-    const isMember = conversation.members.some((m) => m.userId === userId);
-    if (!isMember) {
+    const myMembership = conversation.members.find((m) => m.userId === userId);
+    if (!myMembership) {
       throw AppError.forbidden('You are not authorized to view messages in this conversation');
     }
 
-    // 2. Build where filter for cursor pagination
+    // 2. Build where filter for cursor pagination — messages at or before this member's own
+    // clearedAt are hidden from their history (the other participant is unaffected).
     let whereFilter: any = {
       conversationId,
+      ...(myMembership.clearedAt ? { createdAt: { gt: myMembership.clearedAt } } : {}),
     };
 
     if (beforeCursor) {
@@ -165,6 +169,7 @@ export class MessageService {
           conversationId,
           createdAt: {
             lt: cursorMessage.createdAt,
+            ...(myMembership.clearedAt ? { gt: myMembership.clearedAt } : {}),
           },
         };
       }
@@ -201,6 +206,7 @@ export class MessageService {
       status: 'sent',
       createdAt: m.createdAt.toISOString(),
       updatedAt: m.updatedAt.toISOString(),
+      deletedAt: m.deletedAt ? m.deletedAt.toISOString() : null,
     }));
 
     return {
@@ -251,5 +257,80 @@ export class MessageService {
     wsService.broadcastToConversation(conversationId, readEvent);
 
     return { success: true };
+  }
+
+  /**
+   * Deletes a message for everyone. Sender-only: a recipient cannot delete-for-everyone a
+   * message they didn't write, since that would let anyone erase the other side's copy.
+   * Ciphertext and nonce are wiped from the row — this removes the content, not just a flag.
+   */
+  static async deleteMessage(
+    conversationId: string,
+    messageId: string,
+    userId: string
+  ): Promise<DeleteMessageResponse> {
+    const prisma = getPrismaClient();
+
+    const conversation = await prisma.conversation.findUnique({
+      where: { id: conversationId },
+      include: {
+        members: { select: { userId: true } },
+      },
+    });
+
+    if (!conversation) {
+      throw AppError.notFound('Conversation not found');
+    }
+
+    const isMember = conversation.members.some((m) => m.userId === userId);
+    if (!isMember) {
+      throw AppError.forbidden('You are not authorized for this conversation');
+    }
+
+    const message = await prisma.message.findUnique({ where: { id: messageId } });
+    if (!message || message.conversationId !== conversationId) {
+      throw AppError.notFound('Message not found');
+    }
+
+    if (message.senderId !== userId) {
+      throw AppError.forbidden('Only the sender can delete this message for everyone');
+    }
+
+    // Idempotent: re-deleting an already-deleted message just returns its original deletedAt
+    // rather than erroring or bumping the timestamp again.
+    const deletedAt = message.deletedAt ?? new Date();
+
+    if (!message.deletedAt) {
+      await prisma.message.update({
+        where: { id: messageId },
+        data: {
+          deletedAt,
+          ciphertext: '',
+          nonce: '',
+          aad: null,
+        },
+      });
+    }
+
+    logger.info('Message deleted for everyone', {
+      event: 'message_deleted',
+      messageId,
+      conversationId,
+      deletedBy: userId,
+    });
+
+    const deleteEvent = {
+      type: 'message.deleted' as const,
+      conversationId,
+      messageId,
+      deletedAt: deletedAt.toISOString(),
+      deletedBy: userId,
+    };
+
+    const memberIds = conversation.members.map((m) => m.userId);
+    wsService.sendToMembers(memberIds, deleteEvent);
+    wsService.broadcastToConversation(conversationId, deleteEvent);
+
+    return { success: true, deletedAt: deletedAt.toISOString() };
   }
 }

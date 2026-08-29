@@ -26,4 +26,10 @@ router.get('/:conversationId/messages', MessageController.getMessages);
 // Mark conversation messages as read
 router.post('/:conversationId/read', MessageController.markRead);
 
+// Delete a message for everyone (sender-only)
+router.delete('/:conversationId/messages/:messageId', MessageController.deleteMessage);
+
+// Clear this conversation from the current user's own view/history
+router.post('/:conversationId/clear', ConversationController.clearConversation);
+
 export default router;

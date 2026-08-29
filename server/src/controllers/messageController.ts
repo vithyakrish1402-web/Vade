@@ -1,5 +1,5 @@
 import type { Request, Response, NextFunction } from 'express';
-import type { SendMessageResponse, MessageListResponse } from '@enctxt/shared';
+import type { SendMessageResponse, MessageListResponse, DeleteMessageResponse } from '@enctxt/shared';
 import { sendMessageSchema, messagePaginationSchema } from '../utils/validation.js';
 import { MessageService } from '../services/messageService.js';
 import { AppError } from '../utils/errors.js';
@@ -101,6 +101,35 @@ export class MessageController {
         messageId
       );
 
+      res.status(200).json(response);
+    } catch (error) {
+      next(error);
+    }
+  }
+
+  /**
+   * DELETE /api/conversations/:conversationId/messages/:messageId
+   *
+   * Delete-for-everyone — sender-only. Wipes ciphertext server-side and notifies every
+   * conversation member over WebSocket so it disappears from both sides live.
+   */
+  static async deleteMessage(
+    req: Request,
+    res: Response<DeleteMessageResponse>,
+    next: NextFunction
+  ): Promise<void> {
+    try {
+      if (!req.user) {
+        throw AppError.unauthorized('Authentication required');
+      }
+
+      const conversationId = req.params.conversationId;
+      const messageId = req.params.messageId;
+      if (!conversationId || !messageId) {
+        throw AppError.badRequest('Conversation ID and message ID are required');
+      }
+
+      const response = await MessageService.deleteMessage(conversationId, messageId, req.user.id);
       res.status(200).json(response);
     } catch (error) {
       next(error);

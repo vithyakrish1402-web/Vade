@@ -38,3 +38,8 @@ export interface ConversationListResponse {
 export interface ConversationDetailResponse {
   conversation: ConversationDetails;
 }
+
+export interface ClearConversationResponse {
+  success: boolean;
+  clearedAt: string;
+}

@@ -12,6 +12,9 @@ import com.enctxt.core.sync.SyncCoordinator
 import com.enctxt.data.model.*
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.Flow
+import kotlinx.coroutines.flow.MutableSharedFlow
+import kotlinx.coroutines.flow.SharedFlow
+import kotlinx.coroutines.flow.asSharedFlow
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.withContext
 import java.security.PrivateKey
@@ -133,10 +136,27 @@ class UserRepository(
 // 3. Conversation Repository
 // ==============================================================================
 
+/**
+ * A message arrived from a peer for a conversation that isn't the one currently open — the
+ * signal the heads-up [com.enctxt.presentation.components.vade.MessageNotificationBanner] reacts
+ * to. Carries only what's needed to render it: never plaintext, matching the "Protected
+ * conversation" placeholder already used everywhere else in the list.
+ */
+data class IncomingMessageNotification(
+    val conversationId: String,
+    val peerId: String,
+    val peerDisplayName: String,
+    val createdAt: String,
+    val isNewConversation: Boolean
+)
+
 class ConversationRepository(
     private val apiClient: ApiClient,
     private val database: EnctxtDatabase
 ) {
+    private val _incomingNotifications = MutableSharedFlow<IncomingMessageNotification>(extraBufferCapacity = 16)
+    val incomingNotifications: SharedFlow<IncomingMessageNotification> = _incomingNotifications.asSharedFlow()
+
     fun observeCachedConversations(): Flow<List<ConversationEntity>> =
         database.conversationDao().observeConversations()
 
@@ -200,6 +220,15 @@ class ConversationRepository(
         if (existing != null) {
             if (isFromPeer && !isActive) {
                 database.conversationDao().incrementUnreadCount(message.conversationId, message.createdAt)
+                _incomingNotifications.tryEmit(
+                    IncomingMessageNotification(
+                        conversationId = message.conversationId,
+                        peerId = existing.peerId,
+                        peerDisplayName = existing.peerDisplayName.ifEmpty { existing.peerUsername },
+                        createdAt = message.createdAt,
+                        isNewConversation = false
+                    )
+                )
             } else {
                 database.conversationDao().updateUpdatedAt(message.conversationId, message.createdAt)
             }
@@ -223,6 +252,18 @@ class ConversationRepository(
                             unreadCount = unread
                         )
                     )
+
+                    if (isFromPeer && !isActive) {
+                        _incomingNotifications.tryEmit(
+                            IncomingMessageNotification(
+                                conversationId = message.conversationId,
+                                peerId = peer.id,
+                                peerDisplayName = peer.displayName.ifEmpty { peer.username },
+                                createdAt = message.createdAt,
+                                isNewConversation = true
+                            )
+                        )
+                    }
                 }
                 else -> {
                     // Fallback to full fetch
@@ -234,6 +275,25 @@ class ConversationRepository(
 
     suspend fun clearUnread(conversationId: String) = withContext(Dispatchers.IO) {
         database.conversationDao().clearUnreadCount(conversationId)
+    }
+
+    /**
+     * Clears this conversation from the caller's own view: wipes local history and removes the
+     * list entry. The server records a per-user clearedAt rather than deleting anything shared,
+     * so the other participant's copy is unaffected. A later message for this conversation goes
+     * through the "unknown conversation" bootstrap path in [handleIncomingMessage] exactly as it
+     * would for a brand-new one, which is what brings it back into view.
+     */
+    suspend fun clearConversation(conversationId: String): NetworkResult<Unit> = withContext(Dispatchers.IO) {
+        when (val result = apiClient.clearConversation(conversationId)) {
+            is NetworkResult.Success -> {
+                database.messageDao().deleteConversationMessages(conversationId)
+                database.conversationDao().deleteConversation(conversationId)
+                NetworkResult.Success(Unit)
+            }
+            is NetworkResult.Error -> NetworkResult.Error(result.code, result.message, result.statusCode)
+            is NetworkResult.Loading -> NetworkResult.Loading
+        }
     }
 }
 
@@ -255,8 +315,17 @@ class CryptoRepository(
 
     suspend fun initializeIdentityKey(): NetworkResult<String> {
         return try {
-            if (!keyStoreManager.hasIdentityKey()) {
-                keyStoreManager.generateIdentityKeyPair()
+            // A transient KeyStore read failure must never be treated as "no key exists" — doing
+            // so would generate a replacement and silently destroy the real one, since
+            // AndroidKeyStore overwrites an existing alias without warning. Fail closed instead:
+            // surface the error and let the caller retry once the KeyStore is reachable again.
+            when (val presence = keyStoreManager.checkIdentityKeyPresence()) {
+                is IdentityKeyPresence.Absent -> keyStoreManager.generateIdentityKeyPair()
+                is IdentityKeyPresence.Unknown -> return NetworkResult.Error(
+                    "KEYSTORE_UNAVAILABLE",
+                    "Could not reach the secure key store: ${presence.cause.message}"
+                )
+                is IdentityKeyPresence.Present -> Unit
             }
 
             val publicKeyBase64 = keyStoreManager.getPublicKeyBase64()
@@ -370,7 +439,12 @@ class MessageRepository(
                 return@withContext NetworkResult.Error("KEY_UNAVAILABLE", "Recipient encryption key unavailable")
             }
             val recipientKeyId = peerKeyResult.data.first
-            val localKeyId = KeyStoreManager.generateKeyId()
+            // The stable hash of this device's actual identity key — not a fresh random id.
+            // A random value here corrupted the envelope's key-attribution metadata (every
+            // outgoing message claimed a different, made-up sender key) without affecting
+            // decryption itself, which derives its AES key from the real KeyStore key
+            // independently of this field.
+            val localKeyId = KeyStoreManager.deriveKeyId(cryptoRepository.getLocalPublicKeyBase64())
 
             val conversationKey = getConversationKey(conversationId, peerId)
 
@@ -479,6 +553,24 @@ class MessageRepository(
             MessageLocalState.SENT
         }
 
+        if (entity.deletedAt != null) {
+            return MessageUiModel(
+                localId = entity.localId,
+                serverMessageId = entity.serverMessageId,
+                clientTempId = entity.clientTempId,
+                conversationId = entity.conversationId,
+                senderId = entity.senderId,
+                isOutgoing = isOutgoing,
+                transientPlaintext = null,
+                decryptionState = DecryptionState.DECRYPTED,
+                localState = localState,
+                createdAt = entity.createdAt,
+                senderKeyId = entity.senderKeyId,
+                recipientKeyId = entity.recipientKeyId,
+                deletedAt = entity.deletedAt
+            )
+        }
+
         return try {
             val conversationKey = getConversationKey(conversationId, peerId)
             val envelope = EncryptedEnvelopeDto(
@@ -523,7 +615,11 @@ class MessageRepository(
                 isOutgoing = isOutgoing,
                 transientPlaintext = null,
                 decryptionState = DecryptionState.DECRYPTION_FAILED,
-                localState = MessageLocalState.FAILED,
+                // Whether decryption of the local ciphertext succeeds is independent of whether
+                // the message was actually delivered — this used to hardcode FAILED here,
+                // showing "Not delivered" on messages the server had already confirmed SENT
+                // purely because this device's key can no longer decrypt its own history.
+                localState = localState,
                 createdAt = entity.createdAt,
                 senderKeyId = entity.senderKeyId,
                 recipientKeyId = entity.recipientKeyId
@@ -542,5 +638,22 @@ class MessageRepository(
 
     suspend fun flushOfflineQueue() {
         syncCoordinator.flushOfflineQueue()
+    }
+
+    /**
+     * Delete for everyone — server enforces sender-only, so this simply surfaces that failure
+     * rather than re-checking senderId locally. Updates the local tombstone immediately on
+     * success; the WS `message.deleted` event (handled in [SyncCoordinator]) keeps every other
+     * open session in sync, including the peer's.
+     */
+    suspend fun deleteMessage(conversationId: String, messageId: String): NetworkResult<Unit> {
+        return when (val result = apiClient.deleteMessage(conversationId, messageId)) {
+            is NetworkResult.Success -> {
+                database.messageDao().markMessageDeleted(messageId, result.data.deletedAt)
+                NetworkResult.Success(Unit)
+            }
+            is NetworkResult.Error -> NetworkResult.Error(result.code, result.message, result.statusCode)
+            is NetworkResult.Loading -> NetworkResult.Loading
+        }
     }
 }

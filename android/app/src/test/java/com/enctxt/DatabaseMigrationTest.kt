@@ -55,4 +55,41 @@ class DatabaseMigrationTest {
         assertEquals("ALTER TABLE conversations ADD COLUMN lastKnownMessageId TEXT", executed[1])
         assertEquals("ALTER TABLE conversations ADD COLUMN unreadCount INTEGER NOT NULL DEFAULT 0", executed[2])
     }
+
+    @Test
+    fun testMigration3To4_AddsDeletedAtColumnSafely() {
+        val executed = mutableListOf<String>()
+        val db = createRecordingDatabase(executed)
+
+        EnctxtDatabase.MIGRATION_3_4.migrate(db)
+
+        assertEquals(1, executed.size)
+        assertEquals("ALTER TABLE encrypted_messages ADD COLUMN deletedAt TEXT", executed[0])
+    }
+
+    @Test
+    fun testMigration1To4_AddsAllColumnsSafely() {
+        val executed = mutableListOf<String>()
+        val db = createRecordingDatabase(executed)
+
+        EnctxtDatabase.MIGRATION_1_4.migrate(db)
+
+        assertEquals(4, executed.size)
+        assertEquals("ALTER TABLE conversations ADD COLUMN lastSyncedAt INTEGER NOT NULL DEFAULT 0", executed[0])
+        assertEquals("ALTER TABLE conversations ADD COLUMN lastKnownMessageId TEXT", executed[1])
+        assertEquals("ALTER TABLE conversations ADD COLUMN unreadCount INTEGER NOT NULL DEFAULT 0", executed[2])
+        assertEquals("ALTER TABLE encrypted_messages ADD COLUMN deletedAt TEXT", executed[3])
+    }
+
+    @Test
+    fun testMigration2To4_AddsRemainingColumnsSafely() {
+        val executed = mutableListOf<String>()
+        val db = createRecordingDatabase(executed)
+
+        EnctxtDatabase.MIGRATION_2_4.migrate(db)
+
+        assertEquals(2, executed.size)
+        assertEquals("ALTER TABLE conversations ADD COLUMN unreadCount INTEGER NOT NULL DEFAULT 0", executed[0])
+        assertEquals("ALTER TABLE encrypted_messages ADD COLUMN deletedAt TEXT", executed[1])
+    }
 }

@@ -1,6 +1,6 @@
 import React, { useEffect, useMemo, useState } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
-import { AlertTriangle, Eye, EyeOff, Info, Loader2 } from 'lucide-react';
+import { AlertTriangle, Eye, EyeOff, Info, Loader2, Shield, Trash2 } from 'lucide-react';
 import type { ConversationDetails } from '@enctxt/shared';
 import { useAuth } from '../auth/AuthContext';
 import { useConversationsContext } from '../hooks/ConversationsContext';
@@ -16,6 +16,7 @@ import { MessageComposer } from '../components/chat/MessageComposer';
 import { GestureRevealModal } from '../components/gesture/GestureRevealModal';
 import { ErrorBoundary } from '../components/ui/ErrorBoundary';
 import { ActionSheet, ActionSheetRow } from '../components/vade/ActionSheet';
+import { ConfirmDialog, type ConfirmRequest } from '../components/vade/ConfirmDialog';
 import { KeyChangedBanner } from '../components/vade/KeyChangedBanner';
 import { VadeButton } from '../components/vade/VadeButton';
 import { styleLabel } from '../components/vade/ProtectionStylePicker';
@@ -25,7 +26,7 @@ export const ConversationPage: React.FC = () => {
   const { conversationId } = useParams<{ conversationId: string }>();
   const navigate = useNavigate();
   const { user } = useAuth();
-  const { setActiveConversationId, markConversationRead } = useConversationsContext();
+  const { setActiveConversationId, markConversationRead, fetchConversations } = useConversationsContext();
 
   useEffect(() => {
     if (conversationId) {
@@ -44,6 +45,8 @@ export const ConversationPage: React.FC = () => {
   const [revealTargetId, setRevealTargetId] = useState<string | null>(null);
   const [actionsTargetId, setActionsTargetId] = useState<string | null>(null);
   const [detailsTargetId, setDetailsTargetId] = useState<string | null>(null);
+  const [isHeaderMenuOpen, setIsHeaderMenuOpen] = useState(false);
+  const [confirmRequest, setConfirmRequest] = useState<ConfirmRequest | null>(null);
 
   const {
     isRevealed,
@@ -71,6 +74,7 @@ export const ConversationPage: React.FC = () => {
     connectionStatus,
     sendMessage,
     retryMessage,
+    deleteMessage,
     loadOlderMessages,
   } = useMessages(conversationId, user?.id, otherParticipant?.id);
 
@@ -112,6 +116,24 @@ export const ConversationPage: React.FC = () => {
   }, [conversationId]);
 
   const securityHref = `/app/conversations/${conversationId}/security`;
+
+  const handleClearChat = () => {
+    if (!conversationId) return;
+    setConfirmRequest({
+      title: 'Clear this chat?',
+      body: 'This removes the message history from your view and takes it off your conversation list until a new message arrives. It has no effect on the other person\'s copy.',
+      cta: 'Clear chat',
+      onConfirm: async () => {
+        try {
+          await conversationService.clearConversation(conversationId);
+          await fetchConversations();
+          navigate('/app');
+        } catch {
+          // Non-fatal — the conversation stays visible; the user can retry from the menu.
+        }
+      },
+    });
+  };
 
   const actionsTarget = useMemo(
     () => messages.find((message) => message.id === actionsTargetId) ?? null,
@@ -158,7 +180,7 @@ export const ConversationPage: React.FC = () => {
           verificationState={verificationState}
           isSecurityLoading={isSecurityLoading}
           connectionStatus={connectionStatus}
-          onOpenSecurity={() => navigate(securityHref)}
+          onOpenMenu={() => setIsHeaderMenuOpen(true)}
           onBack={() => navigate('/app')}
         />
 
@@ -242,7 +264,53 @@ export const ConversationPage: React.FC = () => {
             setActionsTargetId(null);
           }}
         />
+        {actionsTarget && actionsTarget.senderId === user?.id && !actionsTarget.deletedAt && (
+          <ActionSheetRow
+            icon={<Trash2 width={19} height={19} strokeWidth={2.75} aria-hidden="true" />}
+            label="Delete for everyone"
+            note="Removes it from this chat on both sides"
+            tone="warn"
+            onClick={() => {
+              const targetId = actionsTarget.id;
+              setActionsTargetId(null);
+              setConfirmRequest({
+                title: 'Delete this message?',
+                body: 'This removes it for everyone in the conversation. This cannot be undone.',
+                cta: 'Delete',
+                onConfirm: () => deleteMessage(targetId),
+              });
+            }}
+          />
+        )}
       </ActionSheet>
+
+      <ActionSheet
+        isOpen={isHeaderMenuOpen}
+        onClose={() => setIsHeaderMenuOpen(false)}
+        kicker="Conversation options"
+      >
+        <ActionSheetRow
+          icon={<Shield width={19} height={19} strokeWidth={2.75} aria-hidden="true" />}
+          label="Contact security"
+          note="Verify identity, view safety number"
+          onClick={() => {
+            setIsHeaderMenuOpen(false);
+            navigate(securityHref);
+          }}
+        />
+        <ActionSheetRow
+          icon={<Trash2 width={19} height={19} strokeWidth={2.75} aria-hidden="true" />}
+          label="Clear chat"
+          note="Remove history from your view only"
+          tone="warn"
+          onClick={() => {
+            setIsHeaderMenuOpen(false);
+            handleClearChat();
+          }}
+        />
+      </ActionSheet>
+
+      <ConfirmDialog request={confirmRequest} onCancel={() => setConfirmRequest(null)} />
 
       <ActionSheet
         isOpen={Boolean(detailsTarget)}

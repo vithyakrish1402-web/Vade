@@ -109,6 +109,10 @@ model ConversationMember {
   conversationId String
   userId         String
   joinedAt       DateTime     @default(now())
+  // Set when this member clears the chat — hides it from their own list and message history
+  // up to this point in time, without affecting the other participant's copy at all. A later
+  // message bumping the conversation's updatedAt past this timestamp brings it back into view.
+  clearedAt      DateTime?
   conversation   Conversation @relation(fields: [conversationId], references: [id], onDelete: Cascade)
   user           User         @relation(fields: [userId], references: [id], onDelete: Cascade)
 
@@ -133,6 +137,10 @@ model Message {
   aad            String?      @db.Text
   createdAt      DateTime     @default(now())
   updatedAt      DateTime     @updatedAt
+  // Delete-for-everyone, sender-only. Ciphertext/nonce are wiped at delete time — this is a
+  // real deletion of content, not just a UI hide — leaving only enough metadata for clients to
+  // render a "message deleted" placeholder in place.
+  deletedAt      DateTime?
   conversation   Conversation @relation(fields: [conversationId], references: [id], onDelete: Cascade)
   sender         User         @relation(fields: [senderId], references: [id], onDelete: Cascade)
 

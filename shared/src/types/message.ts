@@ -16,6 +16,9 @@ export interface MessageItem {
   createdAt: string;
   updatedAt: string;
   status?: MessageStatus;
+  /** Set once the sender deletes this message for everyone. `ciphertext`/`nonce` are wiped
+   *  server-side at that point — clients must render a placeholder rather than attempt decryption. */
+  deletedAt?: string | null;
 }
 
 export interface SendMessageInput {
@@ -31,4 +34,9 @@ export interface MessageListResponse {
   messages: MessageItem[];
   nextCursor?: string;
   hasMore: boolean;
+}
+
+export interface DeleteMessageResponse {
+  success: boolean;
+  deletedAt: string;
 }

@@ -48,13 +48,30 @@ class SyncCoordinator(
         // Global listener for WebSocket real-time events
         scope.launch {
             wsClient.serverEvents.collect { event ->
-                if (event.type == "message.created" && event.message != null) {
-                    val uid = currentUserId ?: database.sessionDao().getActiveSession()?.userId ?: ""
-                    conversationRepository?.handleIncomingMessage(
-                        message = event.message,
-                        currentUserId = uid,
-                        activeConversationId = activeConversationId
-                    )
+                when {
+                    event.type == "message.created" && event.message != null -> {
+                        val uid = currentUserId ?: database.sessionDao().getActiveSession()?.userId ?: ""
+                        conversationRepository?.handleIncomingMessage(
+                            message = event.message,
+                            currentUserId = uid,
+                            activeConversationId = activeConversationId
+                        )
+                    }
+
+                    // Delete-for-everyone — arrives for both the sender's and recipient's other
+                    // sessions, so this must apply even when this device was the one that
+                    // issued the delete via REST (it'll just be a harmless no-op re-tombstone).
+                    event.type == "message.deleted" && event.messageId != null && event.deletedAt != null -> {
+                        database.messageDao().markMessageDeleted(event.messageId, event.deletedAt)
+                    }
+
+                    // Per-user only — arrives solely on this account's OTHER sessions when one
+                    // of them clears a chat, so this device's copy is only ever asked to catch
+                    // up, never told to clear something the peer did.
+                    event.type == "conversation.cleared" && event.conversationId != null -> {
+                        database.messageDao().deleteConversationMessages(event.conversationId)
+                        database.conversationDao().deleteConversation(event.conversationId)
+                    }
                 }
             }
         }

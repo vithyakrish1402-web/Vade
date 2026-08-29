@@ -8,11 +8,16 @@ import com.enctxt.core.network.ApiClient
 import com.enctxt.core.network.ConnectivityMonitor
 import com.enctxt.core.network.NetworkConfig
 import com.enctxt.core.network.WebSocketClient
+import com.enctxt.core.notifications.SystemNotifier
 import com.enctxt.core.security.EncryptedSessionCookieStore
 import com.enctxt.core.security.KeyStoreManager
 import com.enctxt.core.storage.EnctxtDatabase
 import com.enctxt.core.sync.SyncCoordinator
 import com.enctxt.data.repository.*
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.SupervisorJob
+import kotlinx.coroutines.launch
 
 class EnctxtApplication : Application() {
 
@@ -61,6 +66,13 @@ class EnctxtApplication : Application() {
     lateinit var sessionInitializer: SessionInitializer
         private set
 
+    lateinit var systemNotifier: SystemNotifier
+        private set
+
+    /** Lives for the whole process, independent of any Activity/Compose lifecycle, so a
+     *  notification still posts while the app is backgrounded (not just foregrounded). */
+    private val appScope = CoroutineScope(Dispatchers.Default + SupervisorJob())
+
     override fun onCreate() {
         super.onCreate()
 
@@ -73,7 +85,10 @@ class EnctxtApplication : Application() {
             .addMigrations(
                 EnctxtDatabase.MIGRATION_1_2,
                 EnctxtDatabase.MIGRATION_2_3,
-                EnctxtDatabase.MIGRATION_1_3
+                EnctxtDatabase.MIGRATION_1_3,
+                EnctxtDatabase.MIGRATION_3_4,
+                EnctxtDatabase.MIGRATION_1_4,
+                EnctxtDatabase.MIGRATION_2_4
             )
             .fallbackToDestructiveMigration()
             .fallbackToDestructiveMigrationOnDowngrade()
@@ -104,6 +119,13 @@ class EnctxtApplication : Application() {
         syncCoordinator.conversationRepository = conversationRepository
         cryptoRepository = CryptoRepository(apiClient, keyStoreManager)
         messageRepository = MessageRepository(apiClient, database, cryptoRepository, syncCoordinator)
+
+        // 4b. OS-level notifications — the system-tray counterpart to the in-app banner, fed by
+        // the same event stream so a message still surfaces while the app is backgrounded.
+        systemNotifier = SystemNotifier(applicationContext)
+        appScope.launch {
+            conversationRepository.incomingNotifications.collect { systemNotifier.notify(it) }
+        }
 
         // 5. Session Initializer
         sessionInitializer = SessionInitializer(

@@ -3,11 +3,13 @@ import type {
   ConversationDetails,
   CreateConversationInput,
   ConversationListResponse,
+  ClearConversationResponse,
   ParticipantSummary,
 } from '@enctxt/shared';
 import { getPrismaClient } from './db.js';
 import { AppError } from '../utils/errors.js';
 import { logger } from '../utils/logger.js';
+import { wsService } from './websocket.js';
 
 export class ConversationService {
   /**
@@ -173,7 +175,6 @@ export class ConversationService {
     limit = 20
   ): Promise<ConversationListResponse> {
     const prisma = getPrismaClient();
-    const skip = (page - 1) * limit;
 
     const whereClause = {
       members: {
@@ -183,30 +184,38 @@ export class ConversationService {
       },
     };
 
-    const [conversations, total] = await Promise.all([
-      prisma.conversation.findMany({
-        where: whereClause,
-        include: {
-          members: {
-            include: {
-              user: {
-                select: { id: true, username: true, displayName: true },
-              },
+    // Filtering on "has there been activity since I cleared this?" compares two columns from
+    // different tables (this member's clearedAt vs. the conversation's updatedAt), which isn't
+    // expressible in a single Prisma where clause — so it's applied in application code below,
+    // after fetching every conversation this user belongs to. Fine at this app's scale; would
+    // need a raw query if conversation counts ever grew large enough for that to matter.
+    const allConversations = await prisma.conversation.findMany({
+      where: whereClause,
+      include: {
+        members: {
+          include: {
+            user: {
+              select: { id: true, username: true, displayName: true },
             },
           },
         },
-        orderBy: {
-          updatedAt: 'desc',
-        },
-        skip,
-        take: limit,
-      }),
-      prisma.conversation.count({
-        where: whereClause,
-      }),
-    ]);
+      },
+      orderBy: {
+        updatedAt: 'desc',
+      },
+    });
 
-    const formatted: SingleConversationItem[] = conversations.map((conv) => {
+    const visible = allConversations.filter((conv) => {
+      const myMembership = conv.members.find((m) => m.userId === authenticatedUserId);
+      if (!myMembership?.clearedAt) return true;
+      return conv.updatedAt > myMembership.clearedAt;
+    });
+
+    const total = visible.length;
+    const skip = (page - 1) * limit;
+    const pageSlice = visible.slice(skip, skip + limit);
+
+    const formatted: SingleConversationItem[] = pageSlice.map((conv) => {
       const otherMember = conv.members.find((m) => m.userId !== authenticatedUserId);
       const participant: ParticipantSummary = otherMember?.user
         ? {
@@ -234,6 +243,56 @@ export class ConversationService {
       page,
       limit,
     };
+  }
+
+  /**
+   * Clears this conversation from the caller's own view: hides its message history and list
+   * entry up to now, without touching the other participant's copy. A later message pushes
+   * the conversation's updatedAt past this timestamp, bringing it back into view.
+   */
+  static async clearConversation(
+    conversationId: string,
+    userId: string
+  ): Promise<ClearConversationResponse> {
+    const prisma = getPrismaClient();
+
+    const membership = await prisma.conversationMember.findUnique({
+      where: {
+        conversationId_userId: { conversationId, userId },
+      },
+    });
+
+    if (!membership) {
+      const conversation = await prisma.conversation.findUnique({
+        where: { id: conversationId },
+        select: { id: true },
+      });
+      if (!conversation) {
+        throw AppError.notFound('Conversation not found');
+      }
+      throw AppError.forbidden('You are not authorized for this conversation');
+    }
+
+    const clearedAt = new Date();
+    await prisma.conversationMember.update({
+      where: { id: membership.id },
+      data: { clearedAt },
+    });
+
+    logger.info('Conversation cleared', {
+      event: 'conversation_cleared',
+      conversationId,
+      userId,
+    });
+
+    // Per-user only — this must never reach the other participant's session.
+    wsService.sendToUser(userId, {
+      type: 'conversation.cleared',
+      conversationId,
+      clearedAt: clearedAt.toISOString(),
+    });
+
+    return { success: true, clearedAt: clearedAt.toISOString() };
   }
 
   /**

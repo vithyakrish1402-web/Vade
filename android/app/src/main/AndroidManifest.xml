@@ -3,6 +3,10 @@
 
     <uses-permission android:name="android.permission.INTERNET" />
     <uses-permission android:name="android.permission.ACCESS_NETWORK_STATE" />
+    <!-- Required on API 33+ to post notifications at all; without it the system silently
+         disables notifications for the app, which is what showed up as "blocked" in Settings
+         before this was requested at runtime. -->
+    <uses-permission android:name="android.permission.POST_NOTIFICATIONS" />
 
     <application
         android:name=".EnctxtApplication"

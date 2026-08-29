@@ -3,6 +3,7 @@ import type {
   CreateConversationResponse,
   ConversationListResponse,
   ConversationDetailResponse,
+  ClearConversationResponse,
 } from '@enctxt/shared';
 import { api } from './api';
 
@@ -21,5 +22,10 @@ export const conversationService = {
 
   getConversation: (id: string): Promise<ConversationDetailResponse> => {
     return api.get<ConversationDetailResponse>(`/conversations/${id}`);
+  },
+
+  /** Clears this conversation from the caller's own view only — the other participant is unaffected. */
+  clearConversation: (id: string): Promise<ClearConversationResponse> => {
+    return api.post<ClearConversationResponse>(`/conversations/${id}/clear`, {});
   },
 };

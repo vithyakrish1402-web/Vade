@@ -10,7 +10,8 @@ export interface ChatHeaderProps {
   verificationState: ContactVerificationState;
   isSecurityLoading: boolean;
   connectionStatus: WSConnectionStatus;
-  onOpenSecurity: () => void;
+  /** Opens the header's action sheet (contact security, clear chat). */
+  onOpenMenu: () => void;
   onBack: () => void;
 }
 
@@ -26,7 +27,7 @@ export const ChatHeader: React.FC<ChatHeaderProps> = ({
   verificationState,
   isSecurityLoading,
   connectionStatus,
-  onOpenSecurity,
+  onOpenMenu,
   onBack,
 }) => {
   const state: SecurityState =
@@ -52,8 +53,8 @@ export const ChatHeader: React.FC<ChatHeaderProps> = ({
 
       <button
         type="button"
-        onClick={onOpenSecurity}
-        aria-label="Contact security"
+        onClick={onOpenMenu}
+        aria-label="Conversation options"
         className="flex h-11 w-11 shrink-0 cursor-pointer items-center justify-center rounded-full text-text hover:bg-surface focus:outline-none focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent"
       >
         <MoreVertical width={19} height={19} strokeWidth={2.75} aria-hidden="true" />

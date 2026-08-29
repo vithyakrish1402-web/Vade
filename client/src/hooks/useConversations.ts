@@ -212,6 +212,10 @@ export function useConversations(currentUserId?: string) {
           }
           return prev;
         });
+      } else if (event.type === 'conversation.cleared') {
+        // Only ever arrives for the acting user's own other sessions/devices — clearing on
+        // one tab should hide it here too without waiting for a refetch.
+        setConversations((prev) => prev.filter((c) => c.id !== event.conversationId));
       }
     });
 
