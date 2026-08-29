@@ -370,11 +370,32 @@ class MessageViewModel(
         }
     }
 
-    override fun onCleared() {
-        super.onCleared()
+    /**
+     * Must be called whenever the conversation screen leaves composition (navigating back,
+     * backgrounding included) — not just when this ViewModel itself is destroyed.
+     *
+     * This ViewModel is constructed with a plain `MessageViewModel(...)` call in MainActivity
+     * rather than through ViewModelProvider, so it's never owned by a ViewModelStore and
+     * [onCleared] is consequently never invoked by the framework. Before this was called
+     * explicitly from the screen's own DisposableEffect, [syncCoordinator.activeConversationId]
+     * stayed set to whatever conversation was last opened for the rest of the app process's
+     * life — silently marking every later message from that contact as "already being viewed"
+     * and suppressing its unread count and notification even while fully backgrounded.
+     */
+    fun leaveConversation() {
         syncCoordinator.activeConversationId = null
         activeConversationId?.let { wsClient.unsubscribe(it) }
+        messageObserverJob?.cancel()
+        wsListenerJob?.cancel()
+        activeConversationId = null
+        activePeerId = null
+        currentUserId = null
         _messages.value = emptyList() // Flush transient decrypted plaintext from memory
+    }
+
+    override fun onCleared() {
+        super.onCleared()
+        leaveConversation()
     }
 }
 
@@ -1274,6 +1295,17 @@ fun ConversationScreen(
 
     LaunchedEffect(conversationId) {
         viewModel.initializeConversation(conversationId, peerId, currentUserId)
+    }
+
+    // viewModel.onCleared() never fires — see the doc comment on leaveConversation() — so this
+    // is the only reliable signal that the user actually left this conversation (back button,
+    // backgrounding via home, or navigating to a different chat). Without it,
+    // syncCoordinator.activeConversationId stays pinned to whichever conversation was opened
+    // last for the rest of the process's life, silently treating every later message from that
+    // contact as already being viewed — no unread badge, no notification — even fully
+    // backgrounded.
+    DisposableEffect(conversationId) {
+        onDispose { viewModel.leaveConversation() }
     }
 
     LaunchedEffect(messages.size) {
