@@ -1,0 +1,1104 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet data-dc-atomics><link rel="stylesheet" href="_ds/organic-4c4c1d32-eead-48fa-bfaf-8328c780b53c/styles.css"><script src="_ds/organic-4c4c1d32-eead-48fa-bfaf-8328c780b53c/_ds_bundle.js"></script><style>
+body{margin:0;background:#d9d8d5;font-family:"Figtree",system-ui,sans-serif}
+h1,h2,h3,h4,h5,h6{font-family:"Figtree",system-ui,sans-serif}
+a{color:#0b7a53}a:hover{color:#095f41}
+.v-light{--v-bg:#fcfcfb;--v-surface:#f2f2f0;--v-surface-2:#e9e9e6;--v-text:#141516;--v-muted:#77776f;--v-faint:#a3a39c;--v-line:rgba(20,21,22,.10);--v-accent:#0f9d6b;--v-accent-ink:#0b7a53;--v-accent-tint:#e8f5ef;--v-warn:#9a5b12;--v-warn-tint:#fbf1e2;--v-out-bg:#141516;--v-out-fg:#fcfcfb;--v-shadow:0 10px 30px rgba(20,21,22,.10)}
+.v-dark{--v-bg:#0d0e0f;--v-surface:#191b1c;--v-surface-2:#232627;--v-text:#f4f4f2;--v-muted:#8d8f8c;--v-faint:#6b6d6a;--v-line:rgba(244,244,242,.12);--v-accent:#2ec38a;--v-accent-ink:#4fd8a3;--v-accent-tint:rgba(46,195,138,.12);--v-warn:#e0a95f;--v-warn-tint:rgba(224,169,95,.13);--v-out-bg:#f4f4f2;--v-out-fg:#0d0e0f;--v-shadow:0 10px 30px rgba(0,0,0,.45)}
+@keyframes v-rise{from{opacity:0;transform:translateY(6px)}to{opacity:1;transform:none}}
+@keyframes v-sheet{from{transform:translateY(100%)}to{transform:none}}
+@keyframes v-fade{from{opacity:0}to{opacity:1}}
+@media (prefers-reduced-motion:reduce){*{animation-duration:.01ms!important;transition-duration:.01ms!important}}
+</style></helmet>
+
+<div style="min-height:100vh;display:flex;align-items:flex-start;justify-content:center;padding:28px 20px 40px">
+<div class="{{ themeClass }}" style="width:390px;height:844px;background:var(--v-bg);color:var(--v-text);border-radius:44px;overflow:hidden;position:relative;box-shadow:var(--v-shadow);display:flex;flex-direction:column;-webkit-font-smoothing:antialiased">
+
+  <div style="height:50px;display:flex;align-items:flex-end;justify-content:space-between;padding:0 28px 4px;font-size:13px;font-weight:600;flex:none">
+    <span>9:41</span>
+    <span style="display:flex;align-items:center;gap:6px;opacity:.8">
+      <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.75" stroke-linecap="round" stroke-linejoin="round"><path d="M12 20h.01"/><path d="M2 8.82a15 15 0 0 1 20 0"/><path d="M5 12.859a10 10 0 0 1 14 0"/><path d="M8.5 16.429a5 5 0 0 1 7 0"/></svg>
+      <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.75" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="7" width="16" height="10" rx="2"/><line x1="22" y1="11" x2="22" y2="13"/></svg>
+    </span>
+  </div>
+
+  <sc-if value="{{ onList }}" hint-placeholder-val="{{ true }}">
+  <div data-screen-label="Messages" style="flex:1;display:flex;flex-direction:column;min-height:0">
+    <div style="padding:14px 22px 10px;flex:none">
+      <h1 style="margin:0;font-family:'Figtree',system-ui,sans-serif;font-weight:700;font-size:30px;letter-spacing:-.026em;line-height:1.1">Vade</h1>
+    </div>
+    <div style="padding:4px 22px 14px;flex:none">
+      <div onClick="{{ goSearch }}" style="display:flex;align-items:center;gap:9px;height:42px;padding:0 15px;border-radius:999px;background:var(--v-surface);color:var(--v-muted);font-size:14.5px;cursor:pointer">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.75" stroke-linecap="round" stroke-linejoin="round" style="flex:none"><path d="m21 21-4.34-4.34"/><circle cx="11" cy="11" r="8"/></svg>
+        <span>Search</span>
+      </div>
+    </div>
+    <sc-if value="{{ conn.showBanner }}" hint-placeholder-val="{{ true }}">
+      <div style="margin:0 22px 12px;padding:10px 14px;border-radius:16px;background:var(--v-surface);display:flex;align-items:center;gap:9px;flex:none">
+        <span style="width:7px;height:7px;border-radius:50%;background:{{ conn.dot }};flex:none"></span>
+        <span style="font-size:12.5px;color:var(--v-muted);line-height:1.4">{{ conn.message }}</span>
+      </div>
+    </sc-if>
+    <sc-if value="{{ listEmpty }}" hint-placeholder-val="{{ true }}">
+      <div style="flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:14px;padding:0 44px 96px;text-align:center">
+        <div style="width:64px;height:64px;border-radius:50%;background:var(--v-surface);display:flex;align-items:center;justify-content:center;color:var(--v-faint)">
+          <svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.75" stroke-linecap="round" stroke-linejoin="round"><path d="M12 20a8 8 0 1 0-8-8 8 8 0 0 0 .9 3.7L4 20l4.3-.9A8 8 0 0 0 12 20"/></svg>
+        </div>
+        <div>
+          <div style="font-size:17px;font-weight:700;letter-spacing:-.016em">No conversations yet</div>
+          <p style="margin:6px 0 0;font-size:14px;line-height:1.5;color:var(--v-muted)">Find someone by username to start a protected conversation.</p>
+        </div>
+        <div onClick="{{ goSearch }}" style="height:44px;padding:0 22px;border-radius:999px;background:var(--v-out-bg);color:var(--v-out-fg);display:flex;align-items:center;font-size:14.5px;font-weight:700;cursor:pointer;margin-top:2px">Find someone</div>
+      </div>
+    </sc-if>
+    <div style="flex:1;overflow-y:auto;padding:0 0 96px">
+      <sc-for list="{{ conversations }}" as="c" hint-placeholder-count="5">
+        <div style="position:relative;overflow:hidden;border-bottom:1px solid var(--v-line)">
+        <div style="position:absolute;inset:0;display:flex;align-items:center;justify-content:flex-end;padding:0 24px;gap:20px;background:var(--v-surface-2);color:var(--v-muted)">
+          <span style="display:flex;flex-direction:column;align-items:center;gap:3px;font-size:10.5px;font-weight:700">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.75" stroke-linecap="round" stroke-linejoin="round"><rect width="20" height="5" x="2" y="3" rx="1"/><path d="M4 8v11a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8"/><path d="M10 12h4"/></svg>
+            Archive
+          </span>
+          <span style="display:flex;flex-direction:column;align-items:center;gap:3px;font-size:10.5px;font-weight:700">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.75" stroke-linecap="round" stroke-linejoin="round"><path d="M10.268 21a2 2 0 0 0 3.464 0"/><path d="M17 17H4a1 1 0 0 1-.74-1.673C4.59 13.956 6 12.499 6 8a6 6 0 0 1 .258-1.742"/><path d="m2 2 20 20"/><path d="M8.668 3.01A6 6 0 0 1 18 8c0 2.687.77 4.653 1.707 6.05"/></svg>
+            Mute
+          </span>
+        </div>
+        <div onClick="{{ c.open }}" onPointerDown="{{ c.swipeDown }}" onPointerMove="{{ c.swipeMove }}" onPointerUp="{{ c.swipeUp }}" onPointerLeave="{{ c.swipeUp }}" style="position:relative;display:flex;align-items:center;gap:13px;padding:13px 22px;cursor:pointer;background:var(--v-bg);transform:translateX({{ c.offset }});transition:{{ c.transition }};touch-action:pan-y">
+          <div style="width:44px;height:44px;border-radius:50%;background:var(--v-surface);display:flex;align-items:center;justify-content:center;font-size:15px;font-weight:700;color:var(--v-text);flex:none">{{ c.initial }}</div>
+          <div style="flex:1;min-width:0;display:flex;flex-direction:column;gap:3px">
+            <div style="display:flex;align-items:center;gap:6px">
+              <span style="font-size:15.5px;font-weight:700;letter-spacing:-.012em">{{ c.name }}</span>
+              <sc-if value="{{ c.verified }}" hint-placeholder-val="{{ true }}"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="var(--v-accent)" stroke-width="2.75" stroke-linecap="round" stroke-linejoin="round" style="flex:none"><path d="M20 6 9 17l-5-5"/></svg></sc-if>
+              <sc-if value="{{ c.flagged }}" hint-placeholder-val="{{ true }}"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="var(--v-warn)" stroke-width="2.75" stroke-linecap="round" stroke-linejoin="round" style="flex:none"><path d="m21.73 18-8-14a2 2 0 0 0-3.48 0l-8 14A2 2 0 0 0 4 21h16a2 2 0 0 0 1.73-3"/><path d="M12 9v4"/><path d="M12 17h.01"/></svg></sc-if>
+            </div>
+            <div style="display:flex;align-items:center;gap:6px;color:var(--v-muted);font-size:13px">
+              <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.75" stroke-linecap="round" stroke-linejoin="round" style="flex:none"><rect width="18" height="11" x="3" y="11" rx="2" ry="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>
+              <span>Protected conversation</span>
+            </div>
+          </div>
+          <div style="display:flex;flex-direction:column;align-items:flex-end;gap:6px;flex:none">
+            <span style="font-size:12px;color:var(--v-faint)">{{ c.time }}</span>
+            <sc-if value="{{ c.unread }}" hint-placeholder-val="{{ true }}"><span style="min-width:20px;height:20px;padding:0 6px;border-radius:999px;background:var(--v-accent);color:#fff;font-size:11.5px;font-weight:700;display:flex;align-items:center;justify-content:center">{{ c.unread }}</span></sc-if>
+          </div>
+        </div>
+        </div>
+      </sc-for>
+    </div>
+    <div onClick="{{ goSearch }}" style="position:absolute;right:22px;bottom:104px;width:54px;height:54px;border-radius:50%;background:var(--v-out-bg);color:var(--v-out-fg);display:flex;align-items:center;justify-content:center;cursor:pointer;box-shadow:0 8px 20px rgba(0,0,0,.22)" aria-label="New conversation">
+      <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.75" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h14"/><path d="M12 5v14"/></svg>
+    </div>
+  </div>
+  </sc-if>
+
+  <sc-if value="{{ onSearch }}" hint-placeholder-val="{{ true }}">
+  <div data-screen-label="Search" style="flex:1;display:flex;flex-direction:column;min-height:0;animation:v-fade .18s ease">
+    <div style="padding:10px 18px 12px;display:flex;align-items:center;gap:10px;flex:none">
+      <div onClick="{{ goList }}" style="width:36px;height:36px;border-radius:50%;display:flex;align-items:center;justify-content:center;cursor:pointer;flex:none">
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.75" stroke-linecap="round" stroke-linejoin="round"><path d="m15 18-6-6 6-6"/></svg>
+      </div>
+      <div style="flex:1;display:flex;align-items:center;gap:9px;height:42px;padding:0 15px;border-radius:999px;background:var(--v-surface);font-size:14.5px;border:1px solid var(--v-accent)">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="var(--v-muted)" stroke-width="2.75" stroke-linecap="round" stroke-linejoin="round" style="flex:none"><path d="m21 21-4.34-4.34"/><circle cx="11" cy="11" r="8"/></svg>
+        <span>mir</span><span style="width:1.5px;height:17px;background:var(--v-accent)"></span>
+      </div>
+    </div>
+    <div style="padding:6px 22px 4px;font-size:11px;letter-spacing:.09em;text-transform:uppercase;color:var(--v-faint);flex:none">Matches</div>
+    <div style="flex:1;overflow-y:auto;padding-bottom:96px">
+      <sc-for list="{{ searchResults }}" as="r" hint-placeholder-count="3">
+        <div onClick="{{ r.open }}" style="display:flex;align-items:center;gap:13px;padding:12px 22px;cursor:pointer">
+          <div style="width:40px;height:40px;border-radius:50%;background:var(--v-surface);display:flex;align-items:center;justify-content:center;font-size:14px;font-weight:700;flex:none">{{ r.initial }}</div>
+          <div style="flex:1;min-width:0">
+            <div style="display:flex;align-items:center;gap:6px"><span style="font-size:15px;font-weight:700;letter-spacing:-.012em">{{ r.name }}</span><sc-if value="{{ r.verified }}" hint-placeholder-val="{{ true }}"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="var(--v-accent)" stroke-width="2.75" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6 9 17l-5-5"/></svg></sc-if></div>
+            <div style="font-size:13px;color:var(--v-muted)">{{ r.handle }}</div>
+          </div>
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="var(--v-faint)" stroke-width="2.75" stroke-linecap="round" stroke-linejoin="round" style="flex:none"><path d="m9 18 6-6-6-6"/></svg>
+        </div>
+      </sc-for>
+      <sc-if value="{{ searchEmpty }}" hint-placeholder-val="{{ true }}">
+        <div style="padding:40px 44px;display:flex;flex-direction:column;align-items:center;gap:10px;text-align:center">
+          <div style="width:56px;height:56px;border-radius:50%;background:var(--v-surface);display:flex;align-items:center;justify-content:center;color:var(--v-faint)">
+            <svg width="23" height="23" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.75" stroke-linecap="round" stroke-linejoin="round"><path d="m21 21-4.34-4.34"/><circle cx="11" cy="11" r="8"/></svg>
+          </div>
+          <div style="font-size:16px;font-weight:700;letter-spacing:-.014em">No one found</div>
+          <p style="margin:0;font-size:13.5px;line-height:1.5;color:var(--v-muted)">Check the spelling, or ask them for their exact username.</p>
+        </div>
+      </sc-if>
+      <div style="display:flex;align-items:center;gap:6px;padding:16px 22px 0;font-size:11.5px;color:var(--v-faint);line-height:1.5">
+        <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.75" stroke-linecap="round" stroke-linejoin="round" style="flex:none"><rect width="18" height="11" x="3" y="11" rx="2" ry="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>
+        <span>Search covers names and usernames only.</span>
+      </div>
+    </div>
+  </div>
+  </sc-if>
+
+  <sc-if value="{{ onProfile }}" hint-placeholder-val="{{ true }}">
+  <div data-screen-label="Profile" style="flex:1;display:flex;flex-direction:column;min-height:0;overflow-y:auto;animation:v-fade .18s ease">
+    <div style="padding:14px 22px 18px">
+      <h1 style="margin:0;font-weight:700;font-size:30px;letter-spacing:-.026em;line-height:1.1">Profile</h1>
+    </div>
+    <div style="padding:0 22px 96px;display:flex;flex-direction:column;gap:26px">
+      <div style="display:flex;align-items:center;gap:14px">
+        <div style="width:56px;height:56px;border-radius:50%;background:var(--v-surface);display:flex;align-items:center;justify-content:center;font-size:19px;font-weight:700;flex:none">A</div>
+        <div><div style="font-size:17px;font-weight:700;letter-spacing:-.014em">Ada Lovelace</div><div style="font-size:13.5px;color:var(--v-muted)">@ada</div></div>
+      </div>
+
+      <div>
+        <div style="font-size:11px;letter-spacing:.09em;text-transform:uppercase;color:var(--v-faint);padding:0 0 8px 2px">Privacy &amp; security</div>
+        <div style="border-radius:20px;background:var(--v-surface);overflow:hidden">
+          <div onClick="{{ openStyleSheet }}" style="display:flex;align-items:center;gap:12px;padding:14px 16px;cursor:pointer;border-bottom:1px solid var(--v-line)">
+            <span style="flex:1;font-size:15px">Protection style</span>
+            <span style="font-size:14px;color:var(--v-muted)">{{ styleLabel }}</span>
+            <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="var(--v-faint)" stroke-width="2.75" stroke-linecap="round" stroke-linejoin="round"><path d="m9 18 6-6-6-6"/></svg>
+          </div>
+          <div style="display:flex;align-items:center;gap:12px;padding:14px 16px;border-bottom:1px solid var(--v-line)">
+            <span style="flex:1;font-size:15px">Gesture reveal</span>
+            <span style="font-size:14px;color:var(--v-muted)">3 strokes · 6s</span>
+            <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="var(--v-faint)" stroke-width="2.75" stroke-linecap="round" stroke-linejoin="round"><path d="m9 18 6-6-6-6"/></svg>
+          </div>
+          <div onClick="{{ goSecurity }}" style="display:flex;align-items:center;gap:12px;padding:14px 16px;border-bottom:1px solid var(--v-line);cursor:pointer">
+            <span style="flex:1;font-size:15px">Contact verification</span>
+            <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="var(--v-faint)" stroke-width="2.75" stroke-linecap="round" stroke-linejoin="round"><path d="m9 18 6-6-6-6"/></svg>
+          </div>
+          <div onClick="{{ goDevices }}" style="display:flex;align-items:center;gap:12px;padding:14px 16px;cursor:pointer">
+            <span style="flex:1;font-size:15px">Devices</span>
+            <span style="font-size:14px;color:var(--v-muted)">3</span>
+            <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="var(--v-faint)" stroke-width="2.75" stroke-linecap="round" stroke-linejoin="round"><path d="m9 18 6-6-6-6"/></svg>
+          </div>
+        </div>
+      </div>
+
+      <div>
+        <div style="font-size:11px;letter-spacing:.09em;text-transform:uppercase;color:var(--v-faint);padding:0 0 8px 2px">Appearance</div>
+        <div style="border-radius:20px;background:var(--v-surface);overflow:hidden">
+          <div onClick="{{ toggleTheme }}" style="display:flex;align-items:center;gap:12px;padding:14px 16px;cursor:pointer">
+            <span style="flex:1;font-size:15px">Theme</span>
+            <span style="font-size:14px;color:var(--v-muted)">{{ themeLabel }}</span>
+            <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="var(--v-faint)" stroke-width="2.75" stroke-linecap="round" stroke-linejoin="round"><path d="m9 18 6-6-6-6"/></svg>
+          </div>
+        </div>
+      </div>
+
+      <div>
+        <div style="font-size:11px;letter-spacing:.09em;text-transform:uppercase;color:var(--v-faint);padding:0 0 8px 2px">About</div>
+        <div style="border-radius:20px;background:var(--v-surface);overflow:hidden">
+          <div style="display:flex;align-items:center;padding:14px 16px;border-bottom:1px solid var(--v-line)"><span style="flex:1;font-size:15px">Version</span><span style="font-size:14px;color:var(--v-muted)">1.0.0</span></div>
+          <div style="display:flex;align-items:center;padding:14px 16px"><span style="flex:1;font-size:15px">Security information</span><svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="var(--v-faint)" stroke-width="2.75" stroke-linecap="round" stroke-linejoin="round"><path d="m9 18 6-6-6-6"/></svg></div>
+        </div>
+      </div>
+
+      <div onClick="{{ goWelcome }}" style="align-self:flex-start;font-size:14.5px;color:var(--v-muted);cursor:pointer;padding:2px">Sign out</div>
+    </div>
+  </div>
+  </sc-if>
+
+  <sc-if value="{{ onSecurity }}" hint-placeholder-val="{{ true }}">
+  <div data-screen-label="Contact security" style="flex:1;display:flex;flex-direction:column;min-height:0;overflow-y:auto;animation:v-fade .18s ease">
+    <div style="padding:6px 16px 10px;display:flex;align-items:center;gap:10px;flex:none">
+      <div onClick="{{ goBack }}" style="width:34px;height:34px;border-radius:50%;display:flex;align-items:center;justify-content:center;cursor:pointer;flex:none">
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.75" stroke-linecap="round" stroke-linejoin="round"><path d="m15 18-6-6 6-6"/></svg>
+      </div>
+      <span style="font-size:15.5px;font-weight:700;letter-spacing:-.014em">Contact security</span>
+    </div>
+    <div style="padding:12px 22px 40px;display:flex;flex-direction:column;gap:26px">
+      <div style="display:flex;flex-direction:column;align-items:center;gap:12px;padding:8px 0 0">
+        <div style="width:64px;height:64px;border-radius:50%;background:var(--v-surface);display:flex;align-items:center;justify-content:center;font-size:22px;font-weight:700">{{ peer.initial }}</div>
+        <div style="text-align:center">
+          <div style="font-size:19px;font-weight:700;letter-spacing:-.018em">{{ peer.name }}</div>
+          <div style="font-size:13.5px;color:var(--v-muted);margin-top:1px">{{ peer.handle }}</div>
+        </div>
+        <div style="display:flex;align-items:center;gap:6px;height:30px;padding:0 13px;border-radius:999px;background:{{ security.chipBg }};color:{{ security.color }};font-size:13px;font-weight:700">
+          <sc-if value="{{ security.isVerified }}" hint-placeholder-val="{{ true }}"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.75" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6 9 17l-5-5"/></svg></sc-if>
+          <sc-if value="{{ security.isWarning }}" hint-placeholder-val="{{ true }}"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.75" stroke-linecap="round" stroke-linejoin="round"><path d="m21.73 18-8-14a2 2 0 0 0-3.48 0l-8 14A2 2 0 0 0 4 21h16a2 2 0 0 0 1.73-3"/><path d="M12 9v4"/><path d="M12 17h.01"/></svg></sc-if>
+          <span>{{ security.label }}</span>
+        </div>
+      </div>
+
+      <div>
+        <div style="font-size:11px;letter-spacing:.09em;text-transform:uppercase;color:var(--v-faint);padding:0 0 8px 2px">Safety number</div>
+        <div style="border-radius:20px;background:var(--v-surface);padding:20px;display:flex;flex-direction:column">
+          <div style="font-family:ui-monospace,SFMono-Regular,Menlo,monospace;font-size:19px;letter-spacing:.06em;line-height:1.7;text-align:center;width:100%">
+            <div>21645 15967</div>
+            <div>12315 36440</div>
+          </div>
+        </div>
+        <p style="margin:10px 2px 0;font-size:12.5px;line-height:1.55;color:var(--v-muted)">Read these numbers aloud with {{ peer.name }} in person or over a channel you already trust. If they match, no one is between you.</p>
+      </div>
+
+      <div>
+        <div style="font-size:11px;letter-spacing:.09em;text-transform:uppercase;color:var(--v-faint);padding:0 0 8px 2px">Fingerprint</div>
+        <div style="border-radius:20px;background:var(--v-surface);padding:16px 18px;font-family:ui-monospace,SFMono-Regular,Menlo,monospace;font-size:13.5px;letter-spacing:.04em;line-height:1.8;color:var(--v-text)">
+          <div>9CAC FDE8 1994 6579</div>
+          <div>DD94 EE76 B00E 14F4</div>
+        </div>
+      </div>
+
+      <div style="display:flex;flex-direction:column;gap:10px">
+        <sc-if value="{{ security.isVerified }}" hint-placeholder-val="{{ true }}">
+          <div onClick="{{ askRemoveVerification }}" style="height:48px;border-radius:999px;border:1px solid var(--v-line);display:flex;align-items:center;justify-content:center;font-size:15px;font-weight:700;color:var(--v-muted);cursor:pointer">Remove verification</div>
+        </sc-if>
+        <sc-if value="{{ security.notVerified }}" hint-placeholder-val="{{ true }}">
+          <div onClick="{{ askVerify }}" style="height:48px;border-radius:999px;background:var(--v-out-bg);color:var(--v-out-fg);display:flex;align-items:center;justify-content:center;font-size:15px;font-weight:700;cursor:pointer">Mark as verified</div>
+        </sc-if>
+        <div style="font-size:12px;color:var(--v-faint);text-align:center;line-height:1.5">Protocol v1 · ECDH P-256 · AES-256-GCM</div>
+      </div>
+    </div>
+  </div>
+  </sc-if>
+
+  <sc-if value="{{ onDevices }}" hint-placeholder-val="{{ true }}">
+  <div data-screen-label="Devices" style="flex:1;display:flex;flex-direction:column;min-height:0;overflow-y:auto;animation:v-fade .18s ease">
+    <div style="padding:6px 16px 10px;display:flex;align-items:center;gap:10px;flex:none">
+      <div onClick="{{ goProfile }}" style="width:34px;height:34px;border-radius:50%;display:flex;align-items:center;justify-content:center;cursor:pointer;flex:none">
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.75" stroke-linecap="round" stroke-linejoin="round"><path d="m15 18-6-6 6-6"/></svg>
+      </div>
+      <span style="font-size:15.5px;font-weight:700;letter-spacing:-.014em">Your devices</span>
+    </div>
+    <div style="padding:12px 22px 40px;display:flex;flex-direction:column;gap:14px">
+      <sc-for list="{{ devices }}" as="d" hint-placeholder-count="3">
+        <div style="border-radius:20px;background:var(--v-surface);padding:16px 18px;display:flex;align-items:center;gap:14px">
+          <div style="width:40px;height:40px;border-radius:50%;background:var(--v-bg);display:flex;align-items:center;justify-content:center;flex:none">
+            <sc-if value="{{ d.isPhone }}" hint-placeholder-val="{{ true }}"><svg width="19" height="19" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.75" stroke-linecap="round" stroke-linejoin="round"><rect width="14" height="20" x="5" y="2" rx="2" ry="2"/><path d="M12 18h.01"/></svg></sc-if>
+            <sc-if value="{{ d.isDesktop }}" hint-placeholder-val="{{ true }}"><svg width="19" height="19" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.75" stroke-linecap="round" stroke-linejoin="round"><rect width="18" height="12" x="3" y="4" rx="2"/><path d="M7 20h10"/><path d="M9 16v4"/><path d="M15 16v4"/></svg></sc-if>
+            <sc-if value="{{ d.isTablet }}" hint-placeholder-val="{{ true }}"><svg width="19" height="19" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.75" stroke-linecap="round" stroke-linejoin="round"><rect width="16" height="20" x="4" y="2" rx="2"/><path d="M12 18h.01"/></svg></sc-if>
+          </div>
+          <div style="flex:1;min-width:0">
+            <div style="display:flex;align-items:center;gap:7px">
+              <span style="font-size:15px;font-weight:700;letter-spacing:-.012em">{{ d.name }}</span>
+              <sc-if value="{{ d.isThis }}" hint-placeholder-val="{{ true }}"><span style="height:20px;padding:0 8px;border-radius:999px;background:var(--v-accent-tint);color:var(--v-accent-ink);font-size:11px;font-weight:700;display:flex;align-items:center">This device</span></sc-if>
+            </div>
+            <div style="font-size:13px;color:var(--v-muted);margin-top:1px">{{ d.meta }}</div>
+          </div>
+          <sc-if value="{{ d.revocable }}" hint-placeholder-val="{{ true }}">
+            <div onClick="{{ d.askRevoke }}" style="height:32px;padding:0 13px;border-radius:999px;border:1px solid var(--v-line);display:flex;align-items:center;font-size:13px;font-weight:700;color:var(--v-muted);cursor:pointer;flex:none">Revoke</div>
+          </sc-if>
+        </div>
+      </sc-for>
+      <p style="margin:6px 2px 0;font-size:12.5px;line-height:1.55;color:var(--v-muted)">Vade shows only what a device is and when it was last active. Keys, gestures and message content never appear here.</p>
+    </div>
+  </div>
+  </sc-if>
+
+  <sc-if value="{{ onWelcome }}" hint-placeholder-val="{{ true }}">
+  <div data-screen-label="Welcome" style="flex:1;display:flex;flex-direction:column;min-height:0;padding:0 30px;animation:v-fade .2s ease">
+    <div style="flex:1;display:flex;flex-direction:column;justify-content:center;gap:36px;padding-bottom:30px">
+      <div>
+        <h1 style="margin:0;font-size:38px;font-weight:700;letter-spacing:-.032em;line-height:1.05">Vade</h1>
+        <p style="margin:12px 0 0;font-size:17px;line-height:1.5;color:var(--v-muted)">Messages nobody can read<br>over your shoulder.</p>
+      </div>
+      <div style="display:flex;flex-direction:column;gap:18px">
+        <sc-for list="{{ welcomePoints }}" as="p" hint-placeholder-count="3">
+          <div style="display:flex;gap:13px;align-items:flex-start">
+            <span style="width:34px;height:34px;border-radius:50%;background:var(--v-surface);display:flex;align-items:center;justify-content:center;flex:none;color:var(--v-accent-ink)">
+              <sc-if value="{{ p.isLock }}" hint-placeholder-val="{{ true }}"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.75" stroke-linecap="round" stroke-linejoin="round"><rect width="18" height="11" x="3" y="11" rx="2" ry="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg></sc-if>
+              <sc-if value="{{ p.isGesture }}" hint-placeholder-val="{{ true }}"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.75" stroke-linecap="round" stroke-linejoin="round"><path d="M4 20 20 4"/><circle cx="4" cy="20" r="2"/><circle cx="20" cy="4" r="2"/></svg></sc-if>
+              <sc-if value="{{ p.isKey }}" hint-placeholder-val="{{ true }}"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.75" stroke-linecap="round" stroke-linejoin="round"><path d="m15.5 7.5 2.3 2.3a1 1 0 0 0 1.4 0l2.1-2.1a1 1 0 0 0 0-1.4L19 4"/><path d="m21 2-9.6 9.6"/><circle cx="7.5" cy="15.5" r="5.5"/></svg></sc-if>
+            </span>
+            <span style="min-width:0">
+              <span style="display:block;font-size:15.5px;font-weight:700;letter-spacing:-.012em">{{ p.title }}</span>
+              <span style="display:block;font-size:13.5px;line-height:1.5;color:var(--v-muted);margin-top:2px">{{ p.body }}</span>
+            </span>
+          </div>
+        </sc-for>
+      </div>
+      <div style="display:flex;flex-direction:column;gap:12px">
+        <div onClick="{{ goRegister }}" style="height:52px;border-radius:999px;background:var(--v-out-bg);color:var(--v-out-fg);display:flex;align-items:center;justify-content:center;font-size:15.5px;font-weight:700;cursor:pointer">Get started</div>
+        <div onClick="{{ goLogin }}" style="align-self:center;font-size:14.5px;color:var(--v-muted);cursor:pointer;padding:6px">I already have an account</div>
+      </div>
+    </div>
+  </div>
+  </sc-if>
+
+  <sc-if value="{{ onEnroll }}" hint-placeholder-val="{{ true }}">
+  <div data-screen-label="Gesture enrollment" style="flex:1;display:flex;flex-direction:column;min-height:0;animation:v-fade .2s ease">
+    <div style="padding:6px 16px 0;display:flex;align-items:center;gap:10px;flex:none">
+      <div onClick="{{ enrollBack }}" style="width:34px;height:34px;border-radius:50%;display:flex;align-items:center;justify-content:center;cursor:pointer;flex:none">
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.75" stroke-linecap="round" stroke-linejoin="round"><path d="m15 18-6-6 6-6"/></svg>
+      </div>
+      <div style="flex:1;height:3px;border-radius:999px;background:var(--v-line);overflow:hidden">
+        <div style="height:3px;border-radius:999px;background:var(--v-accent);width:{{ enroll.progress }};transition:width .2s ease"></div>
+      </div>
+      <span style="font-size:12px;color:var(--v-faint);flex:none">{{ enroll.stepLabel }}</span>
+    </div>
+
+    <div style="flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:22px;padding:0 30px 30px">
+      <div style="text-align:center">
+        <h1 style="margin:0;font-size:24px;font-weight:700;letter-spacing:-.022em;line-height:1.2">{{ enroll.title }}</h1>
+        <p style="margin:9px 0 0;font-size:14.5px;line-height:1.55;color:var(--v-muted);max-width:290px">{{ enroll.body }}</p>
+      </div>
+
+      <sc-if value="{{ enroll.showPad }}" hint-placeholder-val="{{ true }}">
+        <div onPointerDown="{{ enrollDown }}" onPointerMove="{{ enrollMove }}" onPointerUp="{{ enrollUp }}" onPointerLeave="{{ enrollUp }}" style="width:280px;height:280px;border-radius:34px;background:var(--v-surface);border:1.5px solid {{ enroll.padBorder }};position:relative;touch-action:none;cursor:crosshair">
+          <svg viewBox="0 0 280 280" width="280" height="280" style="position:absolute;inset:0;pointer-events:none">
+            <circle cx="70" cy="70" r="4" fill="var(--v-faint)"/><circle cx="140" cy="70" r="4" fill="var(--v-faint)"/><circle cx="210" cy="70" r="4" fill="var(--v-faint)"/>
+            <circle cx="70" cy="140" r="4" fill="var(--v-faint)"/><circle cx="140" cy="140" r="4" fill="var(--v-faint)"/><circle cx="210" cy="140" r="4" fill="var(--v-faint)"/>
+            <circle cx="70" cy="210" r="4" fill="var(--v-faint)"/><circle cx="140" cy="210" r="4" fill="var(--v-faint)"/><circle cx="210" cy="210" r="4" fill="var(--v-faint)"/>
+            <polyline points="{{ enroll.ghost }}" fill="none" stroke="var(--v-line)" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"/>
+            <polyline points="{{ enroll.points }}" fill="none" stroke="{{ enroll.strokeColor }}" stroke-width="3.5" stroke-linecap="round" stroke-linejoin="round"/>
+          </svg>
+        </div>
+        <div style="display:flex;align-items:center;gap:9px">
+          <sc-for list="{{ enroll.pips }}" as="p" hint-placeholder-count="3">
+            <span style="width:{{ p.w }};height:7px;border-radius:999px;background:{{ p.bg }};transition:width .18s ease,background .18s ease"></span>
+          </sc-for>
+        </div>
+        <div style="min-height:20px;font-size:13px;color:{{ enroll.feedbackColor }};text-align:center;max-width:290px;line-height:1.45">{{ enroll.feedback }}</div>
+      </sc-if>
+
+      <sc-if value="{{ enroll.showDone }}" hint-placeholder-val="{{ true }}">
+        <div style="width:88px;height:88px;border-radius:50%;background:var(--v-accent-tint);display:flex;align-items:center;justify-content:center;color:var(--v-accent-ink)">
+          <svg width="38" height="38" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.75" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6 9 17l-5-5"/></svg>
+        </div>
+        <div style="width:100%;border-radius:20px;background:var(--v-surface);padding:16px 18px;display:flex;flex-direction:column;gap:11px">
+          <sc-for list="{{ enroll.summary }}" as="s" hint-placeholder-count="3">
+            <div style="display:flex;align-items:baseline;justify-content:space-between;gap:12px;font-size:13.5px">
+              <span style="color:var(--v-muted)">{{ s.k }}</span>
+              <span style="font-weight:700">{{ s.v }}</span>
+            </div>
+          </sc-for>
+        </div>
+      </sc-if>
+
+      <sc-if value="{{ enroll.showStyle }}" hint-placeholder-val="{{ true }}">
+        <div style="width:100%;display:flex;flex-direction:column;gap:9px">
+          <sc-for list="{{ styleOptions }}" as="o" hint-placeholder-count="3">
+            <div onClick="{{ o.pick }}" style="padding:14px 15px;border-radius:20px;background:var(--v-surface);border:1.5px solid {{ o.border }};cursor:pointer;display:flex;gap:12px;align-items:flex-start">
+              <span style="width:18px;height:18px;border-radius:50%;border:1.5px solid {{ o.dotBorder }};background:{{ o.dotFill }};box-shadow:{{ o.dotInner }};flex:none;margin-top:2px"></span>
+              <span style="min-width:0;flex:1">
+                <span style="display:block;font-size:15px;font-weight:700;letter-spacing:-.012em">{{ o.label }}</span>
+                <span style="display:block;font-size:12.5px;color:var(--v-muted);line-height:1.45;margin-top:1px">{{ o.description }}</span>
+                <span style="display:block;font-size:13.5px;margin-top:8px;letter-spacing:.02em;opacity:.85">{{ o.preview }}</span>
+              </span>
+            </div>
+          </sc-for>
+        </div>
+      </sc-if>
+    </div>
+
+    <div style="flex:none;padding:0 30px 26px;display:flex;flex-direction:column;gap:10px">
+      <sc-if value="{{ enroll.showPrimary }}" hint-placeholder-val="{{ true }}">
+        <div onClick="{{ enroll.primary }}" style="height:52px;border-radius:999px;background:var(--v-out-bg);color:var(--v-out-fg);display:flex;align-items:center;justify-content:center;font-size:15.5px;font-weight:700;cursor:pointer">{{ enroll.primaryLabel }}</div>
+      </sc-if>
+      <sc-if value="{{ enroll.showSecondary }}" hint-placeholder-val="{{ true }}">
+        <div onClick="{{ enroll.secondary }}" style="align-self:center;font-size:14px;color:var(--v-muted);cursor:pointer;padding:4px 10px">{{ enroll.secondaryLabel }}</div>
+      </sc-if>
+    </div>
+  </div>
+  </sc-if>
+
+  <sc-if value="{{ onLogin }}" hint-placeholder-val="{{ true }}">
+  <div data-screen-label="Login" style="flex:1;display:flex;flex-direction:column;min-height:0;padding:0 30px;animation:v-fade .2s ease">
+    <div style="flex:1;display:flex;flex-direction:column;justify-content:center;gap:34px;padding-bottom:40px">
+      <div>
+        <h1 style="margin:0;font-size:38px;font-weight:700;letter-spacing:-.032em;line-height:1.05">Vade</h1>
+        <p style="margin:10px 0 0;font-size:16px;line-height:1.5;color:var(--v-muted)">Private messaging,<br>redesigned.</p>
+      </div>
+      <div style="display:flex;flex-direction:column;gap:12px">
+        <div style="height:52px;border-radius:999px;background:var(--v-surface);display:flex;align-items:center;padding:0 20px;font-size:15px;color:var(--v-muted)">Username</div>
+        <div style="height:52px;border-radius:999px;background:var(--v-surface);display:flex;align-items:center;justify-content:space-between;padding:0 20px;font-size:15px;color:var(--v-muted)">
+          <span>Password</span>
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.75" stroke-linecap="round" stroke-linejoin="round"><path d="M2.062 12.348a1 1 0 0 1 0-.696 10.75 10.75 0 0 1 19.876 0 1 1 0 0 1 0 .696 10.75 10.75 0 0 1-19.876 0"/><circle cx="12" cy="12" r="3"/></svg>
+        </div>
+        <div onClick="{{ goList }}" style="height:52px;border-radius:999px;background:var(--v-out-bg);color:var(--v-out-fg);display:flex;align-items:center;justify-content:center;font-size:15.5px;font-weight:700;cursor:pointer;margin-top:6px">Continue</div>
+      </div>
+      <div onClick="{{ goRegister }}" style="align-self:center;font-size:14.5px;color:var(--v-accent-ink);cursor:pointer;font-weight:700">Create account</div>
+    </div>
+  </div>
+  </sc-if>
+
+  <sc-if value="{{ onRegister }}" hint-placeholder-val="{{ true }}">
+  <div data-screen-label="Register" style="flex:1;display:flex;flex-direction:column;min-height:0;padding:0 30px;animation:v-fade .2s ease">
+    <div style="padding:6px 0 0">
+      <div onClick="{{ goLogin }}" style="width:34px;height:34px;border-radius:50%;margin-left:-8px;display:flex;align-items:center;justify-content:center;cursor:pointer">
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.75" stroke-linecap="round" stroke-linejoin="round"><path d="m15 18-6-6 6-6"/></svg>
+      </div>
+    </div>
+    <div style="flex:1;display:flex;flex-direction:column;justify-content:center;gap:30px;padding-bottom:40px">
+      <div>
+        <h1 style="margin:0;font-size:32px;font-weight:700;letter-spacing:-.03em;line-height:1.08">Create account</h1>
+        <p style="margin:10px 0 0;font-size:15px;line-height:1.5;color:var(--v-muted)">Your keys are generated on this device and never leave it.</p>
+      </div>
+      <div style="display:flex;flex-direction:column;gap:12px">
+        <div style="height:52px;border-radius:999px;background:var(--v-surface);display:flex;align-items:center;padding:0 20px;font-size:15px;color:var(--v-muted)">Display name</div>
+        <div style="height:52px;border-radius:999px;background:var(--v-surface);display:flex;align-items:center;padding:0 20px;font-size:15px;color:var(--v-muted)">Username</div>
+        <div style="height:52px;border-radius:999px;background:var(--v-surface);display:flex;align-items:center;padding:0 20px;font-size:15px;color:var(--v-muted)">Password</div>
+        <div onClick="{{ goEnroll }}" style="height:52px;border-radius:999px;background:var(--v-out-bg);color:var(--v-out-fg);display:flex;align-items:center;justify-content:center;font-size:15.5px;font-weight:700;cursor:pointer;margin-top:6px">Create account</div>
+      </div>
+    </div>
+  </div>
+  </sc-if>
+
+  <sc-if value="{{ confirmOpen }}" hint-placeholder-val="{{ true }}">
+  <div style="position:absolute;inset:0;background:rgba(10,11,12,.42);display:flex;align-items:center;justify-content:center;padding:30px;animation:v-fade .16s ease">
+    <div style="width:100%;background:var(--v-bg);border-radius:26px;padding:22px;display:flex;flex-direction:column;gap:8px;box-shadow:0 20px 50px rgba(0,0,0,.3)">
+      <div style="font-size:18px;font-weight:700;letter-spacing:-.018em">{{ confirm.title }}</div>
+      <div style="font-size:13.5px;line-height:1.55;color:var(--v-muted)">{{ confirm.body }}</div>
+      <div style="display:flex;gap:9px;margin-top:12px">
+        <div onClick="{{ closeConfirm }}" style="flex:1;height:44px;border-radius:999px;border:1px solid var(--v-line);display:flex;align-items:center;justify-content:center;font-size:14.5px;font-weight:700;color:var(--v-muted);cursor:pointer">Cancel</div>
+        <div onClick="{{ confirm.act }}" style="flex:1;height:44px;border-radius:999px;background:var(--v-out-bg);color:var(--v-out-fg);display:flex;align-items:center;justify-content:center;font-size:14.5px;font-weight:700;cursor:pointer">{{ confirm.cta }}</div>
+      </div>
+    </div>
+  </div>
+  </sc-if>
+
+  <sc-if value="{{ onChat }}" hint-placeholder-val="{{ true }}">
+  <div data-screen-label="Chat" style="flex:1;display:flex;flex-direction:column;min-height:0;animation:v-fade .2s ease">
+    <div style="padding:6px 16px 12px;display:flex;align-items:center;gap:11px;border-bottom:1px solid var(--v-line);flex:none">
+      <div onClick="{{ goList }}" style="width:34px;height:34px;border-radius:50%;display:flex;align-items:center;justify-content:center;cursor:pointer;flex:none">
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.75" stroke-linecap="round" stroke-linejoin="round"><path d="m15 18-6-6 6-6"/></svg>
+      </div>
+      <div style="width:38px;height:38px;border-radius:50%;background:var(--v-surface);display:flex;align-items:center;justify-content:center;font-size:14.5px;font-weight:700;flex:none">{{ peer.initial }}</div>
+      <div style="flex:1;min-width:0">
+        <div style="font-size:15.5px;font-weight:700;letter-spacing:-.014em;line-height:1.2">{{ peer.name }}</div>
+        <div style="display:flex;align-items:center;gap:5px;font-size:12px;margin-top:1px;color:{{ security.color }}">
+          <sc-if value="{{ security.isVerified }}" hint-placeholder-val="{{ true }}"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.75" stroke-linecap="round" stroke-linejoin="round" style="flex:none"><path d="M20 6 9 17l-5-5"/></svg></sc-if>
+          <sc-if value="{{ security.isWarning }}" hint-placeholder-val="{{ true }}"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.75" stroke-linecap="round" stroke-linejoin="round" style="flex:none"><path d="m21.73 18-8-14a2 2 0 0 0-3.48 0l-8 14A2 2 0 0 0 4 21h16a2 2 0 0 0 1.73-3"/><path d="M12 9v4"/><path d="M12 17h.01"/></svg></sc-if>
+          <span>{{ security.label }}</span>
+        </div>
+      </div>
+      <div onClick="{{ goSecurity }}" style="width:34px;height:34px;border-radius:50%;display:flex;align-items:center;justify-content:center;cursor:pointer;flex:none" aria-label="Contact security">
+        <svg width="19" height="19" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.75" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="1"/><circle cx="12" cy="5" r="1"/><circle cx="12" cy="19" r="1"/></svg>
+      </div>
+    </div>
+
+    <sc-if value="{{ security.isWarning }}" hint-placeholder-val="{{ true }}">
+    <div role="alert" style="flex:none;margin:12px 16px 0;padding:13px 15px;border-radius:18px;background:var(--v-warn-tint);border:1px solid var(--v-warn);display:flex;gap:11px;align-items:flex-start">
+      <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="var(--v-warn)" stroke-width="2.75" stroke-linecap="round" stroke-linejoin="round" style="flex:none;margin-top:1px"><path d="m21.73 18-8-14a2 2 0 0 0-3.48 0l-8 14A2 2 0 0 0 4 21h16a2 2 0 0 0 1.73-3"/><path d="M12 9v4"/><path d="M12 17h.01"/></svg>
+      <div style="min-width:0">
+        <div style="font-size:14px;font-weight:700;letter-spacing:-.01em">Safety number changed</div>
+        <div style="font-size:12.5px;color:var(--v-muted);line-height:1.45;margin-top:2px">Verify again before you reveal anything in this conversation.</div>
+        <div style="margin-top:9px;display:inline-flex;align-items:center;height:32px;padding:0 14px;border-radius:999px;background:var(--v-warn);color:var(--v-bg);font-size:13px;font-weight:700;cursor:pointer">Review safety number</div>
+      </div>
+    </div>
+    </sc-if>
+
+    <div style="flex:1;overflow-y:auto;padding:14px 16px 10px;display:flex;flex-direction:column;justify-content:flex-end;gap:7px">
+      <div style="align-self:center;font-size:11px;letter-spacing:.09em;text-transform:uppercase;color:var(--v-faint);padding-bottom:8px">Today</div>
+
+      <sc-for list="{{ messages }}" as="m" hint-placeholder-count="5">
+        <div style="display:flex;flex-direction:column;gap:6px;align-items:{{ m.align }};animation:v-rise .22s ease both">
+          <sc-if value="{{ m.showProtectedOut }}" hint-placeholder-val="{{ true }}">
+            <div onClick="{{ m.reveal }}" onContextMenu="{{ m.longPress }}" style="max-width:80%;background:var(--v-out-bg);color:var(--v-out-fg);padding:11px 15px;border-radius:22px 22px 7px 22px;font-size:15px;line-height:1.5;letter-spacing:.02em;cursor:pointer">{{ m.display }}</div>
+          </sc-if>
+          <sc-if value="{{ m.showProtectedIn }}" hint-placeholder-val="{{ true }}">
+            <div onClick="{{ m.reveal }}" onContextMenu="{{ m.longPress }}" style="max-width:80%;background:var(--v-surface);padding:11px 15px;border-radius:22px 22px 22px 7px;font-size:15px;line-height:1.5;letter-spacing:.02em;cursor:pointer">{{ m.display }}</div>
+          </sc-if>
+          <sc-if value="{{ m.showRevealedOut }}" hint-placeholder-val="{{ true }}">
+            <div onContextMenu="{{ m.longPress }}" style="max-width:80%;background:var(--v-out-bg);color:var(--v-out-fg);padding:11px 15px;border-radius:22px 22px 7px 22px;font-size:15px;line-height:1.5;outline:1.5px solid var(--v-accent);outline-offset:2px">{{ m.plain }}</div>
+          </sc-if>
+          <sc-if value="{{ m.showRevealedIn }}" hint-placeholder-val="{{ true }}">
+            <div onContextMenu="{{ m.longPress }}" style="max-width:80%;background:var(--v-surface);padding:11px 15px;border-radius:22px 22px 22px 7px;font-size:15px;line-height:1.5;outline:1.5px solid var(--v-accent);outline-offset:2px">{{ m.plain }}</div>
+          </sc-if>
+
+          <sc-if value="{{ m.isRevealed }}" hint-placeholder-val="{{ true }}">
+            <div style="display:flex;align-items:center;gap:9px;padding:0 4px">
+              <span style="width:26px;height:3px;border-radius:999px;background:var(--v-line);overflow:hidden;flex:none"><span style="display:block;height:3px;border-radius:999px;background:var(--v-accent);width:{{ m.countdownWidth }}"></span></span>
+              <span style="font-size:11.5px;font-weight:700;color:var(--v-accent-ink);letter-spacing:.01em">Revealed · {{ m.remaining }}s</span>
+              <span onClick="{{ m.hide }}" style="font-size:11.5px;color:var(--v-muted);cursor:pointer;text-decoration:underline;text-underline-offset:3px">Hide</span>
+            </div>
+          </sc-if>
+
+          <sc-if value="{{ m.showMeta }}" hint-placeholder-val="{{ true }}">
+            <div style="display:flex;align-items:center;gap:5px;padding:0 5px;font-size:11px;color:{{ m.metaColor }}">
+              <span>{{ m.metaLabel }}</span>
+              <sc-if value="{{ m.showReceipt }}" hint-placeholder-val="{{ true }}"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.75" stroke-linecap="round" stroke-linejoin="round"><path d="M18 6 7 17l-5-5"/><path d="m22 10-7.5 7.5L13 16"/></svg></sc-if>
+              <sc-if value="{{ m.isQueued }}" hint-placeholder-val="{{ true }}"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.75" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><path d="M12 6v6l4 2"/></svg></sc-if>
+              <sc-if value="{{ m.isFailed }}" hint-placeholder-val="{{ true }}"><span style="text-decoration:underline;text-underline-offset:3px;cursor:pointer;font-weight:700">Retry</span></sc-if>
+            </div>
+          </sc-if>
+        </div>
+      </sc-for>
+
+      <div style="align-self:center;display:flex;align-items:center;gap:6px;font-size:11.5px;color:var(--v-faint);padding:14px 0 6px">
+        <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.75" stroke-linecap="round" stroke-linejoin="round"><rect width="18" height="11" x="3" y="11" rx="2" ry="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>
+        <span>Tap a message to reveal it</span>
+      </div>
+    </div>
+
+    <div style="flex:none;padding:8px 16px 10px;display:flex;align-items:center;gap:9px;border-top:1px solid var(--v-line)">
+      <div style="width:40px;height:40px;border-radius:50%;background:var(--v-surface);display:flex;align-items:center;justify-content:center;cursor:pointer;flex:none" aria-label="Attach">
+        <svg width="19" height="19" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.75" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h14"/><path d="M12 5v14"/></svg>
+      </div>
+      <div style="flex:1;display:flex;align-items:center;height:44px;padding:0 16px;border-radius:999px;background:var(--v-surface);color:var(--v-muted);font-size:14.5px">{{ composerPlaceholder }}</div>
+      <div style="width:44px;height:44px;border-radius:50%;background:var(--v-out-bg);color:var(--v-out-fg);display:flex;align-items:center;justify-content:center;cursor:pointer;flex:none" aria-label="Send">
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.75" stroke-linecap="round" stroke-linejoin="round"><path d="M14.536 21.686a.5.5 0 0 0 .937-.024l6.5-19a.496.496 0 0 0-.635-.635l-19 6.5a.5.5 0 0 0-.024.937l7.93 3.18a2 2 0 0 1 1.112 1.11z"/><path d="m21.854 2.147-10.94 10.939"/></svg>
+      </div>
+    </div>
+  </div>
+  </sc-if>
+
+  <sc-if value="{{ showNav }}" hint-placeholder-val="{{ true }}">
+  <div style="position:absolute;left:0;right:0;bottom:0;height:82px;background:var(--v-bg);border-top:1px solid var(--v-line);display:flex;align-items:flex-start;padding:10px 34px 0">
+    <div onClick="{{ goList }}" style="flex:1;display:flex;flex-direction:column;align-items:center;gap:5px;cursor:pointer;color:{{ navMessagesColor }}">
+      <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.75" stroke-linecap="round" stroke-linejoin="round"><path d="M12 20a8 8 0 1 0-8-8 8 8 0 0 0 .9 3.7L4 20l4.3-.9A8 8 0 0 0 12 20"/></svg>
+      <span style="width:4px;height:4px;border-radius:50%;background:{{ navMessagesDot }}"></span>
+    </div>
+    <div onClick="{{ goSearch }}" style="flex:1;display:flex;flex-direction:column;align-items:center;gap:5px;cursor:pointer;color:{{ navSearchColor }}">
+      <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.75" stroke-linecap="round" stroke-linejoin="round"><path d="m21 21-4.34-4.34"/><circle cx="11" cy="11" r="8"/></svg>
+      <span style="width:4px;height:4px;border-radius:50%;background:{{ navSearchDot }}"></span>
+    </div>
+    <div onClick="{{ goProfile }}" style="flex:1;display:flex;flex-direction:column;align-items:center;gap:5px;cursor:pointer;color:{{ navProfileColor }}">
+      <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.75" stroke-linecap="round" stroke-linejoin="round"><path d="M19 21v-2a4 4 0 0 0-4-4H9a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
+      <span style="width:4px;height:4px;border-radius:50%;background:{{ navProfileDot }}"></span>
+    </div>
+  </div>
+  </sc-if>
+
+  <sc-if value="{{ styleSheetOpen }}" hint-placeholder-val="{{ true }}">
+  <div style="position:absolute;inset:0;background:rgba(10,11,12,.42);display:flex;align-items:flex-end;animation:v-fade .16s ease" onClick="{{ closeStyleSheet }}">
+    <div style="width:100%;background:var(--v-bg);border-radius:30px 30px 0 0;padding:22px 22px 30px;animation:v-sheet .24s cubic-bezier(.32,.72,0,1)">
+      <div style="width:38px;height:4px;border-radius:999px;background:var(--v-line);margin:0 auto 18px"></div>
+      <h2 style="margin:0 0 4px;font-weight:700;font-size:21px;letter-spacing:-.02em">Protection style</h2>
+      <p style="margin:0 0 18px;font-size:13px;color:var(--v-muted);line-height:1.5">How protected messages look on this device. Encryption is unchanged either way.</p>
+      <div style="display:flex;flex-direction:column;gap:9px">
+        <sc-for list="{{ styleOptions }}" as="o" hint-placeholder-count="3">
+          <div onClick="{{ o.pick }}" style="padding:14px 15px;border-radius:20px;background:var(--v-surface);border:1.5px solid {{ o.border }};cursor:pointer;display:flex;gap:12px;align-items:flex-start">
+            <span style="width:18px;height:18px;border-radius:50%;border:1.5px solid {{ o.dotBorder }};background:{{ o.dotFill }};box-shadow:{{ o.dotInner }};flex:none;margin-top:2px"></span>
+            <span style="min-width:0;flex:1">
+              <span style="display:block;font-size:15px;font-weight:700;letter-spacing:-.012em">{{ o.label }}</span>
+              <span style="display:block;font-size:12.5px;color:var(--v-muted);line-height:1.45;margin-top:1px">{{ o.description }}</span>
+              <span style="display:block;font-size:13.5px;color:var(--v-text);margin-top:8px;letter-spacing:.02em;opacity:.85">{{ o.preview }}</span>
+            </span>
+          </div>
+        </sc-for>
+      </div>
+    </div>
+  </div>
+  </sc-if>
+
+  <sc-if value="{{ actionsOpen }}" hint-placeholder-val="{{ true }}">
+  <div onClick="{{ closeActions }}" style="position:absolute;inset:0;background:rgba(10,11,12,.42);display:flex;align-items:flex-end;animation:v-fade .16s ease">
+    <div style="width:100%;background:var(--v-bg);border-radius:30px 30px 0 0;padding:20px 22px 30px;animation:v-sheet .24s cubic-bezier(.32,.72,0,1)">
+      <div style="width:38px;height:4px;border-radius:999px;background:var(--v-line);margin:0 auto 16px"></div>
+      <div style="font-size:12px;color:var(--v-faint);padding:0 2px 12px">Message actions</div>
+      <div style="display:flex;flex-direction:column">
+        <sc-for list="{{ messageActions }}" as="a" hint-placeholder-count="4">
+          <div onClick="{{ a.act }}" style="display:flex;align-items:center;gap:14px;padding:15px 4px;border-bottom:1px solid var(--v-line);cursor:pointer;color:{{ a.color }}">
+            <span style="width:22px;display:flex;align-items:center;justify-content:center;flex:none">
+              <sc-if value="{{ a.isReveal }}" hint-placeholder-val="{{ true }}"><svg width="19" height="19" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.75" stroke-linecap="round" stroke-linejoin="round"><path d="M2.062 12.348a1 1 0 0 1 0-.696 10.75 10.75 0 0 1 19.876 0 1 1 0 0 1 0 .696 10.75 10.75 0 0 1-19.876 0"/><circle cx="12" cy="12" r="3"/></svg></sc-if>
+              <sc-if value="{{ a.isReply }}" hint-placeholder-val="{{ true }}"><svg width="19" height="19" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.75" stroke-linecap="round" stroke-linejoin="round"><path d="M9 17l-5-5 5-5"/><path d="M4 12h11a5 5 0 0 1 5 5v2"/></svg></sc-if>
+              <sc-if value="{{ a.isInfo }}" hint-placeholder-val="{{ true }}"><svg width="19" height="19" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.75" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><path d="M12 16v-4"/><path d="M12 8h.01"/></svg></sc-if>
+              <sc-if value="{{ a.isDelete }}" hint-placeholder-val="{{ true }}"><svg width="19" height="19" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.75" stroke-linecap="round" stroke-linejoin="round"><path d="M3 6h18"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6"/><path d="M8 6V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/></svg></sc-if>
+            </span>
+            <span style="flex:1;min-width:0">
+              <span style="display:block;font-size:15.5px;font-weight:700;letter-spacing:-.012em">{{ a.label }}</span>
+              <sc-if value="{{ a.note }}" hint-placeholder-val="{{ true }}"><span style="display:block;font-size:12.5px;color:var(--v-muted);margin-top:1px;line-height:1.4">{{ a.note }}</span></sc-if>
+            </span>
+          </div>
+        </sc-for>
+      </div>
+      <div style="display:flex;align-items:center;gap:6px;padding:14px 4px 0;font-size:11.5px;color:var(--v-faint);line-height:1.45">
+        <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.75" stroke-linecap="round" stroke-linejoin="round" style="flex:none"><rect width="18" height="11" x="3" y="11" rx="2" ry="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>
+        <span>Copy and forward are unavailable for protected messages.</span>
+      </div>
+    </div>
+  </div>
+  </sc-if>
+
+  <sc-if value="{{ gestureOpen }}" hint-placeholder-val="{{ true }}">
+  <div style="position:absolute;inset:0;background:rgba(8,9,10,.66);display:flex;flex-direction:column;align-items:center;justify-content:center;gap:20px;padding:28px;animation:v-fade .18s ease;-webkit-backdrop-filter:blur(3px);backdrop-filter:blur(3px)">
+    <div style="text-align:center">
+      <div style="font-size:17px;font-weight:700;color:#fff;letter-spacing:-.014em">Draw to reveal</div>
+      <div style="font-size:13px;color:rgba(255,255,255,.62);margin-top:3px">{{ gestureHint }}</div>
+    </div>
+    <div style="display:flex;align-items:center;gap:9px">
+      <sc-for list="{{ gestureSteps }}" as="s" hint-placeholder-count="3">
+        <span style="width:{{ s.w }};height:7px;border-radius:999px;background:{{ s.bg }};transition:width .18s ease,background .18s ease"></span>
+      </sc-for>
+    </div>
+    <div onPointerDown="{{ padDown }}" onPointerMove="{{ padMove }}" onPointerUp="{{ padUp }}" onPointerLeave="{{ padUp }}" style="width:272px;height:272px;border-radius:34px;background:rgba(255,255,255,.06);border:1px solid rgba(255,255,255,.16);position:relative;touch-action:none;cursor:crosshair">
+      <svg viewBox="0 0 272 272" width="272" height="272" style="position:absolute;inset:0;pointer-events:none">
+        <circle cx="68" cy="68" r="4" fill="rgba(255,255,255,.28)"/><circle cx="136" cy="68" r="4" fill="rgba(255,255,255,.28)"/><circle cx="204" cy="68" r="4" fill="rgba(255,255,255,.28)"/>
+        <circle cx="68" cy="136" r="4" fill="rgba(255,255,255,.28)"/><circle cx="136" cy="136" r="4" fill="rgba(255,255,255,.28)"/><circle cx="204" cy="136" r="4" fill="rgba(255,255,255,.28)"/>
+        <circle cx="68" cy="204" r="4" fill="rgba(255,255,255,.28)"/><circle cx="136" cy="204" r="4" fill="rgba(255,255,255,.28)"/><circle cx="204" cy="204" r="4" fill="rgba(255,255,255,.28)"/>
+        <polyline points="{{ strokePoints }}" fill="none" stroke="{{ strokeColor }}" stroke-width="3.5" stroke-linecap="round" stroke-linejoin="round"/>
+      </svg>
+    </div>
+    <div style="min-height:20px;font-size:12.5px;color:{{ gestureFeedbackColor }};text-align:center">{{ gestureFeedback }}</div>
+    <div onClick="{{ closeGesture }}" style="font-size:13.5px;color:rgba(255,255,255,.7);cursor:pointer;padding:6px 14px">Cancel</div>
+  </div>
+  </sc-if>
+
+</div>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props="{&quot;$preview&quot;:{&quot;width&quot;:430,&quot;height&quot;:912},&quot;theme&quot;:{&quot;editor&quot;:&quot;enum&quot;,&quot;options&quot;:[&quot;light&quot;,&quot;dark&quot;],&quot;default&quot;:&quot;light&quot;,&quot;tsType&quot;:&quot;'light' | 'dark'&quot;,&quot;section&quot;:&quot;Appearance&quot;},&quot;protectionStyle&quot;:{&quot;editor&quot;:&quot;enum&quot;,&quot;options&quot;:[&quot;CLASSIC&quot;,&quot;ILLUSION&quot;,&quot;PATTERN&quot;],&quot;default&quot;:&quot;CLASSIC&quot;,&quot;tsType&quot;:&quot;'CLASSIC' | 'ILLUSION' | 'PATTERN'&quot;,&quot;section&quot;:&quot;Privacy&quot;},&quot;securityState&quot;:{&quot;editor&quot;:&quot;enum&quot;,&quot;options&quot;:[&quot;auto&quot;,&quot;verified&quot;,&quot;unverified&quot;,&quot;key_changed&quot;,&quot;offline&quot;],&quot;default&quot;:&quot;auto&quot;,&quot;tsType&quot;:&quot;string&quot;,&quot;section&quot;:&quot;Privacy&quot;},&quot;revealSeconds&quot;:{&quot;editor&quot;:&quot;int&quot;,&quot;default&quot;:6,&quot;min&quot;:3,&quot;max&quot;:15,&quot;unit&quot;:&quot;s&quot;,&quot;tsType&quot;:&quot;number&quot;,&quot;section&quot;:&quot;Privacy&quot;},&quot;connection&quot;:{&quot;editor&quot;:&quot;enum&quot;,&quot;options&quot;:[&quot;online&quot;,&quot;connecting&quot;,&quot;offline&quot;],&quot;default&quot;:&quot;online&quot;,&quot;tsType&quot;:&quot;'online' | 'connecting' | 'offline'&quot;,&quot;section&quot;:&quot;States&quot;},&quot;dataState&quot;:{&quot;editor&quot;:&quot;enum&quot;,&quot;options&quot;:[&quot;populated&quot;,&quot;empty&quot;],&quot;default&quot;:&quot;populated&quot;,&quot;tsType&quot;:&quot;'populated' | 'empty'&quot;,&quot;section&quot;:&quot;States&quot;}}">
+const HOMO = {A:'Λ',B:'Β',C:'С',D:'Δ',E:'Є',F:'Ϝ',H:'Н',I:'Ι',J:'Ј',K:'Κ',M:'Μ',N:'Ν',O:'Ø',P:'Ρ',S:'Ѕ',T:'Τ',X:'Χ',Y:'Υ',Z:'Ζ',a:'α',b:'в',c:'с',e:'є',i:'ι',j:'ј',k:'к',m:'м',n:'η',o:'σ',p:'ρ',r:'r',s:'ѕ',t:'т',u:'υ',v:'ν',x:'χ',y:'у'};
+
+const THREADS = {
+  mira: [
+    { id: 'm1', me: false, time: '09:58', plain: 'Hello, how are you?', illusion: 'Coffee tomorrow morning?', intent: 'greeting' },
+    { id: 'm2', me: true, time: '10:02', plain: 'See you at the station tonight', illusion: 'Sounds good, talk later', intent: 'logistics' },
+    { id: 'm3', me: false, time: '10:14', plain: 'Did you get the file?', illusion: 'Thanks for the update', intent: 'question' },
+    { id: 'm4', me: true, time: '10:31', plain: 'I will bring the documents at nine.', illusion: 'Almost done with the draft', intent: 'logistics' },
+    { id: 'm5', me: false, time: '10:42', plain: 'Confirmed.', illusion: 'Perfect.', intent: 'confirmation' },
+  ],
+  tomas: [
+    { id: 't1', me: false, time: '08:20', plain: 'Are we still meeting Thursday?', illusion: 'Happy birthday!', intent: 'question' },
+    { id: 't2', me: true, time: '08:44', plain: 'Yes, same place as before.', illusion: 'Thanks, I appreciate it', intent: 'confirmation' },
+    { id: 't3', me: false, time: '09:05', plain: 'Bring the second key.', illusion: 'See you soon', intent: 'logistics' },
+  ],
+};
+
+const PEERS = {
+  mira: { initial: 'M', name: 'Mira Sandoval', handle: '@mira', security: 'verified' },
+  tomas: { initial: 'T', name: 'Tomas Weill', handle: '@tomas', security: 'key_changed' },
+  kenji: { initial: 'K', name: 'Kenji Arai', handle: '@kenji', security: 'verified' },
+  dana: { initial: 'D', name: 'Dana Okonkwo', handle: '@dana', security: 'unverified' },
+};
+
+function protectWith(m, style) {
+  if (style === 'ILLUSION') return m.illusion;
+  if (style === 'PATTERN') {
+    const blocks = m.plain.split(/\s+/).map((w) => '▇'.repeat(Math.max(2, Math.min(w.replace(/\W/g, '').length, 7)))).join(' ');
+    return '◇ ' + m.intent + '   ' + blocks;
+  }
+  let out = '';
+  for (const ch of m.plain) out += HOMO[ch] || ch;
+  return out;
+}
+
+const STYLE_META = {
+  CLASSIC: { label: 'Classic', description: 'Look-alike letterforms keep the shape of the sentence.' },
+  ILLUSION: { label: 'Illusion', description: 'Reads as an ordinary, unrelated message.' },
+  PATTERN: { label: 'Pattern', description: 'No letterforms — rhythm and an intent marker only.' },
+};
+
+class Component extends DCLogic {
+  state = {
+    screen: 'list',
+    theme: null,
+    style: null,
+    peerId: 'mira',
+    threadId: 'mira',
+    revealed: {},
+    now: Date.now(),
+    gestureFor: null,
+    gestureStep: 0,
+    gestureFeedback: '',
+    gestureError: false,
+    drawing: false,
+    points: [],
+    styleSheetOpen: false,
+    prevScreen: 'list',
+    enrollStage: 'intro',
+    enrollAttempt: 0,
+    enrollRecorded: [],
+    enrollPoints: [],
+    enrollDrawing: false,
+    enrollFeedback: '',
+    enrollError: false,
+    verifiedOverride: {},
+    revoked: {},
+    confirm: null,
+    actionsFor: null,
+    swipeId: null,
+    swipeStartX: 0,
+    swipeDx: 0,
+    swipeOpen: {},
+  };
+
+  componentDidMount() {
+    this.timer = setInterval(() => {
+      if (Object.keys(this.state.revealed).length) this.setState({ now: Date.now() });
+    }, 250);
+  }
+  componentWillUnmount() { clearInterval(this.timer); }
+
+  get theme() { return this.state.theme || this.props.theme || 'light'; }
+  get style() { return this.state.style || this.props.protectionStyle || 'CLASSIC'; }
+  get revealMs() { return (this.props.revealSeconds ?? 6) * 1000; }
+
+  protectedText(m) { return protectWith(m, this.style); }
+
+  securityFor(peerId) {
+    const override = this.props.securityState;
+    const local = this.state.verifiedOverride[peerId];
+    const state = local || (override && override !== 'auto' ? override : PEERS[peerId].security);
+    const base = { chipBg: 'var(--v-surface)', notVerified: true };
+    if (state === 'verified') return { ...base, label: 'Verified', color: 'var(--v-accent-ink)', chipBg: 'var(--v-accent-tint)', isVerified: true, isWarning: false, notVerified: false };
+    if (state === 'key_changed') return { ...base, label: 'Key changed', color: 'var(--v-warn)', chipBg: 'var(--v-warn-tint)', isVerified: false, isWarning: true };
+    if (state === 'offline') return { ...base, label: 'Offline', color: 'var(--v-muted)', isVerified: false, isWarning: false };
+    return { ...base, label: 'Unverified', color: 'var(--v-muted)', isVerified: false, isWarning: false };
+  }
+
+  go(screen) { this.setState((s) => ({ prevScreen: s.screen, screen })); }
+
+  strokeLength(pts) {
+    let len = 0;
+    for (let i = 1; i < pts.length; i++) len += Math.hypot(pts[i][0] - pts[i - 1][0], pts[i][1] - pts[i - 1][1]);
+    return len;
+  }
+
+  strokeSignature(pts) {
+    if (pts.length < 2) return null;
+    const xs = pts.map((p) => p[0]);
+    const ys = pts.map((p) => p[1]);
+    const minX = Math.min(...xs), maxX = Math.max(...xs), minY = Math.min(...ys), maxY = Math.max(...ys);
+    const w = Math.max(maxX - minX, 1), h = Math.max(maxY - minY, 1);
+    const n = 12;
+    const out = [];
+    for (let i = 0; i < n; i++) {
+      const p = pts[Math.round((i / (n - 1)) * (pts.length - 1))];
+      out.push([(p[0] - minX) / w, (p[1] - minY) / h]);
+    }
+    return out;
+  }
+
+  signatureDistance(a, b) {
+    if (!a || !b) return 1;
+    let sum = 0;
+    for (let i = 0; i < a.length; i++) sum += Math.hypot(a[i][0] - b[i][0], a[i][1] - b[i][1]);
+    return sum / a.length;
+  }
+
+  finishEnrollStroke() {
+    const pts = this.state.enrollPoints;
+    if (this.strokeLength(pts) < 100) {
+      this.setState({ enrollDrawing: false, enrollPoints: [], enrollError: true, enrollFeedback: 'Too short to be memorable. Draw a longer, continuous shape.' });
+      return;
+    }
+    const sig = this.strokeSignature(pts);
+    const recorded = this.state.enrollRecorded;
+
+    if (this.state.enrollStage === 'draw') {
+      this.setState({ enrollRecorded: [sig], enrollPoints: pts, enrollDrawing: false, enrollError: false, enrollFeedback: 'Gesture recorded.', enrollStage: 'confirmReady' });
+      return;
+    }
+
+    const dist = this.signatureDistance(recorded[0], sig);
+    if (dist > 0.22) {
+      const attempt = this.state.enrollAttempt + 1;
+      this.setState({
+        enrollDrawing: false, enrollPoints: [], enrollError: true, enrollAttempt: attempt,
+        enrollFeedback: attempt >= 3 ? 'Still not matching. You can start over with a simpler shape.' : 'That did not match. Try to draw it the same way.',
+      });
+      return;
+    }
+    this.setState({ enrollDrawing: false, enrollPoints: [], enrollError: false, enrollFeedback: '', enrollAttempt: 0, enrollStage: 'style' });
+  }
+
+  enrollModel() {
+    const stage = this.state.enrollStage;
+    const pointsStr = this.state.enrollPoints.map((p) => p[0] + ',' + p[1]).join(' ');
+    const base = {
+      points: pointsStr,
+      ghost: '',
+      strokeColor: this.state.enrollError ? 'var(--v-warn)' : 'var(--v-text)',
+      padBorder: this.state.enrollError ? 'var(--v-warn)' : 'transparent',
+      feedback: this.state.enrollFeedback,
+      feedbackColor: this.state.enrollError ? 'var(--v-warn)' : 'var(--v-muted)',
+      pips: [],
+      showPad: false, showDone: false, showStyle: false,
+      showPrimary: true, showSecondary: false,
+      primaryLabel: 'Continue', secondaryLabel: '',
+      primary: () => {}, secondary: () => {},
+      summary: [],
+    };
+    const pip = (n, done) => [0, 1].map((i) => ({ w: i < done ? '26px' : i === done ? '26px' : '7px', bg: i < done ? 'var(--v-accent)' : i === done ? 'var(--v-text)' : 'var(--v-line)' }));
+
+    if (stage === 'intro') return { ...base,
+      progress: '20%', stepLabel: '1 of 4',
+      title: 'Set your reveal gesture',
+      body: 'You will draw a shape to unlock any protected message. It stays on this device and is never sent anywhere.',
+      primaryLabel: 'Draw my gesture',
+      primary: () => this.setState({ enrollStage: 'draw', enrollPoints: [], enrollFeedback: '', enrollError: false }),
+      showSecondary: true, secondaryLabel: 'Why a gesture?', secondary: () => this.setState({ enrollFeedback: 'A gesture cannot be shoulder-surfed the way a typed passphrase can, and it never appears on screen.', enrollError: false }),
+    };
+
+    if (stage === 'draw') return { ...base,
+      progress: '40%', stepLabel: '2 of 4',
+      title: 'Draw it once',
+      body: 'One continuous stroke. Something you will repeat the same way every time.',
+      showPad: true, pips: pip(2, 0), showPrimary: false,
+    };
+
+    if (stage === 'confirmReady') return { ...base,
+      progress: '60%', stepLabel: '3 of 4',
+      title: 'Now draw it again',
+      body: 'Repeat the same shape so Vade knows it was deliberate.',
+      showPad: true, ghost: '', pips: pip(2, 1), showPrimary: false,
+      showSecondary: true, secondaryLabel: 'Start over', secondary: () => this.setState({ enrollStage: 'draw', enrollRecorded: [], enrollPoints: [], enrollFeedback: '', enrollError: false, enrollAttempt: 0 }),
+    };
+
+    if (stage === 'style') return { ...base,
+      progress: '80%', stepLabel: '4 of 4',
+      title: 'How should protected text look?',
+      body: 'Change it any time in Profile. Encryption is the same either way.',
+      showStyle: true,
+      primaryLabel: 'Continue',
+      primary: () => this.setState({ enrollStage: 'done' }),
+    };
+
+    return { ...base,
+      progress: '100%', stepLabel: 'Done',
+      title: 'You are set up',
+      body: 'Tap any protected message and draw your gesture to read it.',
+      showDone: true,
+      summary: [
+        { k: 'Reveal gesture', v: 'Saved on this device' },
+        { k: 'Protection style', v: this.styleLabelFor(this.style) },
+        { k: 'Reveal window', v: (this.props.revealSeconds ?? 6) + ' seconds' },
+      ],
+      primaryLabel: 'Start messaging',
+      primary: () => this.go('list'),
+    };
+  }
+
+  styleLabelFor(key) { return STYLE_META[key].label; }
+
+  openChat(id) {
+    this.setState({ screen: 'chat', peerId: id, threadId: THREADS[id] ? id : 'mira', revealed: {} });
+  }
+
+  padPoint(e) {
+    const r = e.currentTarget.getBoundingClientRect();
+    return [Math.round(e.clientX - r.left), Math.round(e.clientY - r.top)];
+  }
+
+  finishStroke() {
+    const pts = this.state.points;
+    let len = 0;
+    for (let i = 1; i < pts.length; i++) len += Math.hypot(pts[i][0] - pts[i - 1][0], pts[i][1] - pts[i - 1][1]);
+    if (len < 90) {
+      this.setState({ drawing: false, points: [], gestureError: true, gestureFeedback: 'Stroke too short — draw a longer, continuous line.' });
+      return;
+    }
+    const step = this.state.gestureStep + 1;
+    if (step >= 3) {
+      const id = this.state.gestureFor;
+      this.setState((s) => ({
+        revealed: { ...s.revealed, [id]: Date.now() },
+        gestureFor: null, gestureStep: 0, points: [], drawing: false, gestureFeedback: '', gestureError: false, now: Date.now(),
+      }));
+    } else {
+      this.setState({ gestureStep: step, points: [], drawing: false, gestureError: false, gestureFeedback: 'Recognised.' });
+    }
+  }
+
+  renderVals() {
+    const theme = this.theme;
+    const screen = this.state.screen;
+    const style = this.style;
+    const peer = PEERS[this.state.peerId];
+    const thread = THREADS[this.state.threadId] || THREADS.mira;
+    const active = (s) => (screen === s ? 'var(--v-text)' : 'var(--v-faint)');
+    const dot = (s) => (screen === s ? 'var(--v-accent)' : 'transparent');
+
+    const conn = this.props.connection || 'online';
+    const decorated = conn === 'offline'
+      ? thread.map((m, i) => (i === thread.length - 2 && m.me ? { ...m, queued: true } : i === thread.length - 1 && m.me ? { ...m, failed: true } : m))
+      : thread;
+
+    const messages = decorated.map((m) => {
+      const start = this.state.revealed[m.id];
+      const remainingMs = start ? Math.max(0, this.revealMs - (this.state.now - start)) : 0;
+      const isRevealed = Boolean(start) && remainingMs > 0;
+      if (start && remainingMs <= 0) {
+        setTimeout(() => this.setState((s) => { const r = { ...s.revealed }; delete r[m.id]; return { revealed: r }; }), 0);
+      }
+      return {
+        ...m,
+        isMe: m.me,
+        align: m.me ? 'flex-end' : 'flex-start',
+        display: this.protectedText(m),
+        isRevealed,
+        showProtectedOut: !isRevealed && m.me,
+        showProtectedIn: !isRevealed && !m.me,
+        showRevealedOut: isRevealed && m.me,
+        showRevealedIn: isRevealed && !m.me,
+        showMeta: !isRevealed,
+        isQueued: Boolean(m.queued),
+        isFailed: Boolean(m.failed),
+        showReceipt: m.me && !m.queued && !m.failed,
+        metaLabel: m.failed ? 'Not delivered' : m.queued ? 'Queued · sends when online' : m.time,
+        metaColor: m.failed ? 'var(--v-warn)' : 'var(--v-faint)',
+        remaining: Math.ceil(remainingMs / 1000),
+        countdownWidth: Math.round((remainingMs / this.revealMs) * 100) + '%',
+        reveal: () => this.setState({ gestureFor: m.id, gestureStep: 0, points: [], gestureFeedback: '', gestureError: false }),
+        longPress: (e) => { e.preventDefault?.(); this.setState({ actionsFor: m.id }); },
+        hide: () => this.setState((s) => { const r = { ...s.revealed }; delete r[m.id]; return { revealed: r }; }),
+      };
+    });
+
+    const isEmpty = (this.props.dataState || 'populated') === 'empty';
+    const connMeta = {
+      online: { showBanner: false, dot: 'var(--v-accent)', message: '' },
+      connecting: { showBanner: true, dot: 'var(--v-warn)', message: 'Reconnecting — messages will send when the connection returns.' },
+      offline: { showBanner: true, dot: 'var(--v-warn)', message: 'Offline. You can still read and write; nothing sends yet.' },
+    }[conn];
+
+    const conversations = [
+      { id: 'mira', initial: 'M', name: 'Mira Sandoval', time: '10:42', unread: 2, verified: true, flagged: false },
+      { id: 'tomas', initial: 'T', name: 'Tomas Weill', time: '09:05', unread: 0, verified: false, flagged: true },
+      { id: 'kenji', initial: 'K', name: 'Kenji Arai', time: 'Yesterday', unread: 0, verified: true, flagged: false },
+      { id: 'dana', initial: 'D', name: 'Dana Okonkwo', time: 'Tue', unread: 1, verified: false, flagged: false },
+    ].map((c) => {
+      const dragging = this.state.swipeId === c.id;
+      const parked = this.state.swipeOpen[c.id];
+      const dx = dragging ? Math.max(-136, Math.min(0, this.state.swipeDx)) : parked ? -136 : 0;
+      return {
+        ...c,
+        offset: dx + 'px',
+        transition: dragging ? 'none' : 'transform .22s cubic-bezier(.32,.72,0,1)',
+        open: () => {
+          if (this.state.swipeOpen[c.id]) { this.setState((s) => ({ swipeOpen: { ...s.swipeOpen, [c.id]: false } })); return; }
+          if (Math.abs(this.state.swipeDx) > 6) return;
+          this.openChat(c.id);
+        },
+        swipeDown: (e) => { e.currentTarget.setPointerCapture?.(e.pointerId); this.setState({ swipeId: c.id, swipeStartX: e.clientX, swipeDx: 0 }); },
+        swipeMove: (e) => { if (this.state.swipeId !== c.id) return; this.setState({ swipeDx: e.clientX - this.state.swipeStartX }); },
+        swipeUp: () => {
+          if (this.state.swipeId !== c.id) return;
+          const settled = this.state.swipeDx < -60;
+          this.setState((s) => ({ swipeId: null, swipeDx: 0, swipeOpen: { ...s.swipeOpen, [c.id]: settled } }));
+        },
+      };
+    });
+
+    const previewSample = { plain: 'See you at the station tonight', illusion: 'Sounds good, talk later', intent: 'logistics' };
+
+    return {
+      themeClass: theme === 'dark' ? 'v-dark' : 'v-light',
+      themeLabel: theme === 'dark' ? 'Dark' : 'Light',
+      toggleTheme: () => this.setState({ theme: theme === 'dark' ? 'light' : 'dark' }),
+      onList: screen === 'list',
+      onChat: screen === 'chat',
+      onSearch: screen === 'search',
+      onProfile: screen === 'profile',
+      onSecurity: screen === 'security',
+      onDevices: screen === 'devices',
+      onLogin: screen === 'login',
+      onRegister: screen === 'register',
+      showNav: screen === 'list' || screen === 'search' || screen === 'profile',
+      goList: () => this.go('list'),
+      goSearch: () => this.go('search'),
+      goProfile: () => this.go('profile'),
+      goSecurity: () => this.go('security'),
+      goDevices: () => this.go('devices'),
+      goLogin: () => this.go('login'),
+      goRegister: () => this.go('register'),
+      onWelcome: screen === 'welcome',
+      onEnroll: screen === 'enroll',
+      goWelcome: () => this.go('welcome'),
+      goEnroll: () => this.setState((s) => ({ prevScreen: s.screen, screen: 'enroll', enrollStage: 'intro', enrollRecorded: [], enrollPoints: [], enrollFeedback: '', enrollError: false, enrollAttempt: 0 })),
+      welcomePoints: [
+        { title: 'Protected by default', body: 'Nothing readable sits on your screen until you ask for it.', isLock: true, isGesture: false, isKey: false },
+        { title: 'Revealed by gesture', body: 'A shape only you know, drawn on the message itself.', isLock: false, isGesture: true, isKey: false },
+        { title: 'Keys stay on device', body: 'Generated here, never uploaded, verifiable in person.', isLock: false, isGesture: false, isKey: true },
+      ],
+      enroll: this.enrollModel(),
+      enrollBack: () => {
+        const stage = this.state.enrollStage;
+        if (stage === 'intro') return this.go('register');
+        const back = { draw: 'intro', confirmReady: 'draw', style: 'confirmReady', done: 'style' }[stage] || 'intro';
+        this.setState({ enrollStage: back, enrollPoints: [], enrollFeedback: '', enrollError: false });
+      },
+      enrollDown: (e) => { e.currentTarget.setPointerCapture?.(e.pointerId); this.setState({ enrollDrawing: true, enrollPoints: [this.padPoint(e)], enrollFeedback: '', enrollError: false }); },
+      enrollMove: (e) => { if (!this.state.enrollDrawing) return; const p = this.padPoint(e); this.setState((s) => ({ enrollPoints: [...s.enrollPoints, p] })); },
+      enrollUp: () => { if (this.state.enrollDrawing) this.finishEnrollStroke(); },
+      goBack: () => this.go(this.state.prevScreen === 'security' ? 'chat' : this.state.prevScreen),
+      devices: [
+        { key: 'phone', name: 'Android Phone', meta: 'Active now', isThis: true, isPhone: true, isDesktop: false, isTablet: false, canRevoke: false },
+        { key: 'chrome', name: 'Chrome · Windows', meta: 'Last active 5 min ago', isThis: false, isPhone: false, isDesktop: true, isTablet: false, canRevoke: true },
+        { key: 'tablet', name: 'Android Tablet', meta: 'Last active yesterday', isThis: false, isPhone: false, isDesktop: false, isTablet: true, canRevoke: true },
+      ].map((d) => {
+        const isRevoked = Boolean(this.state.revoked[d.key]);
+        return {
+          ...d,
+          meta: isRevoked ? 'Revoked' : d.meta,
+          revocable: d.canRevoke && !isRevoked,
+          askRevoke: () => this.setState({ confirm: { title: 'Revoke this device?', body: d.name + ' will lose access to your account and your encrypted messages. This cannot be undone.', cta: 'Revoke', key: d.key } }),
+        };
+      }),
+      confirmOpen: Boolean(this.state.confirm),
+      confirm: {
+        title: this.state.confirm?.title || '',
+        body: this.state.confirm?.body || '',
+        cta: this.state.confirm?.cta || '',
+        act: () => {
+          const c = this.state.confirm;
+          if (!c) return;
+          if (c.key) this.setState((s) => ({ revoked: { ...s.revoked, [c.key]: true }, confirm: null }));
+          else if (c.verify) this.setState((s) => ({ verifiedOverride: { ...s.verifiedOverride, [this.state.peerId]: c.verify }, confirm: null }));
+          else this.setState({ confirm: null });
+        },
+      },
+      closeConfirm: () => this.setState({ confirm: null }),
+      askVerify: () => this.setState({ confirm: { title: 'Mark as verified?', body: 'Only do this once you have compared the safety number with ' + peer.name + ' over a channel you trust.', cta: 'Mark verified', verify: 'verified' } }),
+      askRemoveVerification: () => this.setState({ confirm: { title: 'Remove verification?', body: 'This conversation stays encrypted, but Vade will stop showing it as verified until you compare safety numbers again.', cta: 'Remove', verify: 'unverified' } }),
+      navMessagesColor: active('list'), navMessagesDot: dot('list'),
+      navSearchColor: active('search'), navSearchDot: dot('search'),
+      navProfileColor: active('profile'), navProfileDot: dot('profile'),
+      conversations: isEmpty ? [] : conversations,
+      listEmpty: isEmpty,
+      searchEmpty: isEmpty,
+      conn: connMeta,
+      composerPlaceholder: conn === 'online' ? 'Message' : 'Message · sends when online',
+      searchResults: isEmpty ? [] : [
+        { initial: 'M', name: 'Mira Sandoval', handle: '@mira', verified: true, open: () => this.openChat('mira') },
+        { initial: 'K', name: 'Kenji Arai', handle: '@kenji', verified: true, open: () => this.openChat('kenji') },
+        { initial: 'D', name: 'Dana Okonkwo', handle: '@dana', verified: false, open: () => this.openChat('dana') },
+      ],
+      peer,
+      security: this.securityFor(this.state.peerId),
+      messages,
+      styleLabel: STYLE_META[style].label,
+      styleSheetOpen: this.state.styleSheetOpen,
+      openStyleSheet: () => this.setState({ styleSheetOpen: true }),
+      closeStyleSheet: () => this.setState({ styleSheetOpen: false }),
+      styleOptions: Object.keys(STYLE_META).map((key) => {
+        const on = key === style;
+        return {
+          label: STYLE_META[key].label,
+          description: STYLE_META[key].description,
+          preview: protectWith(previewSample, key),
+          border: on ? 'var(--v-accent)' : 'transparent',
+          dotBorder: on ? 'var(--v-accent)' : 'var(--v-faint)',
+          dotFill: on ? 'var(--v-accent)' : 'transparent',
+          dotInner: on ? 'inset 0 0 0 3.5px var(--v-surface)' : 'none',
+          pick: () => this.setState({ style: key, styleSheetOpen: false }),
+        };
+      }),
+      actionsOpen: Boolean(this.state.actionsFor),
+      closeActions: () => this.setState({ actionsFor: null }),
+      messageActions: (() => {
+        const id = this.state.actionsFor;
+        const target = messages.find((m) => m.id === id);
+        const revealed = Boolean(target && target.isRevealed);
+        return [
+          revealed
+            ? { label: 'Hide again', note: 'Re-protect this message now', isReveal: true, isReply: false, isInfo: false, isDelete: false, color: 'var(--v-text)', act: () => { target.hide(); this.setState({ actionsFor: null }); } }
+            : { label: 'Reveal', note: 'Draw your gesture to read it', isReveal: true, isReply: false, isInfo: false, isDelete: false, color: 'var(--v-text)', act: () => { this.setState({ actionsFor: null, gestureFor: id, gestureStep: 0, points: [], gestureFeedback: '', gestureError: false }); } },
+          { label: 'Reply', note: '', isReveal: false, isReply: true, isInfo: false, isDelete: false, color: 'var(--v-text)', act: () => this.setState({ actionsFor: null }) },
+          { label: 'Message details', note: 'Sent, delivered, protection style', isReveal: false, isReply: false, isInfo: true, isDelete: false, color: 'var(--v-text)', act: () => this.setState({ actionsFor: null }) },
+          { label: 'Delete for me', note: '', isReveal: false, isReply: false, isInfo: false, isDelete: true, color: 'var(--v-warn)', act: () => this.setState({ actionsFor: null, confirm: { title: 'Delete this message?', body: 'It will be removed from this device only. The other person keeps their copy.', cta: 'Delete' } }) },
+        ];
+      })(),
+      gestureOpen: Boolean(this.state.gestureFor),
+      gestureHint: 'Stroke ' + Math.min(this.state.gestureStep + 1, 3) + ' of 3',
+      gestureSteps: [0, 1, 2].map((i) => ({
+        w: i <= this.state.gestureStep ? '26px' : '7px',
+        bg: i < this.state.gestureStep ? 'var(--v-accent)' : i === this.state.gestureStep ? 'rgba(255,255,255,.9)' : 'rgba(255,255,255,.28)',
+      })),
+      gestureFeedback: this.state.gestureFeedback,
+      gestureFeedbackColor: this.state.gestureError ? '#f0b48a' : 'rgba(255,255,255,.6)',
+      strokePoints: this.state.points.map((p) => p[0] + ',' + p[1]).join(' '),
+      strokeColor: this.state.gestureError ? 'rgba(240,180,138,.9)' : 'rgba(255,255,255,.92)',
+      padDown: (e) => { e.currentTarget.setPointerCapture?.(e.pointerId); this.setState({ drawing: true, points: [this.padPoint(e)], gestureFeedback: '', gestureError: false }); },
+      padMove: (e) => { if (!this.state.drawing) return; const p = this.padPoint(e); this.setState((s) => ({ points: [...s.points, p] })); },
+      padUp: () => { if (this.state.drawing) this.finishStroke(); },
+      closeGesture: () => this.setState({ gestureFor: null, gestureStep: 0, points: [], gestureFeedback: '', gestureError: false }),
+    };
+  }
+}
+</script>
+</body>
+</html>

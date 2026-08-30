@@ -1,0 +1,260 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet data-dc-atomics><link rel="stylesheet" href="_ds/organic-4c4c1d32-eead-48fa-bfaf-8328c780b53c/styles.css"><script src="_ds/organic-4c4c1d32-eead-48fa-bfaf-8328c780b53c/_ds_bundle.js"></script><style>
+body{margin:0;font-family:"Figtree",system-ui,sans-serif;-webkit-font-smoothing:antialiased}
+h1,h2,h3,h4,h5,h6{font-family:"Figtree",system-ui,sans-serif}
+a{color:#0b7a53}a:hover{color:#095f41}
+.v-light{--v-bg:#fcfcfb;--v-surface:#f2f2f0;--v-surface-2:#e9e9e6;--v-text:#141516;--v-muted:#77776f;--v-faint:#a3a39c;--v-line:rgba(20,21,22,.10);--v-accent:#0f9d6b;--v-accent-ink:#0b7a53;--v-accent-tint:#e8f5ef;--v-warn:#9a5b12;--v-warn-tint:#fbf1e2;--v-out-bg:#141516;--v-out-fg:#fcfcfb}
+.v-dark{--v-bg:#0d0e0f;--v-surface:#191b1c;--v-surface-2:#232627;--v-text:#f4f4f2;--v-muted:#8d8f8c;--v-faint:#6b6d6a;--v-line:rgba(244,244,242,.12);--v-accent:#2ec38a;--v-accent-ink:#4fd8a3;--v-accent-tint:rgba(46,195,138,.12);--v-warn:#e0a95f;--v-warn-tint:rgba(224,169,95,.13);--v-out-bg:#f4f4f2;--v-out-fg:#0d0e0f}
+@keyframes v-rise{from{opacity:0;transform:translateY(6px)}to{opacity:1;transform:none}}
+@media (prefers-reduced-motion:reduce){*{animation-duration:.01ms!important;transition-duration:.01ms!important}}
+</style></helmet>
+
+<div class="{{ themeClass }}" style="min-height:100vh;background:var(--v-bg);color:var(--v-text);display:flex">
+
+  <div style="width:96px;flex:none;border-right:1px solid var(--v-line);display:flex;flex-direction:column;align-items:center;padding:26px 0 22px;gap:26px">
+    <div style="font-size:19px;font-weight:700;letter-spacing:-.03em">V</div>
+    <div style="display:flex;flex-direction:column;gap:8px;align-items:center">
+      <div style="width:46px;height:46px;border-radius:16px;background:var(--v-surface);display:flex;align-items:center;justify-content:center;cursor:pointer" aria-label="Messages">
+        <svg width="21" height="21" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.75" stroke-linecap="round" stroke-linejoin="round"><path d="M12 20a8 8 0 1 0-8-8 8 8 0 0 0 .9 3.7L4 20l4.3-.9A8 8 0 0 0 12 20"/></svg>
+      </div>
+      <div style="width:46px;height:46px;border-radius:16px;display:flex;align-items:center;justify-content:center;cursor:pointer;color:var(--v-faint)" aria-label="Search">
+        <svg width="21" height="21" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.75" stroke-linecap="round" stroke-linejoin="round"><path d="m21 21-4.34-4.34"/><circle cx="11" cy="11" r="8"/></svg>
+      </div>
+      <div style="width:46px;height:46px;border-radius:16px;display:flex;align-items:center;justify-content:center;cursor:pointer;color:var(--v-faint)" aria-label="Profile">
+        <svg width="21" height="21" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.75" stroke-linecap="round" stroke-linejoin="round"><path d="M19 21v-2a4 4 0 0 0-4-4H9a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
+      </div>
+    </div>
+    <div style="margin-top:auto;width:38px;height:38px;border-radius:50%;background:var(--v-surface);display:flex;align-items:center;justify-content:center;font-size:14px;font-weight:700">A</div>
+  </div>
+
+  <div style="width:352px;flex:none;border-right:1px solid var(--v-line);display:flex;flex-direction:column;min-height:100vh">
+    <div style="padding:30px 26px 16px">
+      <h1 style="margin:0;font-size:26px;font-weight:700;letter-spacing:-.026em">Messages</h1>
+    </div>
+    <div style="padding:0 26px 18px">
+      <div style="display:flex;align-items:center;gap:9px;height:42px;padding:0 15px;border-radius:999px;background:var(--v-surface);color:var(--v-muted);font-size:14.5px">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.75" stroke-linecap="round" stroke-linejoin="round" style="flex:none"><path d="m21 21-4.34-4.34"/><circle cx="11" cy="11" r="8"/></svg>
+        <span>Search</span>
+      </div>
+    </div>
+    <div style="flex:1;overflow-y:auto;padding-bottom:20px">
+      <sc-for list="{{ conversations }}" as="c" hint-placeholder-count="5">
+        <div onClick="{{ c.open }}" style="margin:0 14px 4px;padding:13px 14px;border-radius:18px;background:{{ c.bg }};display:flex;align-items:center;gap:13px;cursor:pointer">
+          <div style="width:42px;height:42px;border-radius:50%;background:var(--v-surface-2);display:flex;align-items:center;justify-content:center;font-size:15px;font-weight:700;flex:none">{{ c.initial }}</div>
+          <div style="flex:1;min-width:0;display:flex;flex-direction:column;gap:3px">
+            <div style="display:flex;align-items:center;gap:6px">
+              <span style="font-size:15px;font-weight:700;letter-spacing:-.012em">{{ c.name }}</span>
+              <sc-if value="{{ c.verified }}" hint-placeholder-val="{{ true }}"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="var(--v-accent)" stroke-width="2.75" stroke-linecap="round" stroke-linejoin="round" style="flex:none"><path d="M20 6 9 17l-5-5"/></svg></sc-if>
+              <sc-if value="{{ c.flagged }}" hint-placeholder-val="{{ true }}"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="var(--v-warn)" stroke-width="2.75" stroke-linecap="round" stroke-linejoin="round" style="flex:none"><path d="m21.73 18-8-14a2 2 0 0 0-3.48 0l-8 14A2 2 0 0 0 4 21h16a2 2 0 0 0 1.73-3"/><path d="M12 9v4"/><path d="M12 17h.01"/></svg></sc-if>
+            </div>
+            <div style="display:flex;align-items:center;gap:6px;color:var(--v-muted);font-size:12.5px">
+              <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.75" stroke-linecap="round" stroke-linejoin="round" style="flex:none"><rect width="18" height="11" x="3" y="11" rx="2" ry="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>
+              <span>Protected conversation</span>
+            </div>
+          </div>
+          <div style="display:flex;flex-direction:column;align-items:flex-end;gap:6px;flex:none">
+            <span style="font-size:11.5px;color:var(--v-faint)">{{ c.time }}</span>
+            <sc-if value="{{ c.unread }}" hint-placeholder-val="{{ true }}"><span style="min-width:19px;height:19px;padding:0 6px;border-radius:999px;background:var(--v-accent);color:#fff;font-size:11px;font-weight:700;display:flex;align-items:center;justify-content:center">{{ c.unread }}</span></sc-if>
+          </div>
+        </div>
+      </sc-for>
+    </div>
+  </div>
+
+  <div style="flex:1;min-width:0;display:flex;flex-direction:column;min-height:100vh">
+    <div style="padding:22px 34px;display:flex;align-items:center;gap:14px;border-bottom:1px solid var(--v-line)">
+      <div style="width:42px;height:42px;border-radius:50%;background:var(--v-surface);display:flex;align-items:center;justify-content:center;font-size:15px;font-weight:700;flex:none">{{ peer.initial }}</div>
+      <div style="flex:1;min-width:0">
+        <div style="font-size:17px;font-weight:700;letter-spacing:-.016em">{{ peer.name }}</div>
+        <div style="display:flex;align-items:center;gap:5px;font-size:12.5px;margin-top:1px;color:{{ security.color }}">
+          <sc-if value="{{ security.isVerified }}" hint-placeholder-val="{{ true }}"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.75" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6 9 17l-5-5"/></svg></sc-if>
+          <span>{{ security.label }}</span>
+        </div>
+      </div>
+      <div style="display:flex;align-items:center;gap:10px;font-size:13px;color:var(--v-muted)">
+        <span style="height:32px;padding:0 14px;border-radius:999px;border:1px solid var(--v-line);display:flex;align-items:center;gap:7px">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.75" stroke-linecap="round" stroke-linejoin="round"><rect width="18" height="11" x="3" y="11" rx="2" ry="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>
+          <span>{{ styleLabel }}</span>
+        </span>
+        <span style="width:34px;height:34px;border-radius:50%;display:flex;align-items:center;justify-content:center;cursor:pointer">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.75" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="1"/><circle cx="12" cy="5" r="1"/><circle cx="12" cy="19" r="1"/></svg>
+        </span>
+      </div>
+    </div>
+
+    <div style="flex:1;min-height:0;display:flex">
+      <div style="flex:1;min-width:0;display:flex;flex-direction:column;justify-content:flex-end;padding:26px 34px 0;max-width:820px;margin:0 auto;width:100%">
+        <div style="align-self:center;font-size:11px;letter-spacing:.09em;text-transform:uppercase;color:var(--v-faint);padding-bottom:16px">Today</div>
+        <div style="display:flex;flex-direction:column;gap:8px">
+          <sc-for list="{{ messages }}" as="m" hint-placeholder-count="5">
+            <div style="display:flex;flex-direction:column;gap:6px;align-items:{{ m.align }};animation:v-rise .22s ease both">
+              <sc-if value="{{ m.showProtectedOut }}" hint-placeholder-val="{{ true }}">
+                <div onClick="{{ m.reveal }}" style="max-width:60%;background:var(--v-out-bg);color:var(--v-out-fg);padding:12px 17px;border-radius:22px 22px 7px 22px;font-size:15px;line-height:1.5;letter-spacing:.02em;cursor:pointer">{{ m.display }}</div>
+              </sc-if>
+              <sc-if value="{{ m.showProtectedIn }}" hint-placeholder-val="{{ true }}">
+                <div onClick="{{ m.reveal }}" style="max-width:60%;background:var(--v-surface);padding:12px 17px;border-radius:22px 22px 22px 7px;font-size:15px;line-height:1.5;letter-spacing:.02em;cursor:pointer">{{ m.display }}</div>
+              </sc-if>
+              <sc-if value="{{ m.showRevealedOut }}" hint-placeholder-val="{{ true }}">
+                <div style="max-width:60%;background:var(--v-out-bg);color:var(--v-out-fg);padding:12px 17px;border-radius:22px 22px 7px 22px;font-size:15px;line-height:1.5;outline:1.5px solid var(--v-accent);outline-offset:2px">{{ m.plain }}</div>
+              </sc-if>
+              <sc-if value="{{ m.showRevealedIn }}" hint-placeholder-val="{{ true }}">
+                <div style="max-width:60%;background:var(--v-surface);padding:12px 17px;border-radius:22px 22px 22px 7px;font-size:15px;line-height:1.5;outline:1.5px solid var(--v-accent);outline-offset:2px">{{ m.plain }}</div>
+              </sc-if>
+              <sc-if value="{{ m.isRevealed }}" hint-placeholder-val="{{ true }}">
+                <div style="display:flex;align-items:center;gap:9px;padding:0 4px">
+                  <span style="width:26px;height:3px;border-radius:999px;background:var(--v-line);overflow:hidden;flex:none"><span style="display:block;height:3px;border-radius:999px;background:var(--v-accent);width:{{ m.countdownWidth }}"></span></span>
+                  <span style="font-size:11.5px;font-weight:700;color:var(--v-accent-ink)">Revealed · {{ m.remaining }}s</span>
+                  <span onClick="{{ m.hide }}" style="font-size:11.5px;color:var(--v-muted);cursor:pointer;text-decoration:underline;text-underline-offset:3px">Hide</span>
+                </div>
+              </sc-if>
+              <sc-if value="{{ m.showMeta }}" hint-placeholder-val="{{ true }}">
+                <div style="display:flex;align-items:center;gap:5px;padding:0 5px;font-size:11px;color:var(--v-faint)">
+                  <span>{{ m.time }}</span>
+                  <sc-if value="{{ m.isMe }}" hint-placeholder-val="{{ true }}"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.75" stroke-linecap="round" stroke-linejoin="round"><path d="M18 6 7 17l-5-5"/><path d="m22 10-7.5 7.5L13 16"/></svg></sc-if>
+                </div>
+              </sc-if>
+            </div>
+          </sc-for>
+        </div>
+        <div style="align-self:center;display:flex;align-items:center;gap:6px;font-size:11.5px;color:var(--v-faint);padding:20px 0 6px">
+          <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.75" stroke-linecap="round" stroke-linejoin="round"><rect width="18" height="11" x="3" y="11" rx="2" ry="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>
+          <span>Click a message to reveal it</span>
+        </div>
+        <div style="padding:14px 0 26px;display:flex;align-items:center;gap:11px">
+          <div style="width:42px;height:42px;border-radius:50%;background:var(--v-surface);display:flex;align-items:center;justify-content:center;cursor:pointer;flex:none">
+            <svg width="19" height="19" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.75" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h14"/><path d="M12 5v14"/></svg>
+          </div>
+          <div style="flex:1;display:flex;align-items:center;height:46px;padding:0 18px;border-radius:999px;background:var(--v-surface);color:var(--v-muted);font-size:14.5px">Message</div>
+          <div style="width:46px;height:46px;border-radius:50%;background:var(--v-out-bg);color:var(--v-out-fg);display:flex;align-items:center;justify-content:center;cursor:pointer;flex:none">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.75" stroke-linecap="round" stroke-linejoin="round"><path d="M14.536 21.686a.5.5 0 0 0 .937-.024l6.5-19a.496.496 0 0 0-.635-.635l-19 6.5a.5.5 0 0 0-.024.937l7.93 3.18a2 2 0 0 1 1.112 1.11z"/><path d="m21.854 2.147-10.94 10.939"/></svg>
+          </div>
+        </div>
+      </div>
+
+      <div style="width:312px;flex:none;border-left:1px solid var(--v-line);padding:26px 24px;display:flex;flex-direction:column;gap:24px">
+        <div style="display:flex;flex-direction:column;align-items:center;gap:10px">
+          <div style="width:64px;height:64px;border-radius:50%;background:var(--v-surface);display:flex;align-items:center;justify-content:center;font-size:22px;font-weight:700">{{ peer.initial }}</div>
+          <div style="text-align:center">
+            <div style="font-size:16px;font-weight:700;letter-spacing:-.016em">{{ peer.name }}</div>
+            <div style="font-size:13px;color:var(--v-muted)">{{ peer.handle }}</div>
+          </div>
+        </div>
+        <div>
+          <div style="font-size:11px;letter-spacing:.09em;text-transform:uppercase;color:var(--v-faint);padding-bottom:8px">Safety number</div>
+          <div style="border-radius:18px;background:var(--v-surface);padding:16px;font-family:ui-monospace,SFMono-Regular,Menlo,monospace;font-size:15px;letter-spacing:.05em;line-height:1.7;text-align:center">
+            <div>21645 15967</div>
+            <div>12315 36440</div>
+          </div>
+        </div>
+        <div>
+          <div style="font-size:11px;letter-spacing:.09em;text-transform:uppercase;color:var(--v-faint);padding-bottom:8px">Fingerprint</div>
+          <div style="border-radius:18px;background:var(--v-surface);padding:14px 16px;font-family:ui-monospace,SFMono-Regular,Menlo,monospace;font-size:12.5px;letter-spacing:.03em;line-height:1.8">
+            <div>9CAC FDE8 1994 6579</div>
+            <div>DD94 EE76 B00E 14F4</div>
+          </div>
+        </div>
+        <div style="font-size:12px;color:var(--v-faint);line-height:1.55">Compare these with {{ peer.name }} over a channel you already trust.</div>
+      </div>
+    </div>
+  </div>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props="{&quot;theme&quot;:{&quot;editor&quot;:&quot;enum&quot;,&quot;options&quot;:[&quot;light&quot;,&quot;dark&quot;],&quot;default&quot;:&quot;light&quot;,&quot;tsType&quot;:&quot;'light' | 'dark'&quot;,&quot;section&quot;:&quot;Appearance&quot;},&quot;protectionStyle&quot;:{&quot;editor&quot;:&quot;enum&quot;,&quot;options&quot;:[&quot;CLASSIC&quot;,&quot;ILLUSION&quot;,&quot;PATTERN&quot;],&quot;default&quot;:&quot;CLASSIC&quot;,&quot;tsType&quot;:&quot;'CLASSIC' | 'ILLUSION' | 'PATTERN'&quot;,&quot;section&quot;:&quot;Privacy&quot;},&quot;revealSeconds&quot;:{&quot;editor&quot;:&quot;int&quot;,&quot;default&quot;:6,&quot;min&quot;:3,&quot;max&quot;:15,&quot;unit&quot;:&quot;s&quot;,&quot;tsType&quot;:&quot;number&quot;,&quot;section&quot;:&quot;Privacy&quot;}}">
+const HOMO = {A:'Λ',B:'Β',C:'С',D:'Δ',E:'Є',F:'Ϝ',H:'Н',I:'Ι',J:'Ј',K:'Κ',M:'Μ',N:'Ν',O:'Ø',P:'Ρ',S:'Ѕ',T:'Τ',X:'Χ',Y:'Υ',Z:'Ζ',a:'α',b:'в',c:'с',e:'є',i:'ι',j:'ј',k:'к',m:'м',n:'η',o:'σ',p:'ρ',r:'r',s:'ѕ',t:'т',u:'υ',v:'ν',x:'χ',y:'у'};
+
+function protectWith(m, style) {
+  if (style === 'ILLUSION') return m.illusion;
+  if (style === 'PATTERN') {
+    const blocks = m.plain.split(/\s+/).map((w) => '▇'.repeat(Math.max(2, Math.min(w.replace(/\W/g, '').length, 7)))).join(' ');
+    return '◇ ' + m.intent + '   ' + blocks;
+  }
+  let out = '';
+  for (const ch of m.plain) out += HOMO[ch] || ch;
+  return out;
+}
+
+const THREAD = [
+  { id: 'm1', me: false, time: '09:58', plain: 'Hello, how are you?', illusion: 'Coffee tomorrow morning?', intent: 'greeting' },
+  { id: 'm2', me: true, time: '10:02', plain: 'See you at the station tonight', illusion: 'Sounds good, talk later', intent: 'logistics' },
+  { id: 'm3', me: false, time: '10:14', plain: 'Did you get the file?', illusion: 'Thanks for the update', intent: 'question' },
+  { id: 'm4', me: true, time: '10:31', plain: 'I will bring the documents at nine.', illusion: 'Almost done with the draft', intent: 'logistics' },
+  { id: 'm5', me: false, time: '10:42', plain: 'Confirmed.', illusion: 'Perfect.', intent: 'confirmation' },
+];
+
+const CONVOS = [
+  { id: 'mira', initial: 'M', name: 'Mira Sandoval', handle: '@mira', time: '10:42', unread: 2, verified: true, flagged: false },
+  { id: 'tomas', initial: 'T', name: 'Tomas Weill', handle: '@tomas', time: '09:05', unread: 0, verified: false, flagged: true },
+  { id: 'kenji', initial: 'K', name: 'Kenji Arai', handle: '@kenji', time: 'Yesterday', unread: 0, verified: true, flagged: false },
+  { id: 'dana', initial: 'D', name: 'Dana Okonkwo', handle: '@dana', time: 'Tue', unread: 1, verified: false, flagged: false },
+];
+
+class Component extends DCLogic {
+  state = { peerId: 'mira', revealed: {}, now: Date.now() };
+
+  componentDidMount() {
+    this.timer = setInterval(() => {
+      if (Object.keys(this.state.revealed).length) this.setState({ now: Date.now() });
+    }, 250);
+  }
+  componentWillUnmount() { clearInterval(this.timer); }
+
+  renderVals() {
+    const theme = this.props.theme || 'light';
+    const style = this.props.protectionStyle || 'CLASSIC';
+    const revealMs = (this.props.revealSeconds ?? 6) * 1000;
+    const peer = CONVOS.find((c) => c.id === this.state.peerId) || CONVOS[0];
+
+    const messages = THREAD.map((m) => {
+      const start = this.state.revealed[m.id];
+      const remainingMs = start ? Math.max(0, revealMs - (this.state.now - start)) : 0;
+      const isRevealed = Boolean(start) && remainingMs > 0;
+      if (start && remainingMs <= 0) {
+        setTimeout(() => this.setState((s) => { const r = { ...s.revealed }; delete r[m.id]; return { revealed: r }; }), 0);
+      }
+      return {
+        ...m,
+        isMe: m.me,
+        align: m.me ? 'flex-end' : 'flex-start',
+        display: protectWith(m, style),
+        isRevealed,
+        showProtectedOut: !isRevealed && m.me,
+        showProtectedIn: !isRevealed && !m.me,
+        showRevealedOut: isRevealed && m.me,
+        showRevealedIn: isRevealed && !m.me,
+        showMeta: !isRevealed,
+        remaining: Math.ceil(remainingMs / 1000),
+        countdownWidth: Math.round((remainingMs / revealMs) * 100) + '%',
+        reveal: () => this.setState((s) => ({ revealed: { ...s.revealed, [m.id]: Date.now() }, now: Date.now() })),
+        hide: () => this.setState((s) => { const r = { ...s.revealed }; delete r[m.id]; return { revealed: r }; }),
+      };
+    });
+
+    return {
+      themeClass: theme === 'dark' ? 'v-dark' : 'v-light',
+      styleLabel: style === 'ILLUSION' ? 'Illusion' : style === 'PATTERN' ? 'Pattern' : 'Classic',
+      conversations: CONVOS.map((c) => ({
+        ...c,
+        bg: c.id === this.state.peerId ? 'var(--v-surface)' : 'transparent',
+        open: () => this.setState({ peerId: c.id, revealed: {} }),
+      })),
+      peer,
+      security: peer.verified
+        ? { label: 'Verified', color: 'var(--v-accent-ink)', isVerified: true }
+        : peer.flagged
+        ? { label: 'Key changed', color: 'var(--v-warn)', isVerified: false }
+        : { label: 'Unverified', color: 'var(--v-muted)', isVerified: false },
+      messages,
+    };
+  }
+}
+</script>
+</body>
+</html>

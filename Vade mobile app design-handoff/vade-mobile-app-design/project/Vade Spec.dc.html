@@ -1,0 +1,305 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet data-dc-atomics><link rel="stylesheet" href="_ds/organic-4c4c1d32-eead-48fa-bfaf-8328c780b53c/styles.css"><script src="_ds/organic-4c4c1d32-eead-48fa-bfaf-8328c780b53c/_ds_bundle.js"></script><style>
+body{margin:0;background:#fcfcfb;color:#141516;font-family:"Figtree",system-ui,sans-serif;-webkit-font-smoothing:antialiased}
+h1,h2,h3,h4,h5,h6{font-family:"Figtree",system-ui,sans-serif}
+a{color:#0b7a53}a:hover{color:#095f41}
+</style></helmet>
+
+<div style="max-width:920px;margin:0 auto;padding:64px 40px 96px;display:flex;flex-direction:column;gap:56px">
+
+  <header style="display:flex;flex-direction:column;gap:10px">
+    <div style="font-size:11px;letter-spacing:.11em;text-transform:uppercase;color:#a3a39c">Vade · mobile design spec</div>
+    <h1 style="margin:0;font-weight:700;font-size:44px;letter-spacing:-.03em;line-height:1.05">A monochrome messenger with one green signal.</h1>
+    <p style="margin:6px 0 0;font-size:16px;line-height:1.6;color:#4d4e4c;max-width:620px">Built on the Organic system's structure — its spacing steps, radius scale, pill controls and Lucide 2.75 icons — with the palette and display voice retuned to the brief: near-monochrome surfaces, one restrained emerald, Figtree throughout. Emerald appears only where privacy state is being reported: verification, reveal, and the unread count.</p>
+  </header>
+
+  <section style="display:flex;flex-direction:column;gap:18px">
+    <h2 style="margin:0;font-weight:700;font-size:13px;letter-spacing:.1em;text-transform:uppercase;color:#77776f">Color</h2>
+    <div style="display:grid;grid-template-columns:repeat(2,1fr);gap:28px">
+      <div>
+        <div style="font-size:13px;font-weight:700;margin-bottom:10px">Light</div>
+        <div style="display:flex;flex-direction:column;gap:1px;border-radius:16px;overflow:hidden;border:1px solid rgba(20,21,22,.1)">
+          <sc-for list="{{ light }}" as="t" hint-placeholder-count="9">
+            <div style="display:flex;align-items:center;gap:12px;padding:9px 12px;background:#fff">
+              <span style="width:26px;height:26px;border-radius:8px;border:1px solid rgba(20,21,22,.12);background:{{ t.value }};flex:none"></span>
+              <span style="flex:1;font-size:13px">{{ t.name }}</span>
+              <span style="font-size:11.5px;color:#77776f;font-family:ui-monospace,Menlo,monospace">{{ t.value }}</span>
+            </div>
+          </sc-for>
+        </div>
+      </div>
+      <div>
+        <div style="font-size:13px;font-weight:700;margin-bottom:10px">Dark</div>
+        <div style="display:flex;flex-direction:column;gap:1px;border-radius:16px;overflow:hidden;border:1px solid rgba(20,21,22,.1)">
+          <sc-for list="{{ dark }}" as="t" hint-placeholder-count="9">
+            <div style="display:flex;align-items:center;gap:12px;padding:9px 12px;background:#0d0e0f;color:#f4f4f2">
+              <span style="width:26px;height:26px;border-radius:8px;border:1px solid rgba(244,244,242,.16);background:{{ t.value }};flex:none"></span>
+              <span style="flex:1;font-size:13px">{{ t.name }}</span>
+              <span style="font-size:11.5px;color:#8d8f8c;font-family:ui-monospace,Menlo,monospace">{{ t.value }}</span>
+            </div>
+          </sc-for>
+        </div>
+      </div>
+    </div>
+    <p style="margin:0;font-size:13.5px;line-height:1.6;color:#4d4e4c">Emerald is reserved for privacy signal. Warnings use a warm ochre, never red, so <strong>Key changed</strong> reads as serious without alarm styling. No gradients, no glass, one shadow step for floating surfaces.</p>
+  </section>
+
+  <section style="display:flex;flex-direction:column;gap:18px">
+    <h2 style="margin:0;font-weight:700;font-size:13px;letter-spacing:.1em;text-transform:uppercase;color:#77776f">Type</h2>
+    <div style="display:flex;flex-direction:column;gap:0;border-top:1px solid rgba(20,21,22,.1)">
+      <sc-for list="{{ typeScale }}" as="t" hint-placeholder-count="7">
+        <div style="display:flex;align-items:baseline;gap:24px;padding:13px 0;border-bottom:1px solid rgba(20,21,22,.08)">
+          <span style="width:150px;flex:none;font-size:11.5px;color:#77776f">{{ t.role }}</span>
+          <span style="flex:1;font-size:{{ t.size }};font-weight:{{ t.weight }};letter-spacing:{{ t.tracking }};line-height:1.2">{{ t.sample }}</span>
+          <span style="font-size:11.5px;color:#a3a39c;font-family:ui-monospace,Menlo,monospace;flex:none">{{ t.spec }}</span>
+        </div>
+      </sc-for>
+    </div>
+    <p style="margin:0;font-size:13.5px;line-height:1.6;color:#4d4e4c">Figtree only, weights 400 and 700. Caprasimo is dropped here: a display face with personality fights the neutrality the brief asks for. Body copy never below 13px; bubble text 15px; tap targets 44px minimum.</p>
+  </section>
+
+  <section style="display:flex;flex-direction:column;gap:18px">
+    <h2 style="margin:0;font-weight:700;font-size:13px;letter-spacing:.1em;text-transform:uppercase;color:#77776f">Space, radius, icons</h2>
+    <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:28px">
+      <div style="display:flex;flex-direction:column;gap:9px">
+        <div style="font-size:13px;font-weight:700">Spacing</div>
+        <sc-for list="{{ spacing }}" as="s" hint-placeholder-count="6">
+          <div style="display:flex;align-items:center;gap:10px">
+            <span style="width:{{ s.value }};height:10px;border-radius:3px;background:#141516;flex:none"></span>
+            <span style="font-size:12px;color:#77776f;font-family:ui-monospace,Menlo,monospace">{{ s.label }}</span>
+          </div>
+        </sc-for>
+      </div>
+      <div style="display:flex;flex-direction:column;gap:9px">
+        <div style="font-size:13px;font-weight:700">Radius</div>
+        <sc-for list="{{ radii }}" as="r" hint-placeholder-count="4">
+          <div style="display:flex;align-items:center;gap:10px">
+            <span style="width:34px;height:34px;background:#f2f2f0;border:1px solid rgba(20,21,22,.12);border-radius:{{ r.value }};flex:none"></span>
+            <span style="font-size:12px;color:#77776f">{{ r.label }}</span>
+          </div>
+        </sc-for>
+      </div>
+      <div style="display:flex;flex-direction:column;gap:9px">
+        <div style="font-size:13px;font-weight:700">Icons</div>
+        <p style="margin:0;font-size:13px;line-height:1.55;color:#4d4e4c">Lucide, stroke 2.75, no fills. 22px in navigation, 19–20px for actions, 12–13px inline with meta text. An icon never carries meaning alone — every state also has a word.</p>
+        <div style="display:flex;gap:12px;padding-top:4px;color:#141516">
+          <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.75" stroke-linecap="round" stroke-linejoin="round"><path d="M12 20a8 8 0 1 0-8-8 8 8 0 0 0 .9 3.7L4 20l4.3-.9A8 8 0 0 0 12 20"/></svg>
+          <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.75" stroke-linecap="round" stroke-linejoin="round"><rect width="18" height="11" x="3" y="11" rx="2" ry="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>
+          <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.75" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6 9 17l-5-5"/></svg>
+          <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.75" stroke-linecap="round" stroke-linejoin="round"><path d="m21.73 18-8-14a2 2 0 0 0-3.48 0l-8 14A2 2 0 0 0 4 21h16a2 2 0 0 0 1.73-3"/><path d="M12 9v4"/><path d="M12 17h.01"/></svg>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <section style="display:flex;flex-direction:column;gap:18px">
+    <h2 style="margin:0;font-weight:700;font-size:13px;letter-spacing:.1em;text-transform:uppercase;color:#77776f">Protected text</h2>
+    <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:16px">
+      <sc-for list="{{ modes }}" as="m" hint-placeholder-count="3">
+        <div style="border:1px solid rgba(20,21,22,.1);border-radius:20px;padding:18px;display:flex;flex-direction:column;gap:10px">
+          <div style="font-size:15px;font-weight:700;letter-spacing:-.012em">{{ m.name }}</div>
+          <div style="background:#f2f2f0;border-radius:18px 18px 18px 6px;padding:11px 14px;font-size:14.5px;line-height:1.5;letter-spacing:.02em">{{ m.sample }}</div>
+          <div style="font-size:12.5px;line-height:1.5;color:#4d4e4c">{{ m.note }}</div>
+        </div>
+      </sc-for>
+    </div>
+    <p style="margin:0;font-size:13.5px;line-height:1.6;color:#4d4e4c">All three are local rendering choices. Encryption does not change with the style, and the picker says so. Plaintext is produced only inside a gesture-authorised reveal window — never for list previews, notifications, accessibility labels, tooltips, or hidden DOM.</p>
+  </section>
+
+  <section style="display:flex;flex-direction:column;gap:18px">
+    <h2 style="margin:0;font-weight:700;font-size:13px;letter-spacing:.1em;text-transform:uppercase;color:#77776f">Security states</h2>
+    <div style="border:1px solid rgba(20,21,22,.1);border-radius:20px;overflow:hidden">
+      <sc-for list="{{ states }}" as="s" hint-placeholder-count="5">
+        <div style="display:flex;align-items:flex-start;gap:16px;padding:14px 18px;border-bottom:1px solid rgba(20,21,22,.08)">
+          <span style="width:120px;flex:none;font-size:14px;font-weight:700;color:{{ s.color }}">{{ s.name }}</span>
+          <span style="flex:1;font-size:13.5px;line-height:1.55;color:#4d4e4c">{{ s.treatment }}</span>
+        </div>
+      </sc-for>
+    </div>
+  </section>
+
+  <section style="display:flex;flex-direction:column;gap:18px">
+    <h2 style="margin:0;font-weight:700;font-size:13px;letter-spacing:.1em;text-transform:uppercase;color:#77776f">Motion</h2>
+    <div style="display:flex;flex-direction:column;border-top:1px solid rgba(20,21,22,.1)">
+      <sc-for list="{{ motion }}" as="x" hint-placeholder-count="6">
+        <div style="display:flex;align-items:baseline;gap:20px;padding:11px 0;border-bottom:1px solid rgba(20,21,22,.08)">
+          <span style="width:200px;flex:none;font-size:13.5px">{{ x.what }}</span>
+          <span style="width:150px;flex:none;font-size:12px;color:#77776f;font-family:ui-monospace,Menlo,monospace">{{ x.timing }}</span>
+          <span style="flex:1;font-size:13px;color:#4d4e4c">{{ x.note }}</span>
+        </div>
+      </sc-for>
+    </div>
+    <p style="margin:0;font-size:13.5px;line-height:1.6;color:#4d4e4c">Nothing animates plaintext in or out — a reveal appears at full opacity and disappears instantly, so no motion extends exposure. Everything respects <span style="font-family:ui-monospace,Menlo,monospace;font-size:12.5px">prefers-reduced-motion</span>.</p>
+  </section>
+
+  <section style="display:flex;flex-direction:column;gap:18px">
+    <h2 style="margin:0;font-weight:700;font-size:13px;letter-spacing:.1em;text-transform:uppercase;color:#77776f">Layout</h2>
+    <div style="display:flex;flex-direction:column;border-top:1px solid rgba(20,21,22,.1)">
+      <sc-for list="{{ layout }}" as="l" hint-placeholder-count="7">
+        <div style="display:flex;align-items:baseline;gap:20px;padding:11px 0;border-bottom:1px solid rgba(20,21,22,.08)">
+          <span style="width:170px;flex:none;font-size:13.5px;font-weight:700">{{ l.what }}</span>
+          <span style="flex:1;font-size:13px;line-height:1.55;color:#4d4e4c">{{ l.note }}</span>
+        </div>
+      </sc-for>
+    </div>
+  </section>
+
+  <section style="display:flex;flex-direction:column;gap:18px">
+    <h2 style="margin:0;font-weight:700;font-size:13px;letter-spacing:.1em;text-transform:uppercase;color:#77776f">Android parity</h2>
+    <p style="margin:0;font-size:13.5px;line-height:1.6;color:#4d4e4c;max-width:660px">Same tokens, same components, platform-native behaviour. Compose carries the palette and type scale verbatim; what changes is navigation, insets and system integration.</p>
+    <div style="display:flex;flex-direction:column;border-top:1px solid rgba(20,21,22,.1)">
+      <sc-for list="{{ android }}" as="a" hint-placeholder-count="8">
+        <div style="display:flex;align-items:baseline;gap:20px;padding:11px 0;border-bottom:1px solid rgba(20,21,22,.08)">
+          <span style="width:170px;flex:none;font-size:13.5px;font-weight:700">{{ a.what }}</span>
+          <span style="flex:1;font-size:13px;line-height:1.55;color:#4d4e4c">{{ a.note }}</span>
+        </div>
+      </sc-for>
+    </div>
+  </section>
+
+  <section style="display:flex;flex-direction:column;gap:18px">
+    <h2 style="margin:0;font-weight:700;font-size:13px;letter-spacing:.1em;text-transform:uppercase;color:#77776f">Accessibility</h2>
+    <div style="display:grid;grid-template-columns:repeat(2,1fr);gap:10px 24px">
+      <sc-for list="{{ a11y }}" as="x" hint-placeholder-count="6">
+        <div style="display:flex;gap:10px;align-items:flex-start;font-size:13.5px;line-height:1.55;color:#4d4e4c">
+          <span style="width:5px;height:5px;border-radius:50%;background:#141516;flex:none;margin-top:7px"></span>
+          <span>{{ x }}</span>
+        </div>
+      </sc-for>
+    </div>
+  </section>
+
+  <section style="display:flex;flex-direction:column;gap:14px">
+    <h2 style="margin:0;font-weight:700;font-size:13px;letter-spacing:.1em;text-transform:uppercase;color:#77776f">Privacy constraints the UI must hold</h2>
+    <div style="display:grid;grid-template-columns:repeat(2,1fr);gap:10px 24px">
+      <sc-for list="{{ constraints }}" as="c" hint-placeholder-count="8">
+        <div style="display:flex;gap:10px;align-items:flex-start;font-size:13.5px;line-height:1.55;color:#4d4e4c">
+          <span style="width:5px;height:5px;border-radius:50%;background:#0f9d6b;flex:none;margin-top:7px"></span>
+          <span>{{ c }}</span>
+        </div>
+      </sc-for>
+    </div>
+  </section>
+
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props="{}">
+class Component extends DCLogic {
+  renderVals() {
+    return {
+      light: [
+        { name: 'Background', value: '#fcfcfb' },
+        { name: 'Surface', value: '#f2f2f0' },
+        { name: 'Surface raised', value: '#e9e9e6' },
+        { name: 'Text', value: '#141516' },
+        { name: 'Muted', value: '#77776f' },
+        { name: 'Faint', value: '#a3a39c' },
+        { name: 'Accent', value: '#0f9d6b' },
+        { name: 'Accent ink', value: '#0b7a53' },
+        { name: 'Warning', value: '#9a5b12' },
+      ],
+      dark: [
+        { name: 'Background', value: '#0d0e0f' },
+        { name: 'Surface', value: '#191b1c' },
+        { name: 'Surface raised', value: '#232627' },
+        { name: 'Text', value: '#f4f4f2' },
+        { name: 'Muted', value: '#8d8f8c' },
+        { name: 'Faint', value: '#6b6d6a' },
+        { name: 'Accent', value: '#2ec38a' },
+        { name: 'Accent ink', value: '#4fd8a3' },
+        { name: 'Warning', value: '#e0a95f' },
+      ],
+      typeScale: [
+        { role: 'Screen title', size: '30px', weight: 700, tracking: '-.026em', sample: 'Vade', spec: '30 / 700 / -2.6%' },
+        { role: 'Sheet title', size: '21px', weight: 700, tracking: '-.02em', sample: 'Protection style', spec: '21 / 700' },
+        { role: 'Name', size: '15.5px', weight: 700, tracking: '-.012em', sample: 'Mira Sandoval', spec: '15.5 / 700' },
+        { role: 'Message', size: '15px', weight: 400, tracking: '.02em', sample: 'Ѕєє уσυ αт тhє ѕтαтιση', spec: '15 / 400 / +2%' },
+        { role: 'Row secondary', size: '13px', weight: 400, tracking: '0', sample: 'Protected conversation', spec: '13 / 400' },
+        { role: 'Meta', size: '11.5px', weight: 700, tracking: '.01em', sample: 'Revealed · 6s', spec: '11.5 / 700' },
+        { role: 'Section label', size: '11px', weight: 400, tracking: '.09em', sample: 'PRIVACY & SECURITY', spec: '11 / caps / +9%' },
+      ],
+      spacing: [
+        { value: '4px', label: '4 · icon gap' },
+        { value: '9px', label: '9 · stack' },
+        { value: '13px', label: '13 · row' },
+        { value: '18px', label: '18 · gutter' },
+        { value: '26px', label: '26 · section' },
+        { value: '35px', label: '35 · screen' },
+      ],
+      radii: [
+        { value: '999px', label: 'Pill — inputs, buttons, badges' },
+        { value: '22px 22px 7px 22px', label: 'Bubble — 22, tail 7' },
+        { value: '20px', label: 'Card, settings group' },
+        { value: '30px', label: 'Sheet, gesture pad' },
+      ],
+      modes: [
+        { name: 'Classic', sample: 'Ѕєє уσυ αт тhє ѕтαтιση тσηιghт', note: 'Homoglyphs hold sentence shape and length. Familiar, and obviously not readable.' },
+        { name: 'Illusion', sample: 'Sounds good, talk later', note: 'Renders as a plausible unrelated message, so a glance over the shoulder finds nothing worth reading.' },
+        { name: 'Pattern', sample: '◇ logistics   ▇▇▇ ▇▇▇ ▇▇ ▇▇▇ ▇▇▇▇▇▇▇ ▇▇▇▇▇▇▇', note: 'No letterforms at all — an intent marker plus the rhythm of the message.' },
+      ],
+      states: [
+        { name: 'Verified', color: '#0b7a53', treatment: 'Emerald check and the word, in the header subtitle. Quiet — the normal case should not announce itself.' },
+        { name: 'Unverified', color: '#77776f', treatment: 'Muted text, no icon. Present, not nagging.' },
+        { name: 'Key changed', color: '#9a5b12', treatment: 'Ochre header subtitle plus a bordered banner under the header with a single action: review the safety number. Also flagged in the conversation list row.' },
+        { name: 'Offline', color: '#77776f', treatment: 'Header subtitle only; composer stays visible and queues.' },
+        { name: 'Revealed', color: '#0b7a53', treatment: 'Emerald outline on the bubble, a 3px countdown bar, the seconds remaining, and Hide. Re-protects automatically.' },
+      ],
+      motion: [
+        { what: 'Conversation open', timing: '200ms ease', note: 'Cross-fade; no slide, no parallax.' },
+        { what: 'Message appear', timing: '220ms ease', note: '6px rise with fade.' },
+        { what: 'Sheet present', timing: '240ms · (.32,.72,0,1)', note: 'Translate from the bottom edge.' },
+        { what: 'Overlay in', timing: '180ms ease', note: 'Backdrop fade with a 3px blur.' },
+        { what: 'Gesture step', timing: '180ms ease', note: 'Progress pip widens 7px → 26px.' },
+        { what: 'Reveal / re-protect', timing: '0ms', note: 'Instant, deliberately. Plaintext is never animated.' },
+      ],
+      layout: [
+        { what: 'Mobile frame', note: '390 × 844 reference. 22px screen gutter, 16px inside the chat, 82px bottom bar with a 4px active dot.' },
+        { what: 'Conversation row', note: '44px avatar, 13px gap, 13px vertical padding, hairline divider. Row height 70px — nothing is cramped.' },
+        { what: 'Bubbles', note: 'Max 80% of the pane on mobile, 60% on desktop. 7px tail corner marks the sender; no tails, no shadows.' },
+        { what: 'Composer', note: 'Pill field between two 44px circular actions, on a hairline top edge.' },
+        { what: 'Sheets', note: 'Full-width, 30px top corners, 38 × 4px grab handle, dismiss by backdrop tap.' },
+        { what: 'Desktop', note: '96px icon rail · 352px list · fluid chat · 312px security sidebar. Chat column caps at 820px so lines stay readable on wide displays.' },
+        { what: 'Breakpoints', note: 'Below 1180px the security sidebar collapses to the overflow menu; below 900px the list becomes a pushed pane, not a squeeze.' },
+      ],
+      android: [
+        { what: 'Navigation', note: 'Bottom bar for the three roots; system back leaves chat, sheets and overlays before the app.' },
+        { what: 'Insets', note: 'Edge-to-edge with the bar drawn over the navigation inset; content padded by WindowInsets, never by fixed values.' },
+        { what: 'Touch targets', note: '48dp minimum for every row and icon button; visual size can stay smaller than the target.' },
+        { what: 'Feedback', note: 'Material ripple replaces the web hover tint. Pressed states keep the same token, not a new colour.' },
+        { what: 'Keyboard', note: 'IME resizes the timeline, composer pinned above it; the last message stays in view without jumps.' },
+        { what: 'Screen protection', note: 'FLAG_SECURE is set for the reveal window and cleared on re-protect, so screenshots and recents previews stay protected.' },
+        { what: 'Notifications', note: 'Title and "Protected message" only. No content, no protected rendering, no reply-from-notification.' },
+        { what: 'Motion', note: 'Same 150–300ms envelope; use platform easing and honour the system animation scale plus reduced-motion.' },
+      ],
+      a11y: [
+        'Every interactive element has an accessible name, a role, and a visible focus state.',
+        'Protected bubbles announce "Protected message, double-tap to reveal" — never the plaintext.',
+        'A revealed bubble announces the remaining time and offers Hide as its action.',
+        'Security state is announced as text; the icon is decorative.',
+        'The Key changed banner is a live region, announced once when it appears.',
+        'Gesture reveal offers a keyboard and screen-reader path; failure says only that the gesture did not match.',
+      ],
+      constraints: [
+        'Conversation list shows "Protected conversation" — it never decrypts to build a preview.',
+        'Accessibility labels expose the protected representation, never the plaintext.',
+        'No plaintext in notifications, clipboard, tooltips, titles or hidden DOM.',
+        'Reveal is gesture-authorised, time-boxed, and per message.',
+        'Failure messages say only that the gesture did not match.',
+        'Protection style is a local rendering preference; it is never transmitted.',
+        'Security-sensitive actions — verify, unverify, revoke — take a confirmation.',
+        'Device rows show safe metadata only: name, platform, last active.',
+      ],
+    };
+  }
+}
+</script>
+</body>
+</html>

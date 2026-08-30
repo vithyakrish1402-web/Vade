@@ -1,0 +1,209 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet data-dc-atomics><link rel="stylesheet" href="_ds/organic-4c4c1d32-eead-48fa-bfaf-8328c780b53c/styles.css"><script src="_ds/organic-4c4c1d32-eead-48fa-bfaf-8328c780b53c/_ds_bundle.js"></script><style>
+body{margin:0;background:#fcfcfb;color:#141516;font-family:"Figtree",system-ui,sans-serif;-webkit-font-smoothing:antialiased}
+h1,h2,h3,h4,h5,h6{font-family:"Figtree",system-ui,sans-serif}
+a{color:#0b7a53}a:hover{color:#095f41}
+code{font-family:ui-monospace,SFMono-Regular,Menlo,monospace;font-size:12.5px;background:#f2f2f0;padding:1px 5px;border-radius:5px}
+</style></helmet>
+
+<div style="max-width:940px;margin:0 auto;padding:64px 40px 96px;display:flex;flex-direction:column;gap:54px">
+
+  <header style="display:flex;flex-direction:column;gap:10px">
+    <div style="font-size:11px;letter-spacing:.11em;text-transform:uppercase;color:#a3a39c">Vade · developer handoff</div>
+    <h1 style="margin:0;font-weight:700;font-size:42px;letter-spacing:-.03em;line-height:1.06">What to build, in what order, against which files.</h1>
+    <p style="margin:6px 0 0;font-size:16px;line-height:1.6;color:#4d4e4c;max-width:640px">The designs live in <code>Vade.dc.html</code> (mobile, interactive), <code>Vade Desktop.dc.html</code> (web) and <code>Vade Spec.dc.html</code> (tokens and rules). This page is the bridge to <code>vithyakrish1402-web/Vade</code> — every screen mapped to the components that already exist, plus the states and contracts they need.</p>
+  </header>
+
+  <section style="display:flex;flex-direction:column;gap:16px">
+    <h2 style="margin:0;font-weight:700;font-size:13px;letter-spacing:.1em;text-transform:uppercase;color:#77776f">Screen map</h2>
+    <div style="border:1px solid rgba(20,21,22,.1);border-radius:20px;overflow:hidden">
+      <div style="display:grid;grid-template-columns:160px 1fr 1fr;gap:16px;padding:11px 18px;background:#f2f2f0;font-size:11px;letter-spacing:.08em;text-transform:uppercase;color:#77776f;font-weight:700">
+        <span>Screen</span><span>Existing code</span><span>Work needed</span>
+      </div>
+      <sc-for list="{{ screens }}" as="s" hint-placeholder-count="9">
+        <div style="display:grid;grid-template-columns:160px 1fr 1fr;gap:16px;padding:13px 18px;border-top:1px solid rgba(20,21,22,.08);font-size:13px;line-height:1.5">
+          <span style="font-weight:700">{{ s.name }}</span>
+          <span style="color:#4d4e4c;font-family:ui-monospace,SFMono-Regular,Menlo,monospace;font-size:11.5px;word-break:break-word">{{ s.code }}</span>
+          <span style="color:#4d4e4c">{{ s.work }}</span>
+        </div>
+      </sc-for>
+    </div>
+  </section>
+
+  <section style="display:flex;flex-direction:column;gap:16px">
+    <h2 style="margin:0;font-weight:700;font-size:13px;letter-spacing:.1em;text-transform:uppercase;color:#77776f">Build order</h2>
+    <div style="display:flex;flex-direction:column;gap:12px">
+      <sc-for list="{{ phases }}" as="p" hint-placeholder-count="5">
+        <div style="display:flex;gap:16px;align-items:flex-start;border:1px solid rgba(20,21,22,.1);border-radius:20px;padding:16px 18px">
+          <span style="width:30px;height:30px;border-radius:50%;background:#141516;color:#fcfcfb;display:flex;align-items:center;justify-content:center;font-size:13px;font-weight:700;flex:none">{{ p.n }}</span>
+          <span style="min-width:0;flex:1">
+            <span style="display:block;font-size:15.5px;font-weight:700;letter-spacing:-.014em">{{ p.title }}</span>
+            <span style="display:block;font-size:13.5px;line-height:1.55;color:#4d4e4c;margin-top:3px">{{ p.body }}</span>
+            <span style="display:block;font-size:12px;color:#77776f;margin-top:7px">Done when: {{ p.dod }}</span>
+          </span>
+        </div>
+      </sc-for>
+    </div>
+  </section>
+
+  <section style="display:flex;flex-direction:column;gap:16px">
+    <h2 style="margin:0;font-weight:700;font-size:13px;letter-spacing:.1em;text-transform:uppercase;color:#77776f">Component inventory</h2>
+    <div style="border:1px solid rgba(20,21,22,.1);border-radius:20px;overflow:hidden">
+      <sc-for list="{{ components }}" as="c" hint-placeholder-count="10">
+        <div style="display:grid;grid-template-columns:190px 1fr;gap:16px;padding:12px 18px;border-bottom:1px solid rgba(20,21,22,.08);font-size:13px;line-height:1.5">
+          <span style="font-family:ui-monospace,SFMono-Regular,Menlo,monospace;font-size:12px;font-weight:600">{{ c.name }}</span>
+          <span style="color:#4d4e4c">{{ c.note }}</span>
+        </div>
+      </sc-for>
+    </div>
+  </section>
+
+  <section style="display:flex;flex-direction:column;gap:16px">
+    <h2 style="margin:0;font-weight:700;font-size:13px;letter-spacing:.1em;text-transform:uppercase;color:#77776f">State matrix</h2>
+    <p style="margin:0;font-size:13.5px;line-height:1.6;color:#4d4e4c;max-width:660px">Every row is reachable in the prototype through the tweak props <code>connection</code>, <code>dataState</code>, <code>securityState</code>, <code>protectionStyle</code> and <code>theme</code>. Build all of them; none is optional.</p>
+    <div style="border:1px solid rgba(20,21,22,.1);border-radius:20px;overflow:hidden">
+      <div style="display:grid;grid-template-columns:150px 1fr 1fr;gap:16px;padding:11px 18px;background:#f2f2f0;font-size:11px;letter-spacing:.08em;text-transform:uppercase;color:#77776f;font-weight:700">
+        <span>Surface</span><span>State</span><span>Treatment</span>
+      </div>
+      <sc-for list="{{ states }}" as="s" hint-placeholder-count="10">
+        <div style="display:grid;grid-template-columns:150px 1fr 1fr;gap:16px;padding:12px 18px;border-top:1px solid rgba(20,21,22,.08);font-size:13px;line-height:1.5">
+          <span style="font-weight:700">{{ s.surface }}</span>
+          <span style="color:#4d4e4c">{{ s.state }}</span>
+          <span style="color:#4d4e4c">{{ s.treatment }}</span>
+        </div>
+      </sc-for>
+    </div>
+  </section>
+
+  <section style="display:flex;flex-direction:column;gap:16px">
+    <h2 style="margin:0;font-weight:700;font-size:13px;letter-spacing:.1em;text-transform:uppercase;color:#77776f">Gesture enrollment contract</h2>
+    <div style="display:grid;grid-template-columns:repeat(2,1fr);gap:14px">
+      <sc-for list="{{ gestureRules }}" as="g" hint-placeholder-count="6">
+        <div style="border:1px solid rgba(20,21,22,.1);border-radius:18px;padding:15px 17px">
+          <div style="font-size:14px;font-weight:700;letter-spacing:-.012em">{{ g.title }}</div>
+          <div style="font-size:13px;line-height:1.55;color:#4d4e4c;margin-top:4px">{{ g.body }}</div>
+        </div>
+      </sc-for>
+    </div>
+    <p style="margin:0;font-size:13px;line-height:1.6;color:#4d4e4c;max-width:660px">The prototype's matcher is illustrative: 12-point resampled, bounding-box normalised, mean point distance with a 0.22 threshold. Production should replace it with a template matcher tuned on real strokes, and must never persist raw stroke coordinates — store a salted hash of the normalised signature.</p>
+  </section>
+
+  <section style="display:flex;flex-direction:column;gap:16px">
+    <h2 style="margin:0;font-weight:700;font-size:13px;letter-spacing:.1em;text-transform:uppercase;color:#77776f">Acceptance criteria</h2>
+    <div style="display:grid;grid-template-columns:repeat(2,1fr);gap:10px 24px">
+      <sc-for list="{{ acceptance }}" as="a" hint-placeholder-count="10">
+        <div style="display:flex;gap:10px;align-items:flex-start;font-size:13.5px;line-height:1.55;color:#4d4e4c">
+          <span style="width:16px;height:16px;border-radius:4px;border:1.5px solid #c2c2be;flex:none;margin-top:2px"></span>
+          <span>{{ a }}</span>
+        </div>
+      </sc-for>
+    </div>
+  </section>
+
+  <section style="display:flex;flex-direction:column;gap:14px">
+    <h2 style="margin:0;font-weight:700;font-size:13px;letter-spacing:.1em;text-transform:uppercase;color:#77776f">Open questions for the team</h2>
+    <div style="display:flex;flex-direction:column;gap:9px">
+      <sc-for list="{{ questions }}" as="q" hint-placeholder-count="4">
+        <div style="display:flex;gap:11px;align-items:flex-start;font-size:13.5px;line-height:1.55;color:#4d4e4c">
+          <span style="width:5px;height:5px;border-radius:50%;background:#9a5b12;flex:none;margin-top:7px"></span>
+          <span>{{ q }}</span>
+        </div>
+      </sc-for>
+    </div>
+  </section>
+
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props="{}">
+class Component extends DCLogic {
+  renderVals() {
+    return {
+      screens: [
+        { name: 'Welcome', code: '— (new)', work: 'New screen. Three value points, get started, sign in.' },
+        { name: 'Register / Login', code: 'pages/RegisterPage.tsx, pages/LoginPage.tsx', work: 'Restyle to pill fields; register now hands off to enrollment instead of the dashboard.' },
+        { name: 'Gesture enrollment', code: 'components/gesture/GestureCanvas.tsx', work: 'New 4-step flow. Reuse the canvas; add draw / confirm / mismatch / style / done stages.' },
+        { name: 'Messages', code: 'pages/DashboardPage.tsx, components/chat/ConversationList.tsx', work: 'Drop the tab shell for a bottom bar; add empty state, offline banner, swipe row actions.' },
+        { name: 'Search', code: 'components/chat/UserSearch.tsx', work: 'Own screen rather than a dashboard tab; add the no-results state and the scope note.' },
+        { name: 'Chat', code: 'pages/ConversationPage.tsx, components/chat/*', work: 'New bubble geometry, reveal outline, countdown row, long-press action sheet, queued / failed meta.' },
+        { name: 'Gesture reveal', code: 'components/gesture/GestureRevealModal.tsx', work: 'Full-bleed overlay instead of a card modal; three pips; per-message, time-boxed.' },
+        { name: 'Contact security', code: 'components/security/ContactSecurityModal.tsx', work: 'Promote modal to a screen; verify / unverify behind confirmations.' },
+        { name: 'Devices', code: 'components/security/DeviceManagement.tsx', work: 'Per-device revoke with confirmation; safe metadata only.' },
+        { name: 'Profile', code: 'pages/DashboardPage.tsx (Profile tab)', work: 'Grouped settings list; protection style sheet; theme switch.' },
+        { name: 'Desktop', code: '— (new)', work: 'Three-pane layout: rail, list, chat with security sidebar.' },
+      ],
+      phases: [
+        { n: '1', title: 'Tokens and primitives', body: 'Land the two palettes, Figtree, the spacing / radius scales, and the pill button, input, row, sheet and chip primitives. Replace slate/emerald usage at the source rather than per screen.', dod: 'Existing screens render on the new tokens with no hard-coded colors left in components.' },
+        { n: '2', title: 'Chat surface', body: 'Bubble geometry, protected rendering for all three styles, reveal outline and countdown, meta row with receipt / queued / failed.', dod: 'A protected thread renders correctly in light and dark, all three styles, offline and online.' },
+        { n: '3', title: 'Reveal path', body: 'Gesture overlay, per-message authorisation, time-boxed window, automatic re-protect, long-press action sheet.', dod: 'Reveal is impossible without a matching gesture and always expires; no plaintext outside the window.' },
+        { n: '4', title: 'Enrollment and shell', body: 'Welcome, register, the four-step gesture enrollment, bottom navigation, messages list with empty and offline states.', dod: 'A new account reaches a working thread without touching the old dashboard tabs.' },
+        { n: '5', title: 'Security surfaces and desktop', body: 'Contact security screen, devices with revoke, key-changed banner and list flag, then the three-pane web layout.', dod: 'Every state in the matrix below is reachable and passes the acceptance list.' },
+      ],
+      components: [
+        { name: 'VadeButton', note: 'Pill, 52px primary / 44–48px secondary. Solid (text-on-inverse), outlined, and text-only variants.' },
+        { name: 'VadeField', note: 'Pill input, 52px, surface fill, accent border on focus, label above only where ambiguity exists.' },
+        { name: 'ConversationRow', note: '44px avatar, name + verification / warning icon, protection line, time, unread pill. Swipeable to archive / mute.' },
+        { name: 'ProtectedBubble', note: 'Takes the message plus the active style; renders protected text, never plaintext. Tail corner 7px on the sender side.' },
+        { name: 'RevealedBubble', note: 'Plain text with a 1.5px accent outline at 2px offset. Separate component so plaintext lives in exactly one place.' },
+        { name: 'RevealCountdown', note: '26 × 3px track, accent fill, seconds remaining, Hide action. Owns the expiry timer.' },
+        { name: 'GesturePad', note: 'Nine-dot grid, single continuous stroke, normalised signature out. Shared by enrollment and reveal.' },
+        { name: 'SecurityChip', note: 'Verified / Unverified / Key changed / Offline. Icon plus word, tinted from the matching ramp.' },
+        { name: 'KeyChangedBanner', note: 'Ochre bordered banner, live region, one action. Appears under the chat header and flags the list row.' },
+        { name: 'ActionSheet', note: '30px top corners, grab handle, row list, backdrop dismiss. Used by protection style and message actions.' },
+        { name: 'ConfirmDialog', note: '26px radius, title, body, Cancel + action. Required for verify, unverify, revoke, delete.' },
+        { name: 'SettingsGroup', note: '20px radius surface, hairline-divided rows, value on the right, chevron for navigation.' },
+      ],
+      states: [
+        { surface: 'Messages', state: 'Empty', treatment: 'Centred icon, "No conversations yet", find someone action.' },
+        { surface: 'Messages', state: 'Offline / connecting', treatment: 'Surface banner with a warning dot above the list; rows stay interactive.' },
+        { surface: 'Messages', state: 'Row swiped', treatment: 'Row translates up to 136px revealing Archive and Mute; settles past 60px.' },
+        { surface: 'Search', state: 'No results', treatment: '"No one found" plus a spelling hint; scope note stays visible.' },
+        { surface: 'Chat', state: 'Message queued', treatment: 'Clock icon, "Queued · sends when online" in place of the receipt.' },
+        { surface: 'Chat', state: 'Send failed', treatment: 'Ochre "Not delivered" with an inline Retry; bubble stays in place.' },
+        { surface: 'Chat', state: 'Key changed', treatment: 'Ochre header subtitle plus banner; reveal still works but the warning does not dismiss itself.' },
+        { surface: 'Chat', state: 'Long press', treatment: 'Action sheet: reveal or hide, reply, details, delete for me. No copy, no forward.' },
+        { surface: 'Reveal', state: 'Gesture mismatch', treatment: 'Stroke turns ochre, pad border ochre, message says only that it did not match.' },
+        { surface: 'Enrollment', state: 'Confirm mismatch', treatment: 'Retry in place; after three attempts offer start over with a simpler shape.' },
+        { surface: 'Devices', state: 'Revoked', treatment: 'Row meta reads Revoked, action removed. Current device is never revocable.' },
+      ],
+      gestureRules: [
+        { title: 'One continuous stroke', body: 'Pointer down to pointer up. Multi-stroke gestures were tested and rejected: too easy to mistime under pressure.' },
+        { title: 'Minimum length', body: 'Reject strokes under roughly 100px of travel — short flicks are neither memorable nor distinctive.' },
+        { title: 'Confirm before saving', body: 'The shape must be repeated once within tolerance. A single sample is not enough to enroll.' },
+        { title: 'Reveal needs three', body: 'Enrollment confirms once; revealing a message requires three consecutive matching strokes.' },
+        { title: 'Failure says nothing', body: 'Never indicate how close the attempt was, which part diverged, or how many attempts remain.' },
+        { title: 'Never stored raw', body: 'Persist a salted hash of the normalised signature. Raw coordinates leave the pad only in memory.' },
+      ],
+      acceptance: [
+        'No plaintext renders outside an active, gesture-authorised reveal window.',
+        'Conversation list and notifications never decrypt message bodies.',
+        'Accessibility labels expose the protected representation, not the plaintext.',
+        'Reveal expires on its own; leaving and returning to a thread re-protects everything.',
+        'Protection style changes rendering only, is device-local, and is never transmitted.',
+        'Verify, unverify, revoke and delete each require an explicit confirmation.',
+        'Key changed is visible in both the list row and the chat header, and persists until resolved.',
+        'Every interactive element has a name, a role, a 48dp target and a visible focus state.',
+        'Light and dark both pass contrast at the documented token pairs.',
+        'FLAG_SECURE is set for the reveal window on Android and cleared on re-protect.',
+        'prefers-reduced-motion removes animation without removing feedback.',
+        'Offline: composing works, sending queues, and no state is silently lost.',
+      ],
+      questions: [
+        'Does the reveal window need to be user-configurable, or fixed at six seconds? The prototype exposes 3–15s.',
+        'Should Illusion style draw its decoy text from a fixed local pool, or from a per-conversation seed? The second is more convincing but leaks a little structure.',
+        'Archive and mute are drawn on the swipe row but have no backend today — cut them from v1, or build them?',
+        'Group conversations are out of scope in these designs. Confirm that holds for the first release.',
+      ],
+    };
+  }
+}
+</script>
+</body>
+</html>

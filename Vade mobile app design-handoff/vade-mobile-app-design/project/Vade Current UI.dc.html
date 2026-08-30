@@ -1,0 +1,239 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet data-dc-atomics><meta name="design_doc_mode" content="canvas"><link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin><link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet"><style>
+body{margin:0;background:#e9e7e2;font-family:Inter,system-ui,sans-serif}
+a{color:#0f172a}a:hover{color:#059669}
+.dv-turn{padding:40px 44px 32px;border-bottom:1px solid rgba(0,0,0,.08)}
+.dv-thd{display:flex;align-items:baseline;gap:10px;margin:0 0 6px}
+.dv-tid{font:600 10px ui-monospace,Menlo,monospace;padding:3px 7px;background:#1a1a1a;color:#fff;border-radius:4px;text-decoration:none}
+.dv-tname{font:600 13px/1.2 Inter,system-ui,sans-serif;color:#1a1a1a}
+.dv-tsub{margin:0 0 22px;font:400 12px/1.6 Inter,system-ui,sans-serif;color:rgba(0,0,0,.5);max-width:620px}
+.dv-opts{display:flex;flex-wrap:wrap;gap:28px;align-items:flex-start}
+.dv-opt{flex:none;display:flex;flex-direction:column;gap:9px;scroll-margin-top:16px}
+.dv-oid{font:600 10.5px ui-monospace,Menlo,monospace;padding:3px 7px;background:rgba(0,0,0,.08);color:#1a1a1a;border-radius:5px;text-decoration:none}
+.dv-olabel{display:flex;align-items:baseline;gap:8px;font:400 11px/1.3 Inter,system-ui,sans-serif;color:rgba(0,0,0,.55)}
+.dv-card{width:390px;background:#020617;border:1px solid rgba(0,0,0,.12);border-radius:10px;overflow:hidden;color:#f1f5f9}
+.dv-opt:target .dv-oid{background:#2a78d6;color:#fff}
+.dv-next{margin:22px 0 0;font:12px/1.5 Inter,system-ui,sans-serif;color:rgba(0,0,0,.5)}
+.ic{display:inline-block;flex:none}
+.mono{font-family:ui-monospace,SFMono-Regular,Menlo,monospace}
+</style></helmet>
+
+<section class="dv-turn" id="t1">
+<div class="dv-thd"><a class="dv-tid" href="#t1">1</a><span class="dv-tname">Vade today — recreated from the repo</span></div>
+<p class="dv-tsub">Faithful rebuild of the current web client at mobile width, from <span class="mono">client/src</span>: dark slate surfaces, emerald accent, Inter, rounded-2xl/3xl cards, Lucide icons. This is the baseline the redesign moves away from — I have not changed anything here.</p>
+<div class="dv-opts">
+
+<div class="dv-opt" id="1a"><div class="dv-olabel"><a class="dv-oid" href="#1a">1a</a>LoginPage + Navbar + footer chrome</div>
+<div class="dv-card">
+  <div style="height:64px;border-bottom:1px solid #1e293b;background:rgba(2,6,23,.8);display:flex;align-items:center;justify-content:space-between;padding:0 16px">
+    <div style="display:flex;align-items:center;gap:10px">
+      <div style="width:32px;height:32px;border-radius:8px;background:rgba(16,185,129,.1);border:1px solid rgba(16,185,129,.3);display:flex;align-items:center;justify-content:center"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#34d399" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="flex:none;display:block"><path d="M20 13c0 5-3.5 7.5-7.66 8.95a1 1 0 0 1-.67-.01C7.5 20.5 4 18 4 13V6a1 1 0 0 1 1-1c2 0 4.5-1.2 6.24-2.72a1.17 1.17 0 0 1 1.52 0C14.51 3.81 17 5 19 5a1 1 0 0 1 1 1z"></path></svg></div>
+      <div style="display:flex;flex-direction:column;gap:2px"><span style="font-weight:700;font-size:16px;line-height:1;letter-spacing:-.01em">Private Chat</span><span class="mono" style="font-size:10px;text-transform:uppercase;color:#10b981;letter-spacing:.08em">enctxt</span></div>
+    </div>
+    <div style="display:flex;align-items:center;gap:6px">
+      <span style="padding:6px 12px;border-radius:12px;font-size:12px;font-weight:500;background:#1e293b;color:#fff;display:flex;align-items:center;gap:6px"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="flex:none;display:block"><path d="M22 17a2 2 0 0 1-2 2H6.828a2 2 0 0 0-1.414.586l-2.202 2.202A.71.71 0 0 1 2 21.286V5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2z"></path></svg>Home</span>
+      <span style="padding:6px 12px;border-radius:12px;font-size:12px;font-weight:500;color:#94a3b8;display:flex;align-items:center;gap:6px"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#94a3b8" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="flex:none;display:block"><path d="M2.586 17.414A2 2 0 0 0 2 18.828V21a1 1 0 0 0 1 1h3a1 1 0 0 0 1-1v-1a1 1 0 0 1 1-1h1a1 1 0 0 0 1-1v-1a1 1 0 0 1 1-1h.172a2 2 0 0 0 1.414-.586l.814-.814a6.5 6.5 0 1 0-4-4z"></path> <circle cx="16.5" cy="7.5" r=".5" fill="currentColor"></circle></svg>Sign In</span>
+    </div>
+  </div>
+  <div style="padding:48px 16px;display:flex;align-items:center;justify-content:center">
+    <div style="width:100%;background:#0f172a;border:1px solid #1e293b;border-radius:24px;padding:24px;display:flex;flex-direction:column;gap:24px;box-shadow:0 25px 50px -12px rgba(0,0,0,.5)">
+      <div style="text-align:center;display:flex;flex-direction:column;gap:8px;align-items:center">
+        <div style="width:48px;height:48px;border-radius:16px;background:rgba(16,185,129,.1);border:1px solid rgba(16,185,129,.3);display:flex;align-items:center;justify-content:center"><svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#34d399" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="flex:none;display:block"><path d="M2.586 17.414A2 2 0 0 0 2 18.828V21a1 1 0 0 0 1 1h3a1 1 0 0 0 1-1v-1a1 1 0 0 1 1-1h1a1 1 0 0 0 1-1v-1a1 1 0 0 1 1-1h.172a2 2 0 0 0 1.414-.586l.814-.814a6.5 6.5 0 1 0-4-4z"></path> <circle cx="16.5" cy="7.5" r=".5" fill="currentColor"></circle></svg></div>
+        <h2 style="margin:0;font-size:24px;font-weight:700;color:#f1f5f9">Sign In</h2>
+        <p style="margin:0;font-size:12px;color:#94a3b8">Access your end-to-end encrypted workspace</p>
+      </div>
+      <div style="display:flex;flex-direction:column;gap:16px">
+        <div style="display:flex;flex-direction:column;gap:6px">
+          <label style="font-size:12px;font-weight:500;color:#cbd5e1">Username or Email<span style="color:#10b981;margin-left:4px">*</span></label>
+          <div style="min-height:44px;padding:10px 14px;background:#020617;border:1px solid #1e293b;border-radius:12px;font-size:14px;color:#64748b;display:flex;align-items:center">e.g. alice or alice@example.com</div>
+        </div>
+        <div style="display:flex;flex-direction:column;gap:6px">
+          <label style="font-size:12px;font-weight:500;color:#cbd5e1">Password<span style="color:#10b981;margin-left:4px">*</span></label>
+          <div style="min-height:44px;padding:10px 14px;background:#020617;border:1px solid #1e293b;border-radius:12px;font-size:14px;color:#64748b;display:flex;align-items:center;justify-content:space-between"><span>••••••••••••</span><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#94a3b8" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="flex:none;display:block"><path d="M2.062 12.348a1 1 0 0 1 0-.696 10.75 10.75 0 0 1 19.876 0 1 1 0 0 1 0 .696 10.75 10.75 0 0 1-19.876 0"></path> <circle cx="12" cy="12" r="3"></circle></svg></div>
+        </div>
+        <div style="min-height:44px;margin-top:8px;background:#059669;border-radius:12px;display:flex;align-items:center;justify-content:center;gap:8px;font-size:14px;font-weight:500;color:#fff;box-shadow:0 4px 6px -1px rgba(2,44,34,.4)">Sign In<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="flex:none;display:block"><path d="M5 12h14"></path> <path d="m12 5 7 7-7 7"></path></svg></div>
+      </div>
+      <div style="text-align:center;padding-top:8px;border-top:1px solid rgba(30,41,59,.8)">
+        <p style="margin:0;font-size:12px;color:#94a3b8">Don&apos;t have an account? <span style="font-weight:600;color:#34d399">Create Account</span></p>
+      </div>
+    </div>
+  </div>
+  <div style="border-top:1px solid rgba(30,41,59,.8);padding:24px 16px;background:rgba(2,6,23,.6);display:flex;flex-direction:column;align-items:center;gap:8px;text-align:center">
+    <div style="display:flex;align-items:center;gap:8px;font-size:12px;color:#64748b"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#10b981" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="flex:none;display:block"><path d="M20 13c0 5-3.5 7.5-7.66 8.95a1 1 0 0 1-.67-.01C7.5 20.5 4 18 4 13V6a1 1 0 0 1 1-1c2 0 4.5-1.2 6.24-2.72a1.17 1.17 0 0 1 1.52 0C14.51 3.81 17 5 19 5a1 1 0 0 1 1 1z"></path></svg><span>Private Chat (enctxt) — Phase 9</span></div>
+    <span class="mono" style="font-size:11px;color:#475569">Privacy, Integrity &amp; Accessibility First</span>
+  </div>
+</div>
+</div>
+
+<div class="dv-opt" id="1b"><div class="dv-olabel"><a class="dv-oid" href="#1b">1b</a>DashboardPage — Chats tab</div>
+<div class="dv-card">
+  <div style="height:64px;border-bottom:1px solid #1e293b;background:rgba(2,6,23,.8);display:flex;align-items:center;justify-content:space-between;padding:0 16px">
+    <div style="display:flex;align-items:center;gap:10px">
+      <div style="width:32px;height:32px;border-radius:8px;background:rgba(16,185,129,.1);border:1px solid rgba(16,185,129,.3);display:flex;align-items:center;justify-content:center"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#34d399" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="flex:none;display:block"><path d="M20 13c0 5-3.5 7.5-7.66 8.95a1 1 0 0 1-.67-.01C7.5 20.5 4 18 4 13V6a1 1 0 0 1 1-1c2 0 4.5-1.2 6.24-2.72a1.17 1.17 0 0 1 1.52 0C14.51 3.81 17 5 19 5a1 1 0 0 1 1 1z"></path></svg></div>
+      <div style="display:flex;flex-direction:column;gap:2px"><span style="font-weight:700;font-size:16px;line-height:1;letter-spacing:-.01em">Private Chat</span><span class="mono" style="font-size:10px;text-transform:uppercase;color:#10b981;letter-spacing:.08em">enctxt</span></div>
+    </div>
+    <div style="display:flex;align-items:center;gap:4px">
+      <span style="padding:6px 10px;border-radius:12px;font-size:12px;font-weight:500;background:#1e293b;color:#fff;display:flex;align-items:center;gap:6px"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="flex:none;display:block"><rect width="7" height="9" x="3" y="3" rx="1"></rect> <rect width="7" height="5" x="14" y="3" rx="1"></rect> <rect width="7" height="9" x="14" y="12" rx="1"></rect> <rect width="7" height="5" x="3" y="16" rx="1"></rect></svg>Workspace</span>
+      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#94a3b8" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="flex:none;display:block"><path d="m16 17 5-5-5-5"></path> <path d="M21 12H9"></path> <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"></path></svg>
+    </div>
+  </div>
+  <div style="padding:24px 16px;display:flex;flex-direction:column;gap:24px">
+    <div style="padding:20px;border-radius:24px;background:#0f172a;border:1px solid #1e293b;display:flex;flex-direction:column;gap:16px;box-shadow:0 20px 25px -5px rgba(0,0,0,.4)">
+      <div style="display:flex;flex-direction:column;gap:4px">
+        <div style="align-self:flex-start;display:inline-flex;align-items:center;gap:6px;padding:2px 12px;border-radius:999px;font-size:12px;font-weight:500;background:rgba(16,185,129,.1);color:#34d399;border:1px solid rgba(16,185,129,.2)"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#34d399" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="flex:none;display:block"><path d="M20 13c0 5-3.5 7.5-7.66 8.95a1 1 0 0 1-.67-.01C7.5 20.5 4 18 4 13V6a1 1 0 0 1 1-1c2 0 4.5-1.2 6.24-2.72a1.17 1.17 0 0 1 1.52 0C14.51 3.81 17 5 19 5a1 1 0 0 1 1 1z"></path></svg><span>End-to-End Encrypted Workspace</span></div>
+        <h1 style="margin:2px 0 0;font-size:20px;font-weight:700;color:#f1f5f9">Welcome, Ada Lovelace</h1>
+        <p class="mono" style="margin:0;font-size:12px;color:#94a3b8">@ada</p>
+      </div>
+      <div style="display:flex;gap:6px;padding:6px;background:#020617;border:1px solid #1e293b;border-radius:16px">
+        <span style="padding:6px 12px;border-radius:12px;font-size:12px;font-weight:600;background:#1e293b;color:#fff;display:flex;align-items:center;gap:6px"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="flex:none;display:block"><path d="M22 17a2 2 0 0 1-2 2H6.828a2 2 0 0 0-1.414.586l-2.202 2.202A.71.71 0 0 1 2 21.286V5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2z"></path></svg>Chats (4)</span>
+        <span style="padding:6px 10px;border-radius:12px;font-size:12px;font-weight:600;color:#94a3b8;display:flex;align-items:center;gap:6px"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#94a3b8" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="flex:none;display:block"><path d="m21 21-4.34-4.34"></path> <circle cx="11" cy="11" r="8"></circle></svg>Find</span>
+        <span style="padding:6px 10px;border-radius:12px;font-size:12px;font-weight:600;color:#94a3b8;display:flex;align-items:center;gap:6px"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#94a3b8" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="flex:none;display:block"><path d="M19 21v-2a4 4 0 0 0-4-4H9a4 4 0 0 0-4 4v2"></path> <circle cx="12" cy="7" r="4"></circle></svg>Profile</span>
+      </div>
+    </div>
+
+    <div style="background:#0f172a;border:1px solid #1e293b;border-radius:24px;padding:20px;display:flex;flex-direction:column;gap:16px;box-shadow:0 20px 25px -5px rgba(0,0,0,.4)">
+      <div style="display:flex;align-items:center;justify-content:space-between;gap:8px;padding-bottom:12px;border-bottom:1px solid #1e293b">
+        <h2 style="margin:0;font-size:14px;font-weight:700;text-transform:uppercase;letter-spacing:.06em;color:#cbd5e1;display:flex;align-items:center;gap:8px"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#34d399" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="flex:none;display:block"><path d="M22 17a2 2 0 0 1-2 2H6.828a2 2 0 0 0-1.414.586l-2.202 2.202A.71.71 0 0 1 2 21.286V5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2z"></path></svg>Conversations</h2>
+        <span style="min-height:36px;padding:6px 12px;border:1px solid #334155;border-radius:12px;font-size:12px;font-weight:500;color:#cbd5e1;display:flex;align-items:center;gap:6px"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#cbd5e1" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="flex:none;display:block"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"></path> <circle cx="9" cy="7" r="4"></circle> <line x1="19" x2="19" y1="8" y2="14"></line> <line x1="22" x2="16" y1="11" y2="11"></line></svg>New</span>
+      </div>
+      <div style="border:1px solid #1e293b;border-radius:16px;overflow:hidden;background:rgba(2,6,23,.3)">
+        <sc-for list="{{ legacyConvos }}" as="c" hint-placeholder-count="4">
+          <div style="padding:16px;display:flex;align-items:center;justify-content:space-between;gap:8px;background:rgba(2,6,23,.4);border-bottom:1px solid rgba(30,41,59,.8)">
+            <div style="display:flex;align-items:center;gap:14px;min-width:0">
+              <div style="width:40px;height:40px;border-radius:999px;background:#1e293b;border:1px solid #334155;display:flex;align-items:center;justify-content:center;font-size:14px;font-weight:700;color:#34d399;flex:none">{{ c.initial }}</div>
+              <div style="min-width:0;display:flex;flex-direction:column;gap:2px">
+                <div style="display:flex;align-items:center;gap:8px"><p style="margin:0;font-size:14px;font-weight:600;color:#f1f5f9">{{ c.name }}</p><sc-if value="{{ c.verified }}" hint-placeholder-val="{{ true }}"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#34d399" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="flex:none;display:block"><path d="M20 13c0 5-3.5 7.5-7.66 8.95a1 1 0 0 1-.67-.01C7.5 20.5 4 18 4 13V6a1 1 0 0 1 1-1c2 0 4.5-1.2 6.24-2.72a1.17 1.17 0 0 1 1.52 0C14.51 3.81 17 5 19 5a1 1 0 0 1 1 1z"></path> <path d="m9 12 2 2 4-4"></path></svg></sc-if></div>
+                <div style="display:flex;align-items:center;gap:6px"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="rgba(16,185,129,.7)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="flex:none;display:block"><rect width="18" height="11" x="3" y="11" rx="2" ry="2"></rect> <path d="M7 11V7a5 5 0 0 1 10 0v4"></path></svg><span style="font-size:11px;color:#94a3b8">Protected conversation</span></div>
+              </div>
+            </div>
+            <div style="display:flex;align-items:center;gap:10px;flex:none">
+              <span class="mono" style="font-size:11px;color:#64748b">{{ c.time }}</span>
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#475569" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="flex:none;display:block"><path d="M5 12h14"></path> <path d="m12 5 7 7-7 7"></path></svg>
+            </div>
+          </div>
+        </sc-for>
+      </div>
+    </div>
+  </div>
+</div>
+</div>
+
+<div class="dv-opt" id="1c"><div class="dv-olabel"><a class="dv-oid" href="#1c">1c</a>ConversationPage — protected timeline</div>
+<div class="dv-card">
+  <div style="padding:8px;display:flex;flex-direction:column;height:844px">
+    <div style="background:#0f172a;border:1px solid #1e293b;border-radius:16px;display:flex;flex-direction:column;flex:1;overflow:hidden;box-shadow:0 25px 50px -12px rgba(0,0,0,.6)">
+      <div style="border-bottom:1px solid #1e293b;background:rgba(2,6,23,.8);padding:12px 16px;display:flex;align-items:center;justify-content:space-between;gap:12px">
+        <div style="display:flex;align-items:center;gap:12px;min-width:0">
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#94a3b8" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="flex:none;display:block"><path d="m12 19-7-7 7-7"></path> <path d="M19 12H5"></path></svg>
+          <div style="width:40px;height:40px;border-radius:999px;background:#1e293b;border:1px solid #334155;display:flex;align-items:center;justify-content:center;font-size:14px;font-weight:700;color:#34d399;flex:none">M</div>
+          <div style="min-width:0">
+            <h2 style="margin:0;font-size:14px;font-weight:700;color:#f1f5f9">Mira Sandoval</h2>
+            <div style="display:flex;align-items:center;gap:8px;margin-top:2px">
+              <span class="mono" style="font-size:11px;color:#94a3b8">@mira</span>
+              <span style="display:inline-flex;align-items:center;gap:6px;padding:3px 10px;border-radius:999px;font-size:11px;font-weight:500;background:rgba(16,185,129,.1);color:#6ee7b7;border:1px solid rgba(16,185,129,.3)"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="#34d399" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="flex:none;display:block"><path d="M20 13c0 5-3.5 7.5-7.66 8.95a1 1 0 0 1-.67-.01C7.5 20.5 4 18 4 13V6a1 1 0 0 1 1-1c2 0 4.5-1.2 6.24-2.72a1.17 1.17 0 0 1 1.52 0C14.51 3.81 17 5 19 5a1 1 0 0 1 1 1z"></path> <path d="m9 12 2 2 4-4"></path></svg>Verified</span>
+            </div>
+          </div>
+        </div>
+        <span style="display:inline-flex;align-items:center;gap:6px;padding:3px 10px;border-radius:999px;font-size:11px;font-weight:500;background:rgba(16,185,129,.1);color:#34d399;border:1px solid rgba(16,185,129,.2);flex:none"><span style="width:6px;height:6px;border-radius:999px;background:#34d399"></span>Live</span>
+      </div>
+      <div style="flex:1;overflow:hidden;padding:16px;background:rgba(2,6,23,.4);display:flex;flex-direction:column;justify-content:flex-end;gap:4px">
+        <sc-for list="{{ legacyMessages }}" as="m" hint-placeholder-count="5">
+          <div style="display:flex;flex-direction:column;margin-bottom:10px;align-items:{{ m.align }}">
+            <div style="max-width:85%;position:relative">
+              <div style="padding:10px 16px;font-size:14px;line-height:1.6;border-radius:16px;word-break:break-word;background:{{ m.bg }};color:{{ m.fg }};border:1px solid {{ m.bd }}">{{ m.text }}</div>
+            </div>
+            <div class="mono" style="display:flex;align-items:center;gap:6px;margin-top:4px;padding:0 4px;font-size:10px;color:#64748b">{{ m.meta }}<sc-if value="{{ m.receipt }}" hint-placeholder-val="{{ true }}"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="#94a3b8" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="flex:none;display:block"><path d="M18 6 7 17l-5-5"></path> <path d="m22 10-7.5 7.5L13 16"></path></svg></sc-if></div>
+          </div>
+        </sc-for>
+      </div>
+      <div style="padding:12px;border-top:1px solid #1e293b;background:rgba(2,6,23,.8)">
+        <div style="display:flex;align-items:flex-end;gap:8px;background:#0f172a;border:1px solid #1e293b;border-radius:16px;padding:8px">
+          <div style="flex:1;padding:8px 10px;font-size:14px;color:#64748b;min-height:38px">Type an encrypted message... (Press Enter to send)</div>
+          <div style="width:40px;height:40px;border-radius:12px;background:#059669;display:flex;align-items:center;justify-content:center;flex:none"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="flex:none;display:block"><path d="M14.536 21.686a.5.5 0 0 0 .937-.024l6.5-19a.496.496 0 0 0-.635-.635l-19 6.5a.5.5 0 0 0-.024.937l7.93 3.18a2 2 0 0 1 1.112 1.11z"></path> <path d="m21.854 2.147-10.94 10.939"></path></svg></div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+</div>
+
+<div class="dv-opt" id="1d"><div class="dv-olabel"><a class="dv-oid" href="#1d">1d</a>GestureRevealModal + ContactSecurityModal</div>
+<div class="dv-card" style="background:#020617;padding:20px;display:flex;flex-direction:column;gap:20px">
+  <div style="background:#0f172a;border:1px solid #1e293b;border-radius:16px;overflow:hidden;box-shadow:0 25px 50px -12px rgba(0,0,0,.6)">
+    <div style="padding:16px;border-bottom:1px solid #1e293b;display:flex;align-items:flex-start;justify-content:space-between;gap:12px">
+      <h3 style="margin:0;font-size:16px;font-weight:700;color:#f1f5f9">Reveal Message (Step 1 of 3)</h3>
+      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#94a3b8" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="flex:none;display:block"><path d="M18 6 6 18"></path> <path d="m6 6 12 12"></path></svg>
+    </div>
+    <div style="padding:16px;display:flex;flex-direction:column;align-items:center;gap:12px">
+      <div style="display:flex;align-items:center;gap:8px">
+        <span style="width:24px;height:8px;border-radius:999px;background:#34d399"></span>
+        <span style="width:8px;height:8px;border-radius:999px;background:#1e293b"></span>
+        <span style="width:8px;height:8px;border-radius:999px;background:#1e293b"></span>
+      </div>
+      <p style="margin:0;font-size:12px;font-weight:500;color:#cbd5e1">Draw gesture 1 of 3</p>
+      <div style="width:240px;height:240px;background:#020617;border:1px solid #1e293b;border-radius:16px;display:flex;align-items:center;justify-content:center"><span class="mono" style="font-size:11px;color:#475569">gesture canvas</span></div>
+      <p style="margin:0;font-size:12px;color:#64748b">Draw your secret gesture on the canvas above.</p>
+    </div>
+  </div>
+
+  <div style="background:#0f172a;border:1px solid #1e293b;border-radius:16px;overflow:hidden;box-shadow:0 25px 50px -12px rgba(0,0,0,.6)">
+    <div style="padding:16px;border-bottom:1px solid #1e293b">
+      <h3 style="margin:0;font-size:16px;font-weight:700;color:#f1f5f9">Encryption &amp; Identity Verification</h3>
+      <p style="margin:4px 0 0;font-size:12px;color:#94a3b8">Verify end-to-end encryption keys with @mira</p>
+    </div>
+    <div style="padding:16px;display:flex;flex-direction:column;gap:16px">
+      <div style="display:flex;align-items:center;gap:12px;padding:12px;border-radius:16px;background:rgba(2,6,23,.6);border:1px solid #1e293b">
+        <div style="padding:10px;border-radius:12px;background:rgba(16,185,129,.1);border:1px solid rgba(16,185,129,.3)"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#34d399" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="flex:none;display:block"><path d="M20 13c0 5-3.5 7.5-7.66 8.95a1 1 0 0 1-.67-.01C7.5 20.5 4 18 4 13V6a1 1 0 0 1 1-1c2 0 4.5-1.2 6.24-2.72a1.17 1.17 0 0 1 1.52 0C14.51 3.81 17 5 19 5a1 1 0 0 1 1 1z"></path> <path d="m9 12 2 2 4-4"></path></svg></div>
+        <div><p style="margin:0;font-size:12px;font-weight:600;color:#e2e8f0">Identity Verified</p><p style="margin:2px 0 0;font-size:11px;color:#94a3b8">You have confirmed the safety numbers match.</p></div>
+      </div>
+      <div style="padding:16px;background:#020617;border:1px solid #1e293b;border-radius:16px;text-align:center">
+        <p class="mono" style="margin:0;font-size:18px;font-weight:700;letter-spacing:.06em;color:#34d399">48321 72904 18273 66421</p>
+        <p style="margin:8px auto 0;font-size:11px;line-height:1.6;color:#94a3b8;max-width:260px">Compare this safety number with Mira Sandoval in person or via a trusted channel.</p>
+      </div>
+      <div style="padding:12px;background:rgba(2,6,23,.6);border:1px solid rgba(30,41,59,.8);border-radius:16px;display:flex;flex-direction:column;gap:8px;font-size:12px">
+        <div style="display:flex;align-items:center;justify-content:space-between;color:#94a3b8"><span>Protocol:</span><span class="mono" style="color:#e2e8f0">v1 · AES-256-GCM · ECDH-P256</span></div>
+        <div style="padding-top:8px;border-top:1px solid rgba(30,41,59,.8)">
+          <span style="font-size:10px;color:#64748b;text-transform:uppercase;letter-spacing:.08em;font-weight:500">Public Key Fingerprint (SHA-256):</span>
+          <p class="mono" style="margin:4px 0 0;font-size:10px;color:#94a3b8;background:rgba(15,23,42,.8);border:1px solid #1e293b;border-radius:12px;padding:8px;word-break:break-all">A7D4 92F1 8C20 4E73 55BD 1E09 C4A8 66F2 30D7 9B14 E8C5 7A21</p>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+</div>
+
+</div>
+<p class="dv-next">Answer the form and I'll put the redesign in a new turn above this one. You can reference cards by id in chat, e.g. "the timeline in <a class="dv-oid" href="#1c">1c</a>".</p>
+</section>
+</x-dc>
+<script type="text/x-dc" data-dc-script>
+class Component extends DCLogic {
+  renderVals() {
+    return {
+      legacyConvos: [
+        { initial: 'M', name: 'Mira Sandoval', verified: true, time: '10:42 AM' },
+        { initial: 'T', name: 'Tomas Weill', verified: false, time: 'Yesterday' },
+        { initial: 'K', name: 'Kenji Arai', verified: true, time: 'Aug 25' },
+        { initial: 'D', name: 'Dana Okonkwo', verified: false, time: 'Aug 22' },
+      ],
+      legacyMessages: [
+        { text: 'Нєllσ, hσw αrє уσυ?', bg: '#1e293b', fg: '#f1f5f9', bd: 'rgba(51,65,85,.6)', meta: '9:58 AM', align: 'flex-start' },
+        { text: 'Ѕєє уσυ αт тhє ѕтαтιση тσηιghт', bg: '#059669', fg: '#fff', bd: 'transparent', meta: '10:02 AM', receipt: true, align: 'flex-end' },
+        { text: 'Διd уσυ gєт тhє fιlє?', bg: '#1e293b', fg: '#f1f5f9', bd: 'rgba(51,65,85,.6)', meta: '10:14 AM', align: 'flex-start' },
+        { text: 'Сσηfιrмєd. 9ρм.', bg: '#059669', fg: '#fff', bd: 'transparent', meta: '10:31 AM', receipt: true, align: 'flex-end' },
+        { text: 'Ι\u2019ll вrιηg тhє dσсυмєηтѕ', bg: '#047857', fg: '#fff', bd: 'rgba(52,211,153,.5)', meta: 'REVEALED · 6s   10:42 AM', receipt: true, align: 'flex-end' },
+      ],
+    };
+  }
+}
+</script>
+</body>
+</html>

@@ -1,0 +1,271 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet data-dc-atomics><link rel="stylesheet" href="_ds/organic-4c4c1d32-eead-48fa-bfaf-8328c780b53c/styles.css"><script src="_ds/organic-4c4c1d32-eead-48fa-bfaf-8328c780b53c/_ds_bundle.js"></script><style>
+body{margin:0;background:#0d0e0f;font-family:"Figtree",system-ui,sans-serif;-webkit-font-smoothing:antialiased}
+h1,h2,h3,h4,h5,h6{font-family:"Figtree",system-ui,sans-serif;margin:0}
+a{color:#0b7a53}a:hover{color:#095f41}
+</style></helmet>
+
+<x-import component-from-global-scope="deck-stage" from="./deck-stage.js" width="1920" height="1080" hint-size="100%,100%">
+
+<section data-label="Cover" data-screen-label="01" data-speaker-notes="Vade mobile redesign. Ten minutes: the problem, the one idea, and what we are asking engineering to build." style="width:1920px;height:1080px;background:#fcfcfb;color:#141516;padding:120px 140px;display:flex;flex-direction:column;justify-content:space-between;box-sizing:border-box">
+  <div style="font-size:26px;letter-spacing:.14em;text-transform:uppercase;color:#a3a39c">Design review · August 2026</div>
+  <div>
+    <h1 style="font-size:190px;font-weight:700;letter-spacing:-.04em;line-height:.92">Vade</h1>
+    <p style="margin:28px 0 0;font-size:52px;line-height:1.25;color:#4d4e4c;max-width:1150px">A private messenger where nothing readable sits on your screen until you ask for it.</p>
+  </div>
+  <div style="display:flex;align-items:center;gap:18px;font-size:28px;color:#77776f">
+    <span style="width:12px;height:12px;border-radius:50%;background:#0f9d6b"></span>
+    <span>Mobile · Desktop · Design system · Handoff</span>
+  </div>
+</section>
+
+<section data-label="Problem" data-screen-label="02" data-speaker-notes="The current build works but reads as a security tool, not a messenger. Dark slate, emerald everywhere, badges on every row. The privacy signal is lost in the noise." style="width:1920px;height:1080px;background:#fcfcfb;color:#141516;padding:120px 140px;display:flex;flex-direction:column;justify-content:center;gap:64px;box-sizing:border-box">
+  <h2 style="font-size:96px;font-weight:700;letter-spacing:-.03em;line-height:1.05;max-width:1400px">The product was signalling security everywhere, so it signalled nothing.</h2>
+  <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:56px">
+    <div>
+      <div style="font-size:34px;font-weight:700;margin-bottom:14px">Colour did no work</div>
+      <p style="margin:0;font-size:30px;line-height:1.45;color:#4d4e4c">Emerald sat on buttons, badges, avatars, icons and rules alike. Verification looked like everything else.</p>
+    </div>
+    <div>
+      <div style="font-size:34px;font-weight:700;margin-bottom:14px">Chrome over content</div>
+      <p style="margin:0;font-size:30px;line-height:1.45;color:#4d4e4c">Cards inside cards inside tabs. On a 390px screen the message was the smallest thing on it.</p>
+    </div>
+    <div>
+      <div style="font-size:34px;font-weight:700;margin-bottom:14px">States were missing</div>
+      <p style="margin:0;font-size:30px;line-height:1.45;color:#4d4e4c">No empty, offline, queued or failed states. Key changed looked like a badge, not a warning.</p>
+    </div>
+  </div>
+</section>
+
+<section data-label="One idea" data-screen-label="03" data-speaker-notes="Everything follows from this. Monochrome surfaces, one green, used only when privacy state is being reported." style="width:1920px;height:1080px;background:#141516;color:#fcfcfb;padding:120px 140px;display:flex;flex-direction:column;justify-content:center;gap:44px;box-sizing:border-box">
+  <div style="font-size:26px;letter-spacing:.14em;text-transform:uppercase;color:#6b6d6a">The one idea</div>
+  <h2 style="font-size:118px;font-weight:700;letter-spacing:-.035em;line-height:1.02;max-width:1500px">Monochrome everything, so one green can mean something.</h2>
+  <p style="margin:0;font-size:40px;line-height:1.4;color:#8d8f8c;max-width:1250px">Green appears in exactly four places: verified, revealed, unread, and enrollment complete. Nowhere else. When you see it, the app is telling you something about privacy.</p>
+</section>
+
+<section data-label="Protected text" data-screen-label="04" data-speaker-notes="Three ways to render a protected message. All three are local rendering choices; encryption is identical. The user picks during onboarding and can change it any time." style="width:1920px;height:1080px;background:#fcfcfb;color:#141516;padding:110px 140px;display:flex;flex-direction:column;gap:56px;box-sizing:border-box">
+  <div>
+    <h2 style="font-size:88px;font-weight:700;letter-spacing:-.03em;line-height:1.05">Three ways to hide a sentence</h2>
+    <p style="margin:20px 0 0;font-size:32px;color:#4d4e4c">Same encryption. Different thing to look at.</p>
+  </div>
+  <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:40px">
+    <div style="border:1px solid rgba(20,21,22,.12);border-radius:32px;padding:44px 40px;display:flex;flex-direction:column;gap:26px">
+      <div style="font-size:38px;font-weight:700">Classic</div>
+      <div style="background:#f2f2f0;border-radius:32px 32px 32px 10px;padding:26px 30px;font-size:32px;line-height:1.45;letter-spacing:.02em">Ѕєє уσυ αт тhє ѕтαтιση тσηιghт</div>
+      <p style="margin:0;font-size:27px;line-height:1.45;color:#4d4e4c">Look-alike letterforms. Keeps the shape of the sentence, obviously unreadable.</p>
+    </div>
+    <div style="border:1px solid rgba(20,21,22,.12);border-radius:32px;padding:44px 40px;display:flex;flex-direction:column;gap:26px">
+      <div style="font-size:38px;font-weight:700">Illusion</div>
+      <div style="background:#f2f2f0;border-radius:32px 32px 32px 10px;padding:26px 30px;font-size:32px;line-height:1.45">Sounds good, talk later</div>
+      <p style="margin:0;font-size:27px;line-height:1.45;color:#4d4e4c">Reads as an ordinary unrelated message. A glance over the shoulder finds nothing.</p>
+    </div>
+    <div style="border:1px solid rgba(20,21,22,.12);border-radius:32px;padding:44px 40px;display:flex;flex-direction:column;gap:26px">
+      <div style="font-size:38px;font-weight:700">Pattern</div>
+      <div style="background:#f2f2f0;border-radius:32px 32px 32px 10px;padding:26px 30px;font-size:32px;line-height:1.45;letter-spacing:.02em">◇ logistics&nbsp;&nbsp; ▇▇▇ ▇▇▇ ▇▇ ▇▇▇ ▇▇▇▇▇▇▇</div>
+      <p style="margin:0;font-size:27px;line-height:1.45;color:#4d4e4c">No letterforms at all. An intent marker and the rhythm of the message.</p>
+    </div>
+  </div>
+</section>
+
+<section data-label="Reveal" data-screen-label="05" data-speaker-notes="Tap, draw three strokes, read, and it re-protects itself. The countdown is visible the whole time so nobody is surprised." style="width:1920px;height:1080px;background:#fcfcfb;color:#141516;padding:110px 140px;display:flex;flex-direction:column;gap:60px;box-sizing:border-box">
+  <h2 style="font-size:88px;font-weight:700;letter-spacing:-.03em;line-height:1.05">Reading is a deliberate act</h2>
+  <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:36px;align-items:start">
+    <div style="display:flex;flex-direction:column;gap:20px">
+      <div style="width:66px;height:66px;border-radius:50%;background:#141516;color:#fcfcfb;display:flex;align-items:center;justify-content:center;font-size:30px;font-weight:700">1</div>
+      <div style="font-size:36px;font-weight:700">Tap the message</div>
+      <p style="margin:0;font-size:28px;line-height:1.45;color:#4d4e4c">Per message, never per conversation. Opening a thread reveals nothing.</p>
+    </div>
+    <div style="display:flex;flex-direction:column;gap:20px">
+      <div style="width:66px;height:66px;border-radius:50%;background:#141516;color:#fcfcfb;display:flex;align-items:center;justify-content:center;font-size:30px;font-weight:700">2</div>
+      <div style="font-size:36px;font-weight:700">Draw three strokes</div>
+      <p style="margin:0;font-size:28px;line-height:1.45;color:#4d4e4c">Your gesture, set up on this device. A mismatch says only that it did not match.</p>
+    </div>
+    <div style="display:flex;flex-direction:column;gap:20px">
+      <div style="width:66px;height:66px;border-radius:50%;background:#0f9d6b;color:#fff;display:flex;align-items:center;justify-content:center;font-size:30px;font-weight:700">3</div>
+      <div style="font-size:36px;font-weight:700">Read it, outlined</div>
+      <p style="margin:0;font-size:28px;line-height:1.45;color:#4d4e4c">Green outline, seconds counting down, Hide available at any moment.</p>
+    </div>
+    <div style="display:flex;flex-direction:column;gap:20px">
+      <div style="width:66px;height:66px;border-radius:50%;border:2px solid rgba(20,21,22,.2);display:flex;align-items:center;justify-content:center;font-size:30px;font-weight:700;color:#77776f">4</div>
+      <div style="font-size:36px;font-weight:700">It protects itself</div>
+      <p style="margin:0;font-size:28px;line-height:1.45;color:#4d4e4c">No animation on the way out. Instant, so no motion extends exposure.</p>
+    </div>
+  </div>
+  <div style="margin-top:auto;display:flex;align-items:center;gap:20px;padding:32px 40px;border-radius:28px;background:#f2f2f0;font-size:30px;line-height:1.4;color:#4d4e4c">
+    <span style="width:12px;height:12px;border-radius:50%;background:#0f9d6b;flex:none"></span>
+    <span>Plaintext exists only inside that window — not in previews, notifications, clipboard, tooltips or hidden markup.</span>
+  </div>
+</section>
+
+<section data-label="Security states" data-screen-label="06" data-speaker-notes="Key changed is the state that matters. It is ochre, not red, and it does not dismiss itself." style="width:1920px;height:1080px;background:#141516;color:#fcfcfb;padding:110px 140px;display:flex;flex-direction:column;gap:56px;box-sizing:border-box">
+  <h2 style="font-size:88px;font-weight:700;letter-spacing:-.03em;line-height:1.05">Trust has four states, and each has a word</h2>
+  <div style="display:flex;flex-direction:column;gap:0">
+    <div style="display:grid;grid-template-columns:340px 1fr;gap:48px;padding:34px 0;border-bottom:1px solid rgba(244,244,242,.14)">
+      <span style="font-size:40px;font-weight:700;color:#4fd8a3">Verified</span>
+      <span style="font-size:32px;line-height:1.4;color:#8d8f8c">Safety numbers compared. Quiet by design — the normal case should not announce itself.</span>
+    </div>
+    <div style="display:grid;grid-template-columns:340px 1fr;gap:48px;padding:34px 0;border-bottom:1px solid rgba(244,244,242,.14)">
+      <span style="font-size:40px;font-weight:700;color:#8d8f8c">Unverified</span>
+      <span style="font-size:32px;line-height:1.4;color:#8d8f8c">Encrypted, not yet confirmed. Stated once, never nagged.</span>
+    </div>
+    <div style="display:grid;grid-template-columns:340px 1fr;gap:48px;padding:34px 0;border-bottom:1px solid rgba(244,244,242,.14)">
+      <span style="font-size:40px;font-weight:700;color:#e0a95f">Key changed</span>
+      <span style="font-size:32px;line-height:1.4;color:#8d8f8c">Ochre banner under the header with one action, plus a flag on the list row. Persists until resolved.</span>
+    </div>
+    <div style="display:grid;grid-template-columns:340px 1fr;gap:48px;padding:34px 0">
+      <span style="font-size:40px;font-weight:700;color:#8d8f8c">Offline</span>
+      <span style="font-size:32px;line-height:1.4;color:#8d8f8c">Compose freely; messages queue and say so. Nothing is silently lost.</span>
+    </div>
+  </div>
+</section>
+
+<section data-label="Onboarding" data-screen-label="07" data-speaker-notes="Four steps. The gesture is drawn, confirmed, then the protection style is chosen. Nothing about keys is asked of the user." style="width:1920px;height:1080px;background:#fcfcfb;color:#141516;padding:110px 140px;display:flex;flex-direction:column;gap:56px;box-sizing:border-box">
+  <div>
+    <h2 style="font-size:88px;font-weight:700;letter-spacing:-.03em;line-height:1.05">Setup asks for one thing</h2>
+    <p style="margin:20px 0 0;font-size:34px;color:#4d4e4c">A shape you can repeat. Everything else happens without the user.</p>
+  </div>
+  <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:36px">
+    <div style="border-radius:32px;background:#f2f2f0;padding:44px 40px;display:flex;flex-direction:column;gap:18px">
+      <div style="font-size:26px;letter-spacing:.1em;text-transform:uppercase;color:#77776f">Step 1</div>
+      <div style="font-size:38px;font-weight:700">Explain</div>
+      <p style="margin:0;font-size:28px;line-height:1.45;color:#4d4e4c">Why a gesture and not a passphrase, in one sentence.</p>
+    </div>
+    <div style="border-radius:32px;background:#f2f2f0;padding:44px 40px;display:flex;flex-direction:column;gap:18px">
+      <div style="font-size:26px;letter-spacing:.1em;text-transform:uppercase;color:#77776f">Step 2</div>
+      <div style="font-size:38px;font-weight:700">Draw</div>
+      <p style="margin:0;font-size:28px;line-height:1.45;color:#4d4e4c">One continuous stroke on a nine-dot grid. Short flicks rejected.</p>
+    </div>
+    <div style="border-radius:32px;background:#f2f2f0;padding:44px 40px;display:flex;flex-direction:column;gap:18px">
+      <div style="font-size:26px;letter-spacing:.1em;text-transform:uppercase;color:#77776f">Step 3</div>
+      <div style="font-size:38px;font-weight:700">Confirm</div>
+      <p style="margin:0;font-size:28px;line-height:1.45;color:#4d4e4c">Repeat it once. Three misses offers a simpler shape instead of a lockout.</p>
+    </div>
+    <div style="border-radius:32px;background:#e8f5ef;padding:44px 40px;display:flex;flex-direction:column;gap:18px">
+      <div style="font-size:26px;letter-spacing:.1em;text-transform:uppercase;color:#0b7a53">Step 4</div>
+      <div style="font-size:38px;font-weight:700">Choose the look</div>
+      <p style="margin:0;font-size:28px;line-height:1.45;color:#4d4e4c">Pick a protection style with live previews, then start messaging.</p>
+    </div>
+  </div>
+</section>
+
+<section data-label="Coverage" data-screen-label="08" data-speaker-notes="Eleven states, all reachable in the prototype through tweak props. This is the list engineering builds against." style="width:1920px;height:1080px;background:#fcfcfb;color:#141516;padding:110px 140px;display:flex;flex-direction:column;gap:52px;box-sizing:border-box">
+  <div>
+    <h2 style="font-size:88px;font-weight:700;letter-spacing:-.03em;line-height:1.05">The states, not just the screens</h2>
+    <p style="margin:20px 0 0;font-size:32px;color:#4d4e4c">Every one is reachable in the prototype and listed in the handoff.</p>
+  </div>
+  <div style="display:grid;grid-template-columns:repeat(2,1fr);gap:22px 64px;font-size:31px;line-height:1.4">
+    <div style="display:flex;gap:18px"><span style="width:10px;height:10px;border-radius:50%;background:#141516;flex:none;margin-top:14px"></span><span>Empty conversation list</span></div>
+    <div style="display:flex;gap:18px"><span style="width:10px;height:10px;border-radius:50%;background:#141516;flex:none;margin-top:14px"></span><span>Offline and reconnecting banners</span></div>
+    <div style="display:flex;gap:18px"><span style="width:10px;height:10px;border-radius:50%;background:#141516;flex:none;margin-top:14px"></span><span>Message queued, sends when online</span></div>
+    <div style="display:flex;gap:18px"><span style="width:10px;height:10px;border-radius:50%;background:#141516;flex:none;margin-top:14px"></span><span>Send failed with inline retry</span></div>
+    <div style="display:flex;gap:18px"><span style="width:10px;height:10px;border-radius:50%;background:#141516;flex:none;margin-top:14px"></span><span>No search results</span></div>
+    <div style="display:flex;gap:18px"><span style="width:10px;height:10px;border-radius:50%;background:#141516;flex:none;margin-top:14px"></span><span>Row swiped to archive or mute</span></div>
+    <div style="display:flex;gap:18px"><span style="width:10px;height:10px;border-radius:50%;background:#141516;flex:none;margin-top:14px"></span><span>Long-press message actions</span></div>
+    <div style="display:flex;gap:18px"><span style="width:10px;height:10px;border-radius:50%;background:#141516;flex:none;margin-top:14px"></span><span>Gesture mismatch on reveal and on enrollment</span></div>
+    <div style="display:flex;gap:18px"><span style="width:10px;height:10px;border-radius:50%;background:#141516;flex:none;margin-top:14px"></span><span>Key changed, in list and in chat</span></div>
+    <div style="display:flex;gap:18px"><span style="width:10px;height:10px;border-radius:50%;background:#141516;flex:none;margin-top:14px"></span><span>Device revoked</span></div>
+    <div style="display:flex;gap:18px"><span style="width:10px;height:10px;border-radius:50%;background:#141516;flex:none;margin-top:14px"></span><span>Light and dark, three protection styles</span></div>
+    <div style="display:flex;gap:18px"><span style="width:10px;height:10px;border-radius:50%;background:#141516;flex:none;margin-top:14px"></span><span>Reduced motion</span></div>
+  </div>
+</section>
+
+<section data-label="Desktop" data-screen-label="09" data-speaker-notes="Same tokens, same reveal rules, three panes. The security sidebar puts the safety number where verification actually happens." style="width:1920px;height:1080px;background:#141516;color:#fcfcfb;padding:110px 140px;display:flex;flex-direction:column;justify-content:center;gap:52px;box-sizing:border-box">
+  <h2 style="font-size:88px;font-weight:700;letter-spacing:-.03em;line-height:1.05;max-width:1400px">Desktop is the same product with more room</h2>
+  <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:56px">
+    <div>
+      <div style="font-size:36px;font-weight:700;margin-bottom:14px">Three panes</div>
+      <p style="margin:0;font-size:30px;line-height:1.45;color:#8d8f8c">96px rail, 352px list, fluid chat. The chat column caps at 820px so lines stay readable.</p>
+    </div>
+    <div>
+      <div style="font-size:36px;font-weight:700;margin-bottom:14px">Security in view</div>
+      <p style="margin:0;font-size:30px;line-height:1.45;color:#8d8f8c">Safety number and fingerprint live in a sidebar, not behind a modal.</p>
+    </div>
+    <div>
+      <div style="font-size:36px;font-weight:700;margin-bottom:14px">Identical rules</div>
+      <p style="margin:0;font-size:30px;line-height:1.45;color:#8d8f8c">Same reveal window, same protection styles, same tokens. Nothing forks.</p>
+    </div>
+  </div>
+</section>
+
+<section data-label="Build order" data-screen-label="10" data-speaker-notes="Five phases. Tokens first, because everything else depends on them. Ask: confirm phase one can start this sprint." style="width:1920px;height:1080px;background:#fcfcfb;color:#141516;padding:110px 140px;display:flex;flex-direction:column;gap:48px;box-sizing:border-box">
+  <h2 style="font-size:88px;font-weight:700;letter-spacing:-.03em;line-height:1.05">What we are asking for</h2>
+  <div style="display:flex;flex-direction:column">
+    <div style="display:grid;grid-template-columns:90px 420px 1fr;gap:44px;align-items:baseline;padding:28px 0;border-bottom:1px solid rgba(20,21,22,.1)">
+      <span style="font-size:34px;font-weight:700;color:#a3a39c">01</span>
+      <span style="font-size:38px;font-weight:700">Tokens and primitives</span>
+      <span style="font-size:30px;line-height:1.4;color:#4d4e4c">Two palettes, Figtree, pill controls. Replace slate and emerald at the source.</span>
+    </div>
+    <div style="display:grid;grid-template-columns:90px 420px 1fr;gap:44px;align-items:baseline;padding:28px 0;border-bottom:1px solid rgba(20,21,22,.1)">
+      <span style="font-size:34px;font-weight:700;color:#a3a39c">02</span>
+      <span style="font-size:38px;font-weight:700">Chat surface</span>
+      <span style="font-size:30px;line-height:1.4;color:#4d4e4c">Bubbles, three protection styles, reveal outline, countdown, receipts.</span>
+    </div>
+    <div style="display:grid;grid-template-columns:90px 420px 1fr;gap:44px;align-items:baseline;padding:28px 0;border-bottom:1px solid rgba(20,21,22,.1)">
+      <span style="font-size:34px;font-weight:700;color:#a3a39c">03</span>
+      <span style="font-size:38px;font-weight:700">Reveal path</span>
+      <span style="font-size:30px;line-height:1.4;color:#4d4e4c">Gesture overlay, time-boxed window, automatic re-protect, action sheet.</span>
+    </div>
+    <div style="display:grid;grid-template-columns:90px 420px 1fr;gap:44px;align-items:baseline;padding:28px 0;border-bottom:1px solid rgba(20,21,22,.1)">
+      <span style="font-size:34px;font-weight:700;color:#a3a39c">04</span>
+      <span style="font-size:38px;font-weight:700">Enrollment and shell</span>
+      <span style="font-size:30px;line-height:1.4;color:#4d4e4c">Welcome, four-step gesture setup, bottom navigation, list states.</span>
+    </div>
+    <div style="display:grid;grid-template-columns:90px 420px 1fr;gap:44px;align-items:baseline;padding:28px 0">
+      <span style="font-size:34px;font-weight:700;color:#a3a39c">05</span>
+      <span style="font-size:38px;font-weight:700">Security and desktop</span>
+      <span style="font-size:30px;line-height:1.4;color:#4d4e4c">Contact security, devices, key-changed handling, then the three-pane web layout.</span>
+    </div>
+  </div>
+</section>
+
+<section data-label="Open questions" data-screen-label="11" data-speaker-notes="Four decisions we need from the room. Do not leave without answers to the first two." style="width:1920px;height:1080px;background:#fcfcfb;color:#141516;padding:110px 140px;display:flex;flex-direction:column;gap:52px;box-sizing:border-box">
+  <h2 style="font-size:88px;font-weight:700;letter-spacing:-.03em;line-height:1.05">Four decisions we need</h2>
+  <div style="display:flex;flex-direction:column;gap:30px">
+    <div style="display:flex;gap:26px;align-items:flex-start">
+      <span style="width:14px;height:14px;border-radius:50%;background:#9a5b12;flex:none;margin-top:18px"></span>
+      <span style="font-size:36px;line-height:1.4;max-width:1450px">Is the reveal window fixed at six seconds, or user-configurable? The prototype exposes three to fifteen.</span>
+    </div>
+    <div style="display:flex;gap:26px;align-items:flex-start">
+      <span style="width:14px;height:14px;border-radius:50%;background:#9a5b12;flex:none;margin-top:18px"></span>
+      <span style="font-size:36px;line-height:1.4;max-width:1450px">Should Illusion decoys come from a fixed local pool, or a per-conversation seed? The second is more convincing and leaks a little structure.</span>
+    </div>
+    <div style="display:flex;gap:26px;align-items:flex-start">
+      <span style="width:14px;height:14px;border-radius:50%;background:#9a5b12;flex:none;margin-top:18px"></span>
+      <span style="font-size:36px;line-height:1.4;max-width:1450px">Archive and mute are drawn on the swipe row but have no backend. Cut them from v1, or build them?</span>
+    </div>
+    <div style="display:flex;gap:26px;align-items:flex-start">
+      <span style="width:14px;height:14px;border-radius:50%;background:#9a5b12;flex:none;margin-top:18px"></span>
+      <span style="font-size:36px;line-height:1.4;max-width:1450px">Group conversations are out of scope in these designs. Confirm that holds for the first release.</span>
+    </div>
+  </div>
+</section>
+
+<section data-label="Close" data-screen-label="12" data-speaker-notes="Four files. Prototype, desktop, spec, handoff. All clickable today." style="width:1920px;height:1080px;background:#141516;color:#fcfcfb;padding:120px 140px;display:flex;flex-direction:column;justify-content:space-between;box-sizing:border-box">
+  <div style="font-size:26px;letter-spacing:.14em;text-transform:uppercase;color:#6b6d6a">What exists today</div>
+  <div>
+    <h2 style="font-size:104px;font-weight:700;letter-spacing:-.035em;line-height:1.04;max-width:1450px">Four files, all clickable.</h2>
+    <div style="display:grid;grid-template-columns:repeat(2,1fr);gap:28px 64px;margin-top:56px;font-size:34px;line-height:1.4;color:#8d8f8c">
+      <div><span style="color:#fcfcfb;font-weight:700">Vade</span> — mobile prototype, eleven screens</div>
+      <div><span style="color:#fcfcfb;font-weight:700">Vade Desktop</span> — three-pane web layout</div>
+      <div><span style="color:#fcfcfb;font-weight:700">Vade Spec</span> — tokens, type, motion, constraints</div>
+      <div><span style="color:#fcfcfb;font-weight:700">Vade Handoff</span> — screen map, build order, acceptance</div>
+    </div>
+  </div>
+  <div style="display:flex;align-items:center;gap:18px;font-size:28px;color:#6b6d6a">
+    <span style="width:12px;height:12px;border-radius:50%;background:#2ec38a"></span>
+    <span>vithyakrish1402-web/Vade</span>
+  </div>
+</section>
+
+</x-import>
+</x-dc>
+</body>
+</html>
