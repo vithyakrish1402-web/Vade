@@ -25,6 +25,10 @@ export const envSchema = z
     NODE_ENV: z.enum(['development', 'production', 'test']).default('development'),
     DATABASE_URL: z.string().min(1, 'DATABASE_URL is required'),
     CORS_ORIGIN: z.string().default('http://localhost:5173'),
+    // Optional comma-separated additional browser origins trusted to drive authenticated
+    // sessions (e.g. a Vercel preview deployment). Applies to CORS, the CSRF origin guard,
+    // and the WebSocket handshake alike — see server/src/config/origins.ts.
+    ALLOWED_ORIGINS: z.string().optional(),
     JWT_SECRET: z
       .string()
       .default('development_jwt_secret_key_minimum_32_characters_long_for_security!'),
@@ -46,7 +50,19 @@ export const envSchema = z
       }
 
       const lowerSecret = data.JWT_SECRET.toLowerCase();
-      const insecurePatterns = ['development', 'changeme', 'password', 'default_secret', 'secret123'];
+      const insecurePatterns = [
+        'development',
+        'changeme',
+        'changeit',
+        'password',
+        'default_secret',
+        'secret123',
+        'generate_',
+        'generate_a_random',
+        'generate_strong',
+        'placeholder',
+        'your_secret',
+      ];
       if (insecurePatterns.some((pattern) => lowerSecret.includes(pattern))) {
         ctx.addIssue({
           code: z.ZodIssueCode.custom,
@@ -62,6 +78,44 @@ export const envSchema = z
           path: ['CORS_ORIGIN'],
           message: 'Production CORS_ORIGIN must be an explicit trusted origin and cannot be wildcard (*)',
         });
+      }
+
+      // Production Origin Allowlist Validation (Phase 0B — Increment 0)
+      //
+      // CORS_ORIGIN and ALLOWED_ORIGINS together define the browser-origin trust boundary
+      // enforced by the CSRF guard and the WebSocket handshake, not just by CORS. A
+      // wildcard or an unparseable entry here would silently widen that boundary, so both
+      // fail startup rather than degrading at runtime.
+      if (data.ALLOWED_ORIGINS !== undefined) {
+        const entries = data.ALLOWED_ORIGINS.split(',')
+          .map((entry) => entry.trim())
+          .filter((entry) => entry !== '');
+
+        for (const entry of entries) {
+          if (entry === '*') {
+            ctx.addIssue({
+              code: z.ZodIssueCode.custom,
+              path: ['ALLOWED_ORIGINS'],
+              message: 'Production ALLOWED_ORIGINS cannot contain a wildcard (*)',
+            });
+            continue;
+          }
+
+          let parsed: URL | null = null;
+          try {
+            parsed = new URL(entry);
+          } catch {
+            parsed = null;
+          }
+
+          if (!parsed || (parsed.protocol !== 'http:' && parsed.protocol !== 'https:')) {
+            ctx.addIssue({
+              code: z.ZodIssueCode.custom,
+              path: ['ALLOWED_ORIGINS'],
+              message: `Production ALLOWED_ORIGINS entry is not a valid http(s) origin: ${entry}`,
+            });
+          }
+        }
       }
     }
   });

@@ -89,6 +89,46 @@ export class MockDatabase {
     this.conversations.clear();
     this.members.clear();
     this.messages.clear();
+    this.sessionReadsBroken = false;
+  }
+
+  // ===========================================================================
+  // Session test helpers (Phase 0B — Increment 1)
+  //
+  // These manipulate session state WITHOUT going through the application, which is the
+  // point: they model revocation happening somewhere the WebSocket layer was not told
+  // about — another process, an operator, or a code path that forgets to notify.
+  // ===========================================================================
+
+  /** Set when a test is simulating a database outage for session reads. */
+  private sessionReadsBroken = false;
+
+  listSessions(): MockSession[] {
+    return Array.from(this.sessions.values());
+  }
+
+  /** Deletes a session behind the application's back. */
+  deleteSession(sessionId: string): void {
+    this.sessions.delete(sessionId);
+  }
+
+  /** Moves a session's expiry into the past without deleting the row. */
+  expireSession(sessionId: string): void {
+    const session = this.sessions.get(sessionId);
+    if (session) {
+      this.sessions.set(sessionId, { ...session, expiresAt: new Date(Date.now() - 60_000) });
+    }
+  }
+
+  /**
+   * Makes session reads throw until the returned function is called, so a test can assert
+   * the revalidation sweep fails safe rather than signing everyone out.
+   */
+  breakSessionReads(): () => void {
+    this.sessionReadsBroken = true;
+    return () => {
+      this.sessionReadsBroken = false;
+    };
   }
 
   get userDelegate() {
@@ -336,6 +376,29 @@ export class MockDatabase {
         return found;
       },
 
+      // Supports the WebSocket session revalidation sweep, which looks up every session id
+      // currently backing a socket in one query: findMany({ where: { id: { in: [...] } } }).
+      findMany: async ({
+        where,
+        select,
+      }: {
+        where?: { id?: { in?: string[] } };
+        select?: Record<string, boolean>;
+      } = {}) => {
+        if (this.sessionReadsBroken) {
+          throw new Error('simulated database failure');
+        }
+        let rows = Array.from(this.sessions.values());
+
+        const idFilter = where?.id?.in;
+        if (idFilter) {
+          const wanted = new Set(idFilter);
+          rows = rows.filter((s) => wanted.has(s.id));
+        }
+
+        return select ? rows.map((s) => this.project(s, select)) : rows;
+      },
+
       create: async ({ data }: { data: { id?: string; userId: string; tokenHash: string; expiresAt: Date } }) => {
         const id = data.id || crypto.randomUUID();
         const session: MockSession = {
@@ -347,6 +410,15 @@ export class MockDatabase {
         };
         this.sessions.set(id, session);
         return session;
+      },
+
+      /** Test-only helper: force a session's expiry into the past without touching sockets. */
+      update: async ({ where, data }: { where: { id: string }; data: Partial<MockSession> }) => {
+        const existing = this.sessions.get(where.id);
+        if (!existing) return null;
+        const updated = { ...existing, ...data };
+        this.sessions.set(where.id, updated);
+        return updated;
       },
 
       delete: async ({ where }: { where: { id?: string; tokenHash?: string } }) => {

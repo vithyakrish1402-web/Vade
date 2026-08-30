@@ -6,6 +6,7 @@ import { signSessionToken } from '../utils/jwt.js';
 import { AppError } from '../utils/errors.js';
 import { logger } from '../utils/logger.js';
 import { config } from '../config/env.js';
+import { wsService } from './websocket.js';
 
 export interface AuthResult {
   user: UserSummary;
@@ -178,6 +179,24 @@ export class AuthService {
       });
     } catch {
       // Session already deleted or expired
+    }
+
+    // Phase 0B — Increment 1. Deleting the session row revokes it for HTTP immediately,
+    // because requireAuth re-reads it on every request. A WebSocket authenticates once at
+    // connect and never re-reads, so without this the socket stayed open and kept
+    // receiving the user's ciphertext after logout.
+    //
+    // Runs outside the try/catch above and unconditionally: whether or not the row was
+    // still there, the caller's intent is that this session stops being usable, and a
+    // socket left alive on an already-deleted row is exactly the case to close. Scoped to
+    // this session id so the user's other devices and tabs are untouched.
+    try {
+      wsService.closeSession(sessionId, 'Logged out');
+    } catch (error) {
+      logger.warn('Failed to revoke WebSocket sockets on logout', {
+        event: 'logout_ws_revocation_failed',
+        error: error instanceof Error ? error.message : 'unknown',
+      });
     }
   }
 

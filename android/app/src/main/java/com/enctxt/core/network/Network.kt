@@ -31,6 +31,34 @@ sealed class NetworkResult<out T> {
     object Loading : NetworkResult<Nothing>()
 }
 
+/**
+ * Identifies this app as a non-browser client to the server's CSRF origin guard
+ * (Phase 0B — Increment 0).
+ *
+ * The server rejects any cookie-authenticated state-changing request, and any WebSocket
+ * handshake, whose `Origin` is not an allowlisted browser origin. OkHttp sends no `Origin`
+ * at all — correctly, since this is not a browser — so without this header a production
+ * build would be refused. A hostile web page cannot impersonate a native client by copying
+ * it: any custom header forces a CORS preflight, which the server's origin allowlist
+ * refuses, so the actual request is never sent.
+ */
+const val VADE_CLIENT_HEADER = "X-Vade-Client"
+const val VADE_CLIENT_HEADER_VALUE = "android"
+
+/**
+ * Attaches [VADE_CLIENT_HEADER] to every outbound request on the client it is installed on.
+ * Applied as an interceptor rather than per-call so a request added later cannot silently
+ * omit it and start failing in production only.
+ */
+class VadeClientHeaderInterceptor : Interceptor {
+    override fun intercept(chain: Interceptor.Chain): Response {
+        val request = chain.request().newBuilder()
+            .header(VADE_CLIENT_HEADER, VADE_CLIENT_HEADER_VALUE)
+            .build()
+        return chain.proceed(request)
+    }
+}
+
 // ==============================================================================
 // 2. Cookie Management for Session Authentications
 // ==============================================================================
@@ -95,6 +123,7 @@ open class ApiClient(
 
     private val okHttpClient: OkHttpClient = OkHttpClient.Builder()
         .cookieJar(cookieJar)
+        .addInterceptor(VadeClientHeaderInterceptor())
         .connectTimeout(config.connectTimeoutSeconds, TimeUnit.SECONDS)
         .readTimeout(config.readTimeoutSeconds, TimeUnit.SECONDS)
         .build()
@@ -311,6 +340,10 @@ class WebSocketClient(
 
         val request = Request.Builder()
             .url(config.wsUrl)
+            // The server validates the handshake origin before the socket exists. OkHttp
+            // sends no Origin, so this header is what identifies the connection as a
+            // legitimate native client rather than a hijacked browser one.
+            .header(VADE_CLIENT_HEADER, VADE_CLIENT_HEADER_VALUE)
             .build()
 
         webSocket = client.newWebSocket(request, this)
