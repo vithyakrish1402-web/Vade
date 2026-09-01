@@ -139,9 +139,9 @@ export function describeProxyChain(req: Request): {
 }
 
 /**
- * One-shot startup probe that records the shape of the forwarded chain the very first
- * request arrives with, so audit item G-2 — what Render actually forwards — can be closed
- * from production logs instead of from assumption.
+ * One-shot startup probe that records the shape of the forwarded chain the first
+ * externally forwarded request arrives with, so audit item G-2 — what Render actually
+ * forwards — can be closed from production logs instead of from assumption.
  *
  * Logs only a hop *count* and a boolean, never an address: enough to tell whether the
  * configured trust matches reality, and nothing that identifies a client.
@@ -151,16 +151,25 @@ export function createProxyTopologyProbe(configuredHops: number): RequestHandler
 
   return (req: Request, _res: Response, next: NextFunction): void => {
     if (!logged) {
-      logged = true;
       const chain = describeProxyChain(req);
-      logger.info('Proxy topology observed on first request', {
-        configuredTrustedHops: configuredHops,
-        forwardedHops: chain.forwardedHops,
-        resolvedFromSocketPeer: chain.resolvedFromSocketPeer,
-        // forwardedHops > configuredTrustedHops means the configuration is UNDER-counting:
-        // req.ip is a proxy address and every client shares one rate-limit bucket (H-6).
-        underCounting: chain.forwardedHops > configuredHops,
-      });
+      // Only a request that actually carries a forwarded chain says anything about the
+      // deployment's proxy topology. Latching on the first request of any kind made this
+      // useless on Render, where the first request is always the platform's internal health
+      // check: it reaches the container directly, carries no X-Forwarded-For, and so
+      // reported forwardedHops=0 — which is a fact about the health check, not about the
+      // edge. Requests with no forwarded chain are therefore skipped without consuming the
+      // probe, and the observation waits for the first externally forwarded request.
+      if (chain.forwardedHops > 0) {
+        logged = true;
+        logger.info('Proxy topology observed on first forwarded request', {
+          configuredTrustedHops: configuredHops,
+          forwardedHops: chain.forwardedHops,
+          resolvedFromSocketPeer: chain.resolvedFromSocketPeer,
+          // forwardedHops > configuredTrustedHops means the configuration is UNDER-counting:
+          // req.ip is a proxy address and every client shares one rate-limit bucket (H-6).
+          underCounting: chain.forwardedHops > configuredHops,
+        });
+      }
     }
     next();
   };

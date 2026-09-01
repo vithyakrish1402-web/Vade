@@ -6,6 +6,7 @@ import { buildOriginPolicy } from '../src/config/origins.js';
 import {
   DEFAULT_PRODUCTION_TRUSTED_HOPS,
   MAX_TRUSTED_HOPS,
+  createProxyTopologyProbe,
   resolveTrustedProxyHops,
 } from '../src/config/trustProxy.js';
 import { createRateLimiter } from '../src/middleware/rateLimiter.js';
@@ -388,5 +389,143 @@ describe('rate limiting — existing authentication behaviour is preserved', () 
 
     expect(res.status).toBe(403);
     expect(res.body.error.code).toBe('FORBIDDEN');
+  });
+});
+
+describe('proxy topology probe — observation condition', () => {
+  /**
+   * The probe exists to answer one question in a deployed environment: how long is the
+   * forwarded chain that actually reaches the Node process?
+   *
+   * Its first version latched on the first request of any kind, which made it useless on
+   * Render: the platform's internal health check always arrives first, reaches the
+   * container directly, and carries no X-Forwarded-For. It therefore reported
+   * `forwardedHops: 0` — a fact about the health check, not about the edge — and consumed
+   * the one-shot before any externally forwarded request could be seen. These tests pin the
+   * corrected condition so that regression cannot recur silently.
+   */
+  function probeApp() {
+    const app = express();
+    app.use(createProxyTopologyProbe(1));
+    app.get('/probe', (_req, res) => {
+      res.status(200).end();
+    });
+    return app;
+  }
+
+  /** Captures what the probe logged, without changing how it logs. */
+  function captureProbeLogs(): { lines: string[]; restore: () => void } {
+    const lines: string[] = [];
+    const original = console.info;
+    console.info = (...args: unknown[]) => {
+      const text = args.map(String).join(' ');
+      if (text.includes('Proxy topology observed')) lines.push(text);
+    };
+    return { lines, restore: () => { console.info = original; } };
+  }
+
+  it('CRITICAL: a request with no X-Forwarded-For does not consume the probe', async () => {
+    const { lines, restore } = captureProbeLogs();
+    try {
+      const app = probeApp();
+
+      // Stands in for Render's internal health check: direct to the container, no chain.
+      await request(app).get('/probe');
+      await request(app).get('/probe');
+      expect(lines, 'an unforwarded request must not produce telemetry').toHaveLength(0);
+
+      // The probe is still armed, so the first forwarded request is the one observed.
+      await request(app).get('/probe').set('X-Forwarded-For', `${CLIENT_B}, ${CLIENT_A}`);
+      expect(lines).toHaveLength(1);
+      expect(lines[0]).toContain('"forwardedHops":2');
+    } finally {
+      restore();
+    }
+  });
+
+  it('observes the first forwarded request and reports the chain it carried', async () => {
+    const { lines, restore } = captureProbeLogs();
+    try {
+      await request(probeApp()).get('/probe').set('X-Forwarded-For', CLIENT_A);
+
+      expect(lines).toHaveLength(1);
+      expect(lines[0]).toContain('"configuredTrustedHops":1');
+      expect(lines[0]).toContain('"forwardedHops":1');
+      expect(lines[0]).toContain('"underCounting":false');
+      expect(lines[0]).toContain('"resolvedFromSocketPeer"');
+    } finally {
+      restore();
+    }
+  });
+
+  it('raises underCounting when the observed chain is longer than the configured trust', async () => {
+    const { lines, restore } = captureProbeLogs();
+    try {
+      await request(probeApp())
+        .get('/probe')
+        .set('X-Forwarded-For', `${CLIENT_A}, ${CLIENT_B}, 10.0.0.1`);
+
+      expect(lines).toHaveLength(1);
+      expect(lines[0]).toContain('"forwardedHops":3');
+      expect(lines[0]).toContain('"underCounting":true');
+    } finally {
+      restore();
+    }
+  });
+
+  it('stays one-shot: later requests produce no further telemetry', async () => {
+    const { lines, restore } = captureProbeLogs();
+    try {
+      const app = probeApp();
+      await request(app).get('/probe').set('X-Forwarded-For', CLIENT_A);
+      expect(lines).toHaveLength(1);
+
+      for (const chain of [CLIENT_B, `${CLIENT_A}, ${CLIENT_B}`, '10.0.0.1']) {
+        await request(app).get('/probe').set('X-Forwarded-For', chain);
+      }
+      await request(app).get('/probe');
+
+      expect(lines, 'the probe must log exactly once per process').toHaveLength(1);
+    } finally {
+      restore();
+    }
+  });
+
+  it('CRITICAL: telemetry carries no IP address and no request-borne secrets', async () => {
+    const { lines, restore } = captureProbeLogs();
+    try {
+      await request(probeApp())
+        .get('/probe')
+        .set('X-Forwarded-For', `${CLIENT_A}, ${CLIENT_B}`)
+        .set('Cookie', 'enctxt_session=super-secret-session-token')
+        .set('Authorization', 'Bearer super-secret-bearer-token');
+
+      expect(lines).toHaveLength(1);
+      const telemetry = lines[0];
+
+      expect(telemetry, 'an IP address reached the log').not.toMatch(
+        /\d{1,3}\.\d{1,3}\.\d{1,3}\.\d{1,3}/
+      );
+      for (const secret of [
+        'super-secret-session-token',
+        'super-secret-bearer-token',
+        'enctxt_session',
+        'Bearer',
+        'Cookie',
+      ]) {
+        expect(telemetry, `telemetry leaked "${secret}"`).not.toContain(secret);
+      }
+
+      // Exactly the four documented fields, nothing else.
+      const payload = JSON.parse(telemetry.slice(telemetry.indexOf('{')));
+      expect(Object.keys(payload).sort()).toEqual([
+        'configuredTrustedHops',
+        'forwardedHops',
+        'resolvedFromSocketPeer',
+        'underCounting',
+      ]);
+    } finally {
+      restore();
+    }
   });
 });
