@@ -3,6 +3,7 @@ import cors from 'cors';
 import cookieParser from 'cookie-parser';
 import { config } from './config/env.js';
 import { buildOriginPolicy, type OriginPolicy } from './config/origins.js';
+import { createProxyTopologyProbe, resolveTrustedProxyHops } from './config/trustProxy.js';
 import { securityHeaders } from './middleware/securityHeaders.js';
 import { createOriginGuard } from './middleware/originGuard.js';
 import { requestLogger } from './middleware/requestLogger.js';
@@ -17,10 +18,31 @@ export interface CreateAppOptions {
    * running in production mode.
    */
   originPolicy?: OriginPolicy;
+  /**
+   * Overrides how many reverse-proxy hops Express trusts when resolving `req.ip`.
+   * Production never passes this; it exists so the test suite can exercise the deployed
+   * proxy topology without the process itself running in production mode.
+   */
+  trustedProxyHops?: number;
 }
 
 export function createApp(options: CreateAppOptions = {}): Express {
   const app = express();
+
+  // Client-IP resolution behind Render's reverse proxy (Phase 0B — Increment 2, H-6).
+  //
+  // Must be set before any middleware reads `req.ip`. A numeric hop count is used rather
+  // than `true` on purpose: `true` resolves `req.ip` to the left-most X-Forwarded-For
+  // entry, which the client writes, making every IP-keyed control forgeable. See
+  // config/trustProxy.ts for the full derivation and for why under-counting is the safe
+  // direction to err in.
+  const trustedProxyHops =
+    options.trustedProxyHops ??
+    resolveTrustedProxyHops({ raw: config.TRUST_PROXY_HOPS, nodeEnv: config.NODE_ENV });
+  app.set('trust proxy', trustedProxyHops);
+
+  // Makes the hop count above falsifiable in production rather than assumed. Logs once.
+  app.use(createProxyTopologyProbe(trustedProxyHops));
 
   // Single source of truth for the browser-origin trust boundary, shared with the
   // WebSocket handshake. Outside production this also admits the localhost dev origins;

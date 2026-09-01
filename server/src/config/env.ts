@@ -29,6 +29,11 @@ export const envSchema = z
     // sessions (e.g. a Vercel preview deployment). Applies to CORS, the CSRF origin guard,
     // and the WebSocket handshake alike — see server/src/config/origins.ts.
     ALLOWED_ORIGINS: z.string().optional(),
+    // Number of reverse-proxy hops Express may trust when resolving the client IP. Optional:
+    // production defaults to 1 (Render's TLS-terminating proxy) and everything else to 0.
+    // Exists so the value can be corrected from configuration once the real chain length is
+    // observed, without a code change — see server/src/config/trustProxy.ts.
+    TRUST_PROXY_HOPS: z.string().optional(),
     JWT_SECRET: z
       .string()
       .default('development_jwt_secret_key_minimum_32_characters_long_for_security!'),
